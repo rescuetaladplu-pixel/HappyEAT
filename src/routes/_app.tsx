@@ -14,13 +14,14 @@ function AppLayout() {
   const location = useLocation();
   const { count } = useCart();
 
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate({ to: "/auth" });
-    }
-  }, [loading, user, navigate]);
+  // ปิดการบังคับล็อกอินชั่วคราว เพื่อความสะดวกในการตรวจงาน
+  // useEffect(() => {
+  //   if (!loading && !user) {
+  //     navigate({ to: "/auth" });
+  //   }
+  // }, [loading, user, navigate]);
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-muted-foreground">กำลังโหลด...</div>
