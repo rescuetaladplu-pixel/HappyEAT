@@ -14,32 +14,38 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+const ADMIN_EMAIL_DOMAIN = "admin.local";
+
 function AuthPage() {
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
+  const [signInMode, setSignInMode] = useState<"email" | "username">("email");
 
-  // Already signed in — bounce
   if (user) {
     setTimeout(() => navigate({ to: "/home" }), 0);
   }
 
   // Sign-in fields
-  const [siEmail, setSiEmail] = useState("");
+  const [siIdentifier, setSiIdentifier] = useState("");
   const [siPassword, setSiPassword] = useState("");
 
-  // Sign-up fields
+  // Sign-up fields (no admin option)
   const [suName, setSuName] = useState("");
   const [suEmail, setSuEmail] = useState("");
   const [suPhone, setSuPhone] = useState("");
   const [suPassword, setSuPassword] = useState("");
-  const [suRole, setSuRole] = useState<AppRole>("customer");
+  const [suRole, setSuRole] = useState<Exclude<AppRole, "admin">>("customer");
 
   async function handleSignIn(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const { error } = await signIn(siEmail, siPassword);
+    const email =
+      signInMode === "username"
+        ? `${siIdentifier.trim().toLowerCase()}@${ADMIN_EMAIL_DOMAIN}`
+        : siIdentifier.trim();
+    const { error } = await signIn(email, siPassword);
     setLoading(false);
     if (error) return toast.error(error);
     toast.success("เข้าสู่ระบบสำเร็จ");
@@ -79,10 +85,41 @@ function AuthPage() {
               </TabsList>
 
               <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-4 pt-4">
+                <div className="flex gap-2 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setSignInMode("email")}
+                    className={`flex-1 text-xs py-1.5 rounded-md border ${
+                      signInMode === "email"
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-border text-muted-foreground"
+                    }`}
+                  >
+                    อีเมล
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSignInMode("username")}
+                    className={`flex-1 text-xs py-1.5 rounded-md border ${
+                      signInMode === "username"
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-border text-muted-foreground"
+                    }`}
+                  >
+                    Username (แอดมิน)
+                  </button>
+                </div>
+                <form onSubmit={handleSignIn} className="space-y-4 pt-3">
                   <div className="space-y-2">
-                    <Label htmlFor="si-email">อีเมล</Label>
-                    <Input id="si-email" type="email" required value={siEmail} onChange={(e) => setSiEmail(e.target.value)} />
+                    <Label htmlFor="si-id">{signInMode === "email" ? "อีเมล" : "Username"}</Label>
+                    <Input
+                      id="si-id"
+                      type={signInMode === "email" ? "email" : "text"}
+                      required
+                      value={siIdentifier}
+                      onChange={(e) => setSiIdentifier(e.target.value)}
+                      placeholder={signInMode === "username" ? "adminmai" : ""}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="si-pw">รหัสผ่าน</Label>
@@ -114,11 +151,10 @@ function AuthPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>ฉันต้องการสมัครเป็น</Label>
-                    <RadioGroup value={suRole} onValueChange={(v) => setSuRole(v as AppRole)} className="grid grid-cols-2 gap-2">
+                    <RadioGroup value={suRole} onValueChange={(v) => setSuRole(v as Exclude<AppRole, "admin">)} className="grid grid-cols-3 gap-2">
                       <RoleOption value="customer" label="ลูกค้า" desc="สั่งอาหาร" current={suRole} />
                       <RoleOption value="restaurant" label="ร้านอาหาร" desc="ขายอาหาร" current={suRole} />
                       <RoleOption value="rider" label="ไรเดอร์" desc="ส่งอาหาร" current={suRole} />
-                      <RoleOption value="admin" label="แอดมิน" desc="ผู้ดูแลระบบ" current={suRole} />
                     </RadioGroup>
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
@@ -134,7 +170,7 @@ function AuthPage() {
   );
 }
 
-function RoleOption({ value, label, desc, current }: { value: AppRole; label: string; desc: string; current: AppRole }) {
+function RoleOption({ value, label, desc, current }: { value: string; label: string; desc: string; current: string }) {
   const active = current === value;
   return (
     <Label
