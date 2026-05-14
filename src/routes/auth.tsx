@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link, redirect } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { useAuth, type AppRole } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,9 @@ import { toast } from "sonner";
 import { UtensilsCrossed } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
+  beforeLoad: () => {
+    throw redirect({ to: "/home" });
+  },
   component: AuthPage,
 });
 
@@ -96,7 +99,13 @@ function AuthPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="si-pw">รหัสผ่าน</Label>
-                    <Input id="si-pw" type="password" required value={siPassword} onChange={(e) => setSiPassword(e.target.value)} />
+                    <Input
+                      id="si-pw"
+                      type="password"
+                      required
+                      value={siPassword}
+                      onChange={(e) => setSiPassword(e.target.value)}
+                    />
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
@@ -108,25 +117,62 @@ function AuthPage() {
                 <form onSubmit={handleSignUp} className="space-y-4 pt-4">
                   <div className="space-y-2">
                     <Label htmlFor="su-name">ชื่อ-นามสกุล</Label>
-                    <Input id="su-name" required value={suName} onChange={(e) => setSuName(e.target.value)} />
+                    <Input
+                      id="su-name"
+                      required
+                      value={suName}
+                      onChange={(e) => setSuName(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="su-email">อีเมล</Label>
-                    <Input id="su-email" type="email" required value={suEmail} onChange={(e) => setSuEmail(e.target.value)} />
+                    <Input
+                      id="su-email"
+                      type="email"
+                      required
+                      value={suEmail}
+                      onChange={(e) => setSuEmail(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="su-phone">เบอร์โทร</Label>
-                    <Input id="su-phone" type="tel" value={suPhone} onChange={(e) => setSuPhone(e.target.value)} />
+                    <Input
+                      id="su-phone"
+                      type="tel"
+                      value={suPhone}
+                      onChange={(e) => setSuPhone(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="su-pw">รหัสผ่าน (อย่างน้อย 6 ตัว)</Label>
-                    <Input id="su-pw" type="password" minLength={6} required value={suPassword} onChange={(e) => setSuPassword(e.target.value)} />
+                    <Input
+                      id="su-pw"
+                      type="password"
+                      minLength={6}
+                      required
+                      value={suPassword}
+                      onChange={(e) => setSuPassword(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>ฉันต้องการสมัครเป็น</Label>
-                    <RadioGroup value={suRole} onValueChange={(v) => setSuRole(v as Exclude<AppRole, "admin">)} className="grid grid-cols-3 gap-2">
-                      <RoleOption value="customer" label="ลูกค้า" desc="สั่งอาหาร" current={suRole} />
-                      <RoleOption value="restaurant" label="ร้านอาหาร" desc="ขายอาหาร" current={suRole} />
+                    <RadioGroup
+                      value={suRole}
+                      onValueChange={(v) => setSuRole(v as Exclude<AppRole, "admin">)}
+                      className="grid grid-cols-3 gap-2"
+                    >
+                      <RoleOption
+                        value="customer"
+                        label="ลูกค้า"
+                        desc="สั่งอาหาร"
+                        current={suRole}
+                      />
+                      <RoleOption
+                        value="restaurant"
+                        label="ร้านอาหาร"
+                        desc="ขายอาหาร"
+                        current={suRole}
+                      />
                       <RoleOption value="rider" label="ไรเดอร์" desc="ส่งอาหาร" current={suRole} />
                     </RadioGroup>
                   </div>
@@ -143,7 +189,17 @@ function AuthPage() {
   );
 }
 
-function RoleOption({ value, label, desc, current }: { value: string; label: string; desc: string; current: string }) {
+function RoleOption({
+  value,
+  label,
+  desc,
+  current,
+}: {
+  value: string;
+  label: string;
+  desc: string;
+  current: string;
+}) {
   const active = current === value;
   return (
     <Label

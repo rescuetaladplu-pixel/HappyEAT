@@ -21,7 +21,7 @@ function ProfilePage() {
 
   async function handleSignOut() {
     await signOut();
-    navigate({ to: "/auth" });
+    navigate({ to: "/home" });
   }
 
   return (
@@ -33,9 +33,7 @@ function ProfilePage() {
         </div>
         <div className="min-w-0">
           <p className="font-semibold truncate">{user?.email}</p>
-          <p className="text-sm text-muted-foreground">
-            {role ? ROLE_LABELS[role] : "—"}
-          </p>
+          <p className="text-sm text-muted-foreground">{role ? ROLE_LABELS[role] : "—"}</p>
         </div>
       </Card>
 
