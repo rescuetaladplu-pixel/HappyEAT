@@ -1,33 +1,71 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
-import { Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Shield, UserPlus } from "lucide-react";
+import { toast } from "sonner";
+import { createAdminAccount, listAdmins } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_app/admin")({
   component: AdminPage,
 });
 
+type AdminRow = { user_id: string; created_at: string; username: string | null; full_name: string | null };
+
 function AdminPage() {
   const { role } = useAuth();
   const [stats, setStats] = useState({ orders: 0, restaurants: 0, riders: 0 });
+  const [admins, setAdmins] = useState<AdminRow[]>([]);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  const createFn = useServerFn(createAdminAccount);
+  const listFn = useServerFn(listAdmins);
+
+  async function loadAdmins() {
+    try {
+      const rows = await listFn();
+      setAdmins(rows as AdminRow[]);
+    } catch (e: any) {
+      console.error(e);
+    }
+  }
 
   useEffect(() => {
-    async function load() {
+    if (role !== "admin") return;
+    (async () => {
       const [o, r, ri] = await Promise.all([
         supabase.from("orders").select("id", { count: "exact", head: true }),
         supabase.from("restaurants").select("id", { count: "exact", head: true }),
         supabase.from("riders").select("id", { count: "exact", head: true }),
       ]);
-      setStats({
-        orders: o.count ?? 0,
-        restaurants: r.count ?? 0,
-        riders: ri.count ?? 0,
-      });
-    }
-    if (role === "admin") load();
+      setStats({ orders: o.count ?? 0, restaurants: r.count ?? 0, riders: ri.count ?? 0 });
+    })();
+    loadAdmins();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role]);
+
+  async function handleCreate(e: FormEvent) {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      await createFn({ data: { username: username.trim().toLowerCase(), password } });
+      toast.success(`สร้างแอดมิน ${username} สำเร็จ`);
+      setUsername("");
+      setPassword("");
+      loadAdmins();
+    } catch (e: any) {
+      toast.error(e?.message ?? "สร้างไม่สำเร็จ");
+    } finally {
+      setCreating(false);
+    }
+  }
 
   if (role !== "admin") {
     return (
@@ -46,10 +84,60 @@ function AdminPage() {
         <Stat label="ร้านค้า" value={stats.restaurants} />
         <Stat label="ไรเดอร์" value={stats.riders} />
       </div>
+
+      <Card className="p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <UserPlus className="h-5 w-5 text-primary" />
+          <h2 className="font-semibold">สร้างแอดมินใหม่</h2>
+        </div>
+        <form onSubmit={handleCreate} className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="new-username">Username</Label>
+            <Input
+              id="new-username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="เช่น admin2"
+              pattern="[a-z0-9_]{3,32}"
+              title="a-z, 0-9, _ ความยาว 3-32 ตัว"
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-password">รหัสผ่าน (อย่างน้อย 6 ตัว)</Label>
+            <Input
+              id="new-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={6}
+              required
+            />
+          </div>
+          <Button type="submit" disabled={creating}>
+            {creating ? "กำลังสร้าง..." : "สร้างแอดมิน"}
+          </Button>
+        </form>
+      </Card>
+
       <Card className="p-5">
-        <p className="text-sm text-muted-foreground">
-          ฟีเจอร์เพิ่มเติม (อนุมัติร้าน, ระงับผู้ใช้, จัดการค่าคอม) จะเพิ่มในเวอร์ชันถัดไป
-        </p>
+        <h2 className="font-semibold mb-3">รายชื่อแอดมิน ({admins.length})</h2>
+        <div className="space-y-2">
+          {admins.map((a) => (
+            <div key={a.user_id} className="flex justify-between text-sm border-b last:border-0 py-2">
+              <div>
+                <p className="font-medium">{a.username ?? "(ไม่มี username)"}</p>
+                <p className="text-xs text-muted-foreground">{a.full_name}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {new Date(a.created_at).toLocaleDateString("th-TH")}
+              </p>
+            </div>
+          ))}
+          {admins.length === 0 && (
+            <p className="text-sm text-muted-foreground">ยังไม่มีแอดมิน</p>
+          )}
+        </div>
       </Card>
     </main>
   );
