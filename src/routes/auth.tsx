@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link, redirect } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { useAuth, type AppRole } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,9 @@ import { toast } from "sonner";
 import { UtensilsCrossed } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
+  beforeLoad: () => {
+    throw redirect({ to: "/home" });
+  },
   component: AuthPage,
 });
 

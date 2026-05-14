@@ -21,7 +21,7 @@ function ProfilePage() {
 
   async function handleSignOut() {
     await signOut();
-    navigate({ to: "/auth" });
+    navigate({ to: "/home" });
   }
 
   return (
