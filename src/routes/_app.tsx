@@ -72,9 +72,9 @@ function AppLayout() {
               >
                 <div className="relative">
                   <item.icon className="h-5 w-5" />
-                  {"badge" in item && item.badge ? (
+                  {("badge" in item && (item as { badge?: number }).badge) ? (
                     <span className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-semibold">
-                      {item.badge}
+                      {(item as { badge?: number }).badge}
                     </span>
                   ) : null}
                 </div>
