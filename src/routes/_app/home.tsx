@@ -1,0 +1,163 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Search, MapPin, Star, UtensilsCrossed } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+export const Route = createFileRoute("/_app/home")({
+  component: HomePage,
+});
+
+interface Restaurant {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string | null;
+  image_url: string | null;
+  rating: number;
+  delivery_fee: number;
+  is_open: boolean;
+}
+
+const CATEGORIES = ["ทั้งหมด", "ตามสั่ง", "ก๋วยเตี๋ยว", "ส้มตำ", "เครื่องดื่ม", "ของหวาน", "ฟาสต์ฟู้ด"];
+
+function HomePage() {
+  const { user, role } = useAuth();
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("ทั้งหมด");
+
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase
+        .from("restaurants")
+        .select("id, name, description, category, image_url, rating, delivery_fee, is_open")
+        .eq("is_approved", true)
+        .order("rating", { ascending: false });
+      setRestaurants((data ?? []) as Restaurant[]);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  const filtered = restaurants.filter((r) => {
+    const okCat = category === "ทั้งหมด" || r.category === category;
+    const okSearch = !search || r.name.toLowerCase().includes(search.toLowerCase());
+    return okCat && okSearch;
+  });
+
+  // Non-customer roles see a redirect prompt
+  if (role && role !== "customer") {
+    const dest =
+      role === "restaurant" ? "/restaurant-dashboard" : role === "rider" ? "/rider-dashboard" : "/admin";
+    return (
+      <main className="p-6 max-w-2xl mx-auto">
+        <h1 className="text-2xl font-bold mb-2">ยินดีต้อนรับ</h1>
+        <p className="text-muted-foreground mb-4">บัญชีนี้ไม่ใช่บัญชีลูกค้า</p>
+        <Link to={dest} className="text-primary underline">ไปที่แดชบอร์ดของคุณ</Link>
+      </main>
+    );
+  }
+
+  return (
+    <main className="max-w-2xl mx-auto">
+      <header className="px-4 pt-6 pb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">
+            <UtensilsCrossed className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <MapPin className="h-3 w-3" /> ส่งไปยัง
+            </p>
+            <p className="text-sm font-semibold">บ้านของฉัน</p>
+          </div>
+        </div>
+        <h1 className="text-2xl font-bold leading-tight">หิวอะไรวันนี้?</h1>
+        <p className="text-sm text-muted-foreground mt-1">สวัสดี {user?.email?.split("@")[0]}</p>
+      </header>
+
+      <div className="px-4 pb-3 sticky top-0 bg-background/95 backdrop-blur z-10 pt-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="ค้นหาร้านอาหาร เมนู..."
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="px-4 pb-3">
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-none">
+          {CATEGORIES.map((c) => (
+            <button
+              key={c}
+              onClick={() => setCategory(c)}
+              className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition ${
+                category === c
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground"
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <section className="px-4 pb-6 space-y-3">
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <UtensilsCrossed className="h-12 w-12 mx-auto mb-2 opacity-30" />
+            <p>ยังไม่มีร้านในขณะนี้</p>
+            <p className="text-xs mt-1">ลองเปลี่ยนหมวดหมู่หรือคำค้นหา</p>
+          </div>
+        ) : (
+          filtered.map((r) => (
+            <Link key={r.id} to="/restaurants/$restaurantId" params={{ restaurantId: r.id }}>
+              <Card className="overflow-hidden p-0 hover:shadow-md transition">
+                <div className="aspect-[2/1] bg-gradient-to-br from-accent to-secondary relative">
+                  {r.image_url ? (
+                    <img src={r.image_url} alt={r.name} className="w-full h-full object-cover" loading="lazy" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-primary/30">
+                      <UtensilsCrossed className="h-12 w-12" />
+                    </div>
+                  )}
+                  {!r.is_open && (
+                    <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
+                      <span className="font-semibold text-foreground">ปิดอยู่</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-3">
+                  <h3 className="font-semibold text-foreground">{r.name}</h3>
+                  {r.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{r.description}</p>
+                  )}
+                  <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Star className="h-3 w-3 fill-primary text-primary" />
+                      {Number(r.rating).toFixed(1)}
+                    </span>
+                    <span>•</span>
+                    <span>ค่าส่ง ฿{Number(r.delivery_fee).toFixed(0)}</span>
+                    {r.category && <><span>•</span><span>{r.category}</span></>}
+                  </div>
+                </div>
+              </Card>
+            </Link>
+          ))
+        )}
+      </section>
+    </main>
+  );
+}
