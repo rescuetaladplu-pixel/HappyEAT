@@ -128,7 +128,7 @@ function RestaurantDashboard() {
   async function advanceOrder(o: Order) {
     const next = NEXT_STATUS[o.status];
     if (!next) return;
-    await supabase.from("orders").update({ status: next }).eq("id", o.id);
+    await supabase.from("orders").update({ status: next as "accepted" | "preparing" | "ready" }).eq("id", o.id);
   }
 
   if (loading) return <main className="p-6">กำลังโหลด...</main>;
