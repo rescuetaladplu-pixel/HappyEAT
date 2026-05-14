@@ -89,7 +89,7 @@ function RiderDashboard() {
   }
 
   async function advance(o: Order, next: string) {
-    await supabase.from("orders").update({ status: next }).eq("id", o.id);
+    await supabase.from("orders").update({ status: next as "delivering" | "delivered" }).eq("id", o.id);
   }
 
   return (
