@@ -75,14 +75,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "FoodDash — แอปสั่งอาหาร" },
+      { name: "description", content: "สั่งอาหารจากร้านโปรดของคุณ ส่งถึงที่หมายอย่างรวดเร็ว" },
+      { name: "author", content: "FoodDash" },
+      { property: "og:title", content: "FoodDash — แอปสั่งอาหาร" },
+      { property: "og:description", content: "สั่งอาหารง่าย ๆ ส่งถึงที่ พร้อมติดตามออเดอร์แบบเรียลไทม์" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:site", content: "@FoodDash" },
     ],
     links: [
       {
