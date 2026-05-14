@@ -40,10 +40,9 @@ function AuthPage() {
   async function handleSignIn(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const email =
-      signInMode === "username"
-        ? `${siIdentifier.trim().toLowerCase()}@${ADMIN_EMAIL_DOMAIN}`
-        : siIdentifier.trim();
+    const raw = siIdentifier.trim();
+    // ถ้าไม่มี @ ถือว่าเป็น username (แอดมิน) → แปลงเป็นอีเมลภายใน
+    const email = raw.includes("@") ? raw : `${raw.toLowerCase()}@${ADMIN_EMAIL_DOMAIN}`;
     const { error } = await signIn(email, siPassword);
     setLoading(false);
     if (error) return toast.error(error);
