@@ -9,38 +9,174 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRiderDashboardRouteImport } from './routes/_app/rider-dashboard'
+import { Route as AppRestaurantDashboardRouteImport } from './routes/_app/restaurant-dashboard'
+import { Route as AppProfileRouteImport } from './routes/_app/profile'
+import { Route as AppOrdersRouteImport } from './routes/_app/orders'
+import { Route as AppHomeRouteImport } from './routes/_app/home'
+import { Route as AppCartRouteImport } from './routes/_app/cart'
+import { Route as AppAdminRouteImport } from './routes/_app/admin'
+import { Route as AppRestaurantsRestaurantIdRouteImport } from './routes/_app/restaurants.$restaurantId'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppRiderDashboardRoute = AppRiderDashboardRouteImport.update({
+  id: '/rider-dashboard',
+  path: '/rider-dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRestaurantDashboardRoute = AppRestaurantDashboardRouteImport.update({
+  id: '/restaurant-dashboard',
+  path: '/restaurant-dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOrdersRoute = AppOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHomeRoute = AppHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCartRoute = AppCartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminRoute = AppAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRestaurantsRestaurantIdRoute =
+  AppRestaurantsRestaurantIdRouteImport.update({
+    id: '/restaurants/$restaurantId',
+    path: '/restaurants/$restaurantId',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/admin': typeof AppAdminRoute
+  '/cart': typeof AppCartRoute
+  '/home': typeof AppHomeRoute
+  '/orders': typeof AppOrdersRoute
+  '/profile': typeof AppProfileRoute
+  '/restaurant-dashboard': typeof AppRestaurantDashboardRoute
+  '/rider-dashboard': typeof AppRiderDashboardRoute
+  '/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/admin': typeof AppAdminRoute
+  '/cart': typeof AppCartRoute
+  '/home': typeof AppHomeRoute
+  '/orders': typeof AppOrdersRoute
+  '/profile': typeof AppProfileRoute
+  '/restaurant-dashboard': typeof AppRestaurantDashboardRoute
+  '/rider-dashboard': typeof AppRiderDashboardRoute
+  '/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_app/admin': typeof AppAdminRoute
+  '/_app/cart': typeof AppCartRoute
+  '/_app/home': typeof AppHomeRoute
+  '/_app/orders': typeof AppOrdersRoute
+  '/_app/profile': typeof AppProfileRoute
+  '/_app/restaurant-dashboard': typeof AppRestaurantDashboardRoute
+  '/_app/rider-dashboard': typeof AppRiderDashboardRoute
+  '/_app/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/admin'
+    | '/cart'
+    | '/home'
+    | '/orders'
+    | '/profile'
+    | '/restaurant-dashboard'
+    | '/rider-dashboard'
+    | '/restaurants/$restaurantId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/admin'
+    | '/cart'
+    | '/home'
+    | '/orders'
+    | '/profile'
+    | '/restaurant-dashboard'
+    | '/rider-dashboard'
+    | '/restaurants/$restaurantId'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/auth'
+    | '/_app/admin'
+    | '/_app/cart'
+    | '/_app/home'
+    | '/_app/orders'
+    | '/_app/profile'
+    | '/_app/restaurant-dashboard'
+    | '/_app/rider-dashboard'
+    | '/_app/restaurants/$restaurantId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +184,94 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/rider-dashboard': {
+      id: '/_app/rider-dashboard'
+      path: '/rider-dashboard'
+      fullPath: '/rider-dashboard'
+      preLoaderRoute: typeof AppRiderDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/restaurant-dashboard': {
+      id: '/_app/restaurant-dashboard'
+      path: '/restaurant-dashboard'
+      fullPath: '/restaurant-dashboard'
+      preLoaderRoute: typeof AppRestaurantDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/profile': {
+      id: '/_app/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/orders': {
+      id: '/_app/orders'
+      path: '/orders'
+      fullPath: '/orders'
+      preLoaderRoute: typeof AppOrdersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/home': {
+      id: '/_app/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AppHomeRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/cart': {
+      id: '/_app/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof AppCartRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin': {
+      id: '/_app/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/restaurants/$restaurantId': {
+      id: '/_app/restaurants/$restaurantId'
+      path: '/restaurants/$restaurantId'
+      fullPath: '/restaurants/$restaurantId'
+      preLoaderRoute: typeof AppRestaurantsRestaurantIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppAdminRoute: typeof AppAdminRoute
+  AppCartRoute: typeof AppCartRoute
+  AppHomeRoute: typeof AppHomeRoute
+  AppOrdersRoute: typeof AppOrdersRoute
+  AppProfileRoute: typeof AppProfileRoute
+  AppRestaurantDashboardRoute: typeof AppRestaurantDashboardRoute
+  AppRiderDashboardRoute: typeof AppRiderDashboardRoute
+  AppRestaurantsRestaurantIdRoute: typeof AppRestaurantsRestaurantIdRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAdminRoute: AppAdminRoute,
+  AppCartRoute: AppCartRoute,
+  AppHomeRoute: AppHomeRoute,
+  AppOrdersRoute: AppOrdersRoute,
+  AppProfileRoute: AppProfileRoute,
+  AppRestaurantDashboardRoute: AppRestaurantDashboardRoute,
+  AppRiderDashboardRoute: AppRiderDashboardRoute,
+  AppRestaurantsRestaurantIdRoute: AppRestaurantsRestaurantIdRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
