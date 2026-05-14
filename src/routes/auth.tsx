@@ -21,7 +21,6 @@ function AuthPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
-  const [signInMode, setSignInMode] = useState<"email" | "username">("email");
 
   if (user) {
     setTimeout(() => navigate({ to: "/home" }), 0);
@@ -41,10 +40,9 @@ function AuthPage() {
   async function handleSignIn(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const email =
-      signInMode === "username"
-        ? `${siIdentifier.trim().toLowerCase()}@${ADMIN_EMAIL_DOMAIN}`
-        : siIdentifier.trim();
+    const raw = siIdentifier.trim();
+    // ถ้าไม่มี @ ถือว่าเป็น username (แอดมิน) → แปลงเป็นอีเมลภายใน
+    const email = raw.includes("@") ? raw : `${raw.toLowerCase()}@${ADMIN_EMAIL_DOMAIN}`;
     const { error } = await signIn(email, siPassword);
     setLoading(false);
     if (error) return toast.error(error);
@@ -85,41 +83,20 @@ function AuthPage() {
               </TabsList>
 
               <TabsContent value="signin">
-                <div className="flex gap-2 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setSignInMode("email")}
-                    className={`flex-1 text-xs py-1.5 rounded-md border ${
-                      signInMode === "email"
-                        ? "border-primary bg-primary/5 text-primary"
-                        : "border-border text-muted-foreground"
-                    }`}
-                  >
-                    อีเมล
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSignInMode("username")}
-                    className={`flex-1 text-xs py-1.5 rounded-md border ${
-                      signInMode === "username"
-                        ? "border-primary bg-primary/5 text-primary"
-                        : "border-border text-muted-foreground"
-                    }`}
-                  >
-                    Username (แอดมิน)
-                  </button>
-                </div>
-                <form onSubmit={handleSignIn} className="space-y-4 pt-3">
+                <form onSubmit={handleSignIn} className="space-y-4 pt-4">
                   <div className="space-y-2">
-                    <Label htmlFor="si-id">{signInMode === "email" ? "อีเมล" : "Username"}</Label>
+                    <Label htmlFor="si-id">อีเมล</Label>
                     <Input
                       id="si-id"
-                      type={signInMode === "email" ? "email" : "text"}
+                      type="text"
                       required
                       value={siIdentifier}
                       onChange={(e) => setSiIdentifier(e.target.value)}
-                      placeholder={signInMode === "username" ? "adminmai" : ""}
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="si-pw">รหัสผ่าน</Label>
+                    <Input id="si-pw" type="password" required value={siPassword} onChange={(e) => setSiPassword(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="si-pw">รหัสผ่าน</Label>
