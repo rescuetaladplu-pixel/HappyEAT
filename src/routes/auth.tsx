@@ -21,7 +21,6 @@ function AuthPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
-  const [signInMode, setSignInMode] = useState<"email" | "username">("email");
 
   if (user) {
     setTimeout(() => navigate({ to: "/home" }), 0);
