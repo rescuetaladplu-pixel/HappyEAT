@@ -1,5 +1,4 @@
-import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute, Outlet, Link, useLocation } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 import { Home, ShoppingBag, ClipboardList, User, Store, Bike, Shield } from "lucide-react";
@@ -9,25 +8,9 @@ export const Route = createFileRoute("/_app")({
 });
 
 function AppLayout() {
-  const { user, loading, role } = useAuth();
-  const navigate = useNavigate();
+  const { role } = useAuth();
   const location = useLocation();
   const { count } = useCart();
-
-  // ปิดการบังคับล็อกอินชั่วคราว เพื่อความสะดวกในการตรวจงาน
-  // useEffect(() => {
-  //   if (!loading && !user) {
-  //     navigate({ to: "/auth" });
-  //   }
-  // }, [loading, user, navigate]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-muted-foreground">กำลังโหลด...</div>
-      </div>
-    );
-  }
 
   const customerNav = [
     { to: "/home", icon: Home, label: "หน้าแรก" },
