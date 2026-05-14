@@ -54,15 +54,25 @@ function AppLayout() {
   ];
 
   const nav =
-    role === "restaurant" ? restaurantNav : role === "rider" ? riderNav : role === "admin" ? adminNav : customerNav;
+    role === "restaurant"
+      ? restaurantNav
+      : role === "rider"
+        ? riderNav
+        : role === "admin"
+          ? adminNav
+          : customerNav;
 
   return (
     <div className="min-h-screen bg-background pb-20">
       <Outlet />
       <nav className="fixed bottom-0 inset-x-0 z-40 bg-card border-t border-border">
-        <div className="mx-auto max-w-2xl grid" style={{ gridTemplateColumns: `repeat(${nav.length}, minmax(0, 1fr))` }}>
+        <div
+          className="mx-auto max-w-2xl grid"
+          style={{ gridTemplateColumns: `repeat(${nav.length}, minmax(0, 1fr))` }}
+        >
           {nav.map((item) => {
-            const active = location.pathname === item.to || location.pathname.startsWith(item.to + "/");
+            const active =
+              location.pathname === item.to || location.pathname.startsWith(item.to + "/");
             return (
               <Link
                 key={item.to}
@@ -73,7 +83,7 @@ function AppLayout() {
               >
                 <div className="relative">
                   <item.icon className="h-5 w-5" />
-                  {("badge" in item && (item as { badge?: number }).badge) ? (
+                  {"badge" in item && (item as { badge?: number }).badge ? (
                     <span className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-semibold">
                       {(item as { badge?: number }).badge}
                     </span>
