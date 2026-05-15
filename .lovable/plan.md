@@ -1,42 +1,69 @@
-## สิ่งที่จะแก้
+## สรุปการเปลี่ยนแปลง
 
-### 1. ย้าย "ตัวเลือกขนาด/ประเภท" ไปอยู่ในหน้าแก้ไขเมนูหลัก
-ตอนนี้ toggle pricing_mode อยู่ในหน้า "ตัวเลือกเสริม" (AddonsDialog) ปนกับท็อปปิ้ง — ทำให้สับสน จะย้ายมาอยู่ในหน้าแก้ไขเมนู (ItemEditDialog) แทน เพื่อให้เป็นการตั้งค่าหลักของเมนูนั้น
+1. ย้าย UI "ตัวเลือกเสริม" เข้าไปอยู่ในหน้าต่างแก้ไขเมนู (ItemEditDialog) ต่อท้ายส่วน "ขนาด/ประเภท"
+2. ลบปุ่ม "ตัวเลือกเสริม" และ AddonsDialog ออก เหลือปุ่มแก้ไขเมนูเดียว
+3. เพิ่มระบบ "เทมเพลตกลุ่มตัวเลือกเสริม" ต่อร้าน — กลุ่มที่เคยสร้างจะถูกบันทึกอัตโนมัติ และสามารถเลือกใช้ซ้ำในเมนูอื่นได้
 
-**โครงใหม่ในหน้าแก้ไขเมนู** (เพิ่มต่อจาก ราคา/รายละเอียด ก่อนถึงสวิตช์ "พร้อมจำหน่าย"):
+---
 
-```text
-┌─ ขนาด / ประเภท (ที่เปลี่ยนราคา)  [ⓘ TIP] ──┐
-│  [ + เพิ่มตัวเลือกขนาด ]                     │
-│  ┌──────────────────────────┬─────┬────┐    │
-│  │ แก้วเล็ก                 │ 50  │ ✕ │    │
-│  │ แก้วใหญ่                 │ 70  │ ✕ │    │
-│  └──────────────────────────┴─────┴────┘    │
-│  ※ เมื่อมีรายการในนี้ ราคาเมนูหลักจะถูก    │
-│     แทนด้วยราคาที่ลูกค้าเลือก และจะแสดง   │
-│     "เริ่มต้น ฿50" บนการ์ดเมนู              │
-└─────────────────────────────────────────────┘
-```
+## 1. Database migration
 
-- ปุ่ม TIP (ไอคอน ⓘ) → กดเปิด Popover คำอธิบาย:
-  > "เปิดใช้เมื่อเมนูมีหลายขนาดหรือหลายประเภทที่ราคาต่างกัน เช่น ชานม แก้วเล็ก 50฿ / แก้วใหญ่ 70฿
-  > เมื่อตั้งค่าแล้ว ลูกค้าจะเห็นราคาบนการ์ดเมนูเป็น "เริ่มต้น ฿50" และเมื่อกดเลือกขนาด ราคาที่เลือกจะกลายเป็นราคาเมนู (ไม่ใช่บวกเพิ่ม)
-  > ส่วน 'ตัวเลือกเสริม' (เช่น ท็อปปิ้ง ไข่ดาว) ที่บวกเพิ่มจากราคาฐาน ให้ใช้เมนู 'ตัวเลือกเสริม' จากหน้ารายการเมนูเหมือนเดิม"
+เพิ่ม 2 ตารางใหม่สำหรับเก็บเทมเพลตกลุ่มตัวเลือกเสริมระดับร้าน:
 
-**Logic เก็บข้อมูล** (ไม่ต้องเปลี่ยน schema):
-- ตัวเลือกขนาดทั้งหมดของเมนูนั้นจะถูกเก็บเป็น addon_group เดียวที่ `pricing_mode='variant'` ชื่อ "ขนาด" โดยอัตโนมัติ (สร้าง/อัปเดตให้เบื้องหลัง)
-- เมื่อเซฟเมนู: ถ้ามีรายการขนาด → upsert variant group + sync options; ถ้าลบหมด → ลบ variant group
-- บังคับ `is_required=true, min_select=1, max_select=1` ให้อัตโนมัติ
+- **`addon_group_templates`**: `id`, `restaurant_id`, `name` (unique ต่อร้าน), `is_required`, `min_select`, `max_select`, `created_at`
+- **`addon_group_template_options`**: `id`, `template_id` (FK cascade), `name`, `price_delta`, `sort_order`
 
-**ลบส่วน Switch pricing_mode ออกจาก AddonsDialog** — หน้านั้นเหลือเฉพาะกลุ่ม addon (ท็อปปิ้ง/เสริม) อย่างเดียว และซ่อน/ไม่แสดง group ที่ pricing_mode='variant' ในรายการของ AddonsDialog (เพราะจัดการจากหน้าเมนูหลักแล้ว)
+RLS: เจ้าของร้านอ่าน/เขียนเทมเพลตของร้านตัวเองได้ (ผ่าน `restaurants.owner_id = auth.uid()`)
 
-### 2. เอาค่าส่งออกจากหน้าโปรไฟล์ร้าน
-ใน `src/routes/_app/my-restaurant.tsx` ลบบรรทัดที่แสดง `<Truck /> ค่าส่ง ฿XX` ออกจากกริดสรุปข้อมูล (ร้านค้าไม่จำเป็นต้องเห็น)
+---
 
-## ไฟล์ที่แตะ
-- `src/routes/_app/restaurant.menu.tsx` — เพิ่ม section ขนาด/ประเภท + TIP popover ใน ItemEditDialog, เพิ่ม logic upsert variant group ตอนเซฟ, เอา Switch pricing_mode ออกจาก AddonsDialog, กรอง variant group ออกจากรายการใน AddonsDialog
-- `src/routes/_app/my-restaurant.tsx` — ลบ block ค่าส่งออก (และเอา import `Truck` ที่ไม่ได้ใช้แล้วออก)
+## 2. `restaurant.menu.tsx` — รวม UI ตัวเลือกเสริมเข้า ItemEditDialog
 
-## ไม่แตะ
-- Schema ฐานข้อมูล (ใช้ `pricing_mode` เดิมที่มีอยู่แล้ว)
-- หน้าลูกค้า `restaurants.$restaurantId.tsx` — logic การคำนวณราคา/แสดง "เริ่มต้น ฿X" ทำงานอยู่แล้ว ไม่ต้องแก้
+**ลบ:**
+- state `addonsForItem`, การเรียก `AddonsDialog`, ปุ่ม "ตัวเลือกเสริม" ใน `ItemList`, prop `onAddons`
+- ฟังก์ชัน `AddonsDialog` ทั้งหมด
+
+**เพิ่มใน `ItemEditDialog`** (หลังบล็อก variants, ก่อน "พร้อมขายวันนี้"):
+- กล่อง "ตัวเลือกเสริม (ท็อปปิ้ง / ของเพิ่ม)" พร้อม TIP popover อธิบายว่า "บวกเพิ่มจากราคาฐาน"
+- จัดการ state แบบ local เหมือน variants:
+  ```
+  type AddonOptionRow = { id?: string; name: string; price: string; tempKey: string }
+  type AddonGroupRow = {
+    id?: string;       // existing menu_addon_groups.id ถ้ามี
+    name: string;
+    isRequired: boolean;
+    minSelect: number;
+    maxSelect: number;
+    options: AddonOptionRow[];
+    tempKey: string;
+  }
+  ```
+- โหลดกลุ่มที่มีอยู่ของเมนูนี้ (`pricing_mode != 'variant'`) + options
+- ปุ่มต่อกลุ่ม: เพิ่มตัวเลือก / ลบตัวเลือก, สลับบังคับ, ตั้ง min/max, ลบกลุ่ม
+- ปุ่มล่างกล่อง:
+  - **"+ เพิ่มกลุ่มใหม่"** (ใส่ชื่อแล้วเพิ่ม)
+  - **Select "เลือกจากกลุ่มที่เคยตั้งไว้"** — แสดงเทมเพลตของร้าน (ดึงจาก `addon_group_templates` + options) เลือกแล้วเพิ่มเป็นกลุ่มใหม่ใน state ทันที (id ใหม่, copy ค่าทั้งหมด)
+
+**Save flow ใหม่ใน `save()`:**
+หลัง insert/update menu_item และเรียก `syncVariants(savedId)` แล้ว เพิ่ม `syncAddons(savedId)`:
+- โหลด ids กลุ่มเดิมของเมนู (ที่ไม่ใช่ variant) → ลบกลุ่มที่ไม่อยู่ใน state แล้ว (cascade options)
+- สำหรับแต่ละกลุ่มใน state:
+  - ถ้ามี `id` → update; ถ้าไม่มี → insert (ได้ id ใหม่)
+  - sync options ของกลุ่มนั้น (ลบที่หายไป, update/insert ที่เหลือ)
+  - **upsert template:** หลังบันทึกกลุ่มสำเร็จ ทำ upsert เข้า `addon_group_templates` (key = `restaurant_id + name`) และ replace options ของเทมเพลตนั้นด้วยค่าปัจจุบัน เพื่อให้เมนูถัดไปดึงไปใช้ได้
+
+---
+
+## 3. ไฟล์ที่ต้องแก้
+
+- `supabase/migrations/...sql` — สร้าง 2 ตาราง + RLS
+- `src/routes/_app/restaurant.menu.tsx` — ย้าย UI + ลบ AddonsDialog + เพิ่ม syncAddons + dropdown เทมเพลต
+- ไม่ต้องแก้ฝั่งลูกค้า (`restaurants.$restaurantId.tsx`) เพราะ data shape ของ `menu_addon_groups/options` เหมือนเดิม
+
+---
+
+## รายละเอียดเชิงเทคนิค (สำหรับ devs)
+
+- เทมเพลตเก็บแยกออกจาก `menu_addon_groups` เพื่อไม่กระทบโครงข้อมูลปัจจุบัน และ upsert โดยใช้ unique constraint `(restaurant_id, name)` — ถ้ากลุ่มชื่อเดิมถูกแก้ใน menu ใดก็ตาม เทมเพลตจะอัปเดตตาม
+- เมื่อเลือกเทมเพลตมาใช้ในเมนูอื่น จะ deep copy ลง state เท่านั้น (แก้แล้วไม่กระทบเทมเพลตจนกว่าจะกดบันทึก)
+- variant group (`pricing_mode='variant'`) ยังคงจัดการแยกในส่วน "ขนาด/ประเภท" เหมือนเดิม ไม่ขึ้นมาในส่วนตัวเลือกเสริม
