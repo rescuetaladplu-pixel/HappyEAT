@@ -95,7 +95,6 @@ function MenuManagementPage() {
 
   // dialogs
   const [editItem, setEditItem] = useState<MenuItem | null>(null);
-  const [addonsForItem, setAddonsForItem] = useState<MenuItem | null>(null);
 
   async function load() {
     if (!user) return;
@@ -199,7 +198,6 @@ function MenuManagementPage() {
               items={items}
               categories={categories}
               onEdit={setEditItem}
-              onAddons={setAddonsForItem}
               onChange={load}
             />
           )}
@@ -228,12 +226,6 @@ function MenuManagementPage() {
         />
       )}
 
-      {addonsForItem && (
-        <AddonsDialog
-          menuItem={addonsForItem}
-          onClose={() => setAddonsForItem(null)}
-        />
-      )}
     </main>
   );
 }
@@ -373,13 +365,11 @@ function ItemList({
   items,
   categories,
   onEdit,
-  onAddons,
   onChange,
 }: {
   items: MenuItem[];
   categories: Category[];
   onEdit: (it: MenuItem) => void;
-  onAddons: (it: MenuItem) => void;
   onChange: () => void;
 }) {
   async function toggle(it: MenuItem, v: boolean) {
@@ -446,9 +436,6 @@ function ItemList({
                     </span>
                   </div>
                   <div className="flex gap-1">
-                    <Button size="sm" variant="outline" onClick={() => onAddons(it)}>
-                      ตัวเลือกเสริม
-                    </Button>
                     <Button size="icon" variant="ghost" onClick={() => onEdit(it)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -540,6 +527,297 @@ function ItemEditDialog({
   }
   function removeVariant(key: string) {
     setVariants((v) => v.filter((x) => x.tempKey !== key));
+  }
+
+  // ----- Addon groups (toppings / extras) -----
+  type AddonOptionRow = {
+    id?: string;
+    name: string;
+    price: string;
+    isAvailable: boolean;
+    tempKey: string;
+  };
+  type AddonGroupRow = {
+    id?: string;
+    name: string;
+    isRequired: boolean;
+    minSelect: number;
+    maxSelect: number;
+    options: AddonOptionRow[];
+    tempKey: string;
+  };
+  const [addonGroups, setAddonGroups] = useState<AddonGroupRow[]>([]);
+  const [initialAddonGroupIds, setInitialAddonGroupIds] = useState<string[]>([]);
+  type Template = {
+    id: string;
+    name: string;
+    is_required: boolean;
+    min_select: number;
+    max_select: number;
+    options: { name: string; price_delta: number; sort_order: number }[];
+  };
+  const [templates, setTemplates] = useState<Template[]>([]);
+
+  // load existing addon groups for this menu item
+  useEffect(() => {
+    if (!item.id) return;
+    (async () => {
+      const { data: g } = await supabase
+        .from("menu_addon_groups")
+        .select("id, name, is_required, min_select, max_select, sort_order")
+        .eq("menu_item_id", item.id)
+        .neq("pricing_mode", "variant")
+        .order("sort_order");
+      const groupList = g ?? [];
+      if (groupList.length === 0) return;
+      const ids = groupList.map((x) => x.id);
+      setInitialAddonGroupIds(ids);
+      const { data: opts } = await supabase
+        .from("menu_addon_options")
+        .select("id, group_id, name, price_delta, is_available, sort_order")
+        .in("group_id", ids)
+        .order("sort_order");
+      const optsByGroup: Record<string, AddonOptionRow[]> = {};
+      for (const o of opts ?? []) {
+        (optsByGroup[o.group_id] ??= []).push({
+          id: o.id,
+          name: o.name,
+          price: String(o.price_delta),
+          isAvailable: o.is_available,
+          tempKey: o.id,
+        });
+      }
+      setAddonGroups(
+        groupList.map((g0) => ({
+          id: g0.id,
+          name: g0.name,
+          isRequired: g0.is_required,
+          minSelect: g0.min_select,
+          maxSelect: g0.max_select,
+          options: optsByGroup[g0.id] ?? [],
+          tempKey: g0.id,
+        })),
+      );
+    })();
+  }, [item.id]);
+
+  // load reusable templates for this restaurant
+  useEffect(() => {
+    (async () => {
+      const { data: t } = await supabase
+        .from("addon_group_templates")
+        .select("id, name, is_required, min_select, max_select")
+        .eq("restaurant_id", restaurantId)
+        .order("name");
+      const tList = t ?? [];
+      if (tList.length === 0) {
+        setTemplates([]);
+        return;
+      }
+      const { data: o } = await supabase
+        .from("addon_group_template_options")
+        .select("template_id, name, price_delta, sort_order")
+        .in(
+          "template_id",
+          tList.map((x) => x.id),
+        )
+        .order("sort_order");
+      const byT: Record<string, Template["options"]> = {};
+      for (const opt of o ?? []) {
+        (byT[opt.template_id] ??= []).push({
+          name: opt.name,
+          price_delta: Number(opt.price_delta),
+          sort_order: opt.sort_order,
+        });
+      }
+      setTemplates(
+        tList.map((x) => ({
+          id: x.id,
+          name: x.name,
+          is_required: x.is_required,
+          min_select: x.min_select,
+          max_select: x.max_select,
+          options: byT[x.id] ?? [],
+        })),
+      );
+    })();
+  }, [restaurantId]);
+
+  function newKey() {
+    return `new-${Date.now()}-${Math.random()}`;
+  }
+  function addAddonGroup(name = "") {
+    setAddonGroups((g) => [
+      ...g,
+      {
+        name,
+        isRequired: false,
+        minSelect: 0,
+        maxSelect: 1,
+        options: [],
+        tempKey: newKey(),
+      },
+    ]);
+  }
+  function applyTemplate(templateId: string) {
+    const t = templates.find((x) => x.id === templateId);
+    if (!t) return;
+    setAddonGroups((g) => [
+      ...g,
+      {
+        name: t.name,
+        isRequired: t.is_required,
+        minSelect: t.min_select,
+        maxSelect: t.max_select,
+        options: t.options.map((o) => ({
+          name: o.name,
+          price: String(o.price_delta),
+          isAvailable: true,
+          tempKey: newKey(),
+        })),
+        tempKey: newKey(),
+      },
+    ]);
+  }
+  function updateAddonGroup(key: string, patch: Partial<AddonGroupRow>) {
+    setAddonGroups((g) => g.map((x) => (x.tempKey === key ? { ...x, ...patch } : x)));
+  }
+  function removeAddonGroup(key: string) {
+    setAddonGroups((g) => g.filter((x) => x.tempKey !== key));
+  }
+  function addOption(groupKey: string) {
+    updateAddonGroupOptions(groupKey, (opts) => [
+      ...opts,
+      { name: "", price: "0", isAvailable: true, tempKey: newKey() },
+    ]);
+  }
+  function updateOption(groupKey: string, optKey: string, patch: Partial<AddonOptionRow>) {
+    updateAddonGroupOptions(groupKey, (opts) =>
+      opts.map((o) => (o.tempKey === optKey ? { ...o, ...patch } : o)),
+    );
+  }
+  function removeOption(groupKey: string, optKey: string) {
+    updateAddonGroupOptions(groupKey, (opts) => opts.filter((o) => o.tempKey !== optKey));
+  }
+  function updateAddonGroupOptions(
+    key: string,
+    fn: (opts: AddonOptionRow[]) => AddonOptionRow[],
+  ) {
+    setAddonGroups((g) =>
+      g.map((x) => (x.tempKey === key ? { ...x, options: fn(x.options) } : x)),
+    );
+  }
+
+  async function syncAddons(menuItemId: string) {
+    const cleanGroups = addonGroups
+      .map((g) => ({
+        ...g,
+        name: g.name.trim(),
+        options: g.options
+          .map((o) => ({ ...o, name: o.name.trim() }))
+          .filter((o) => o.name.length > 0),
+      }))
+      .filter((g) => g.name.length > 0);
+
+    // delete groups removed by user
+    const keepIds = cleanGroups.filter((g) => g.id).map((g) => g.id!) as string[];
+    const toDelete = initialAddonGroupIds.filter((id) => !keepIds.includes(id));
+    if (toDelete.length > 0) {
+      await supabase.from("menu_addon_groups").delete().in("id", toDelete);
+    }
+
+    for (let i = 0; i < cleanGroups.length; i++) {
+      const grp = cleanGroups[i];
+      let groupId = grp.id;
+      const groupPayload = {
+        name: grp.name,
+        is_required: grp.isRequired,
+        min_select: Math.max(0, grp.minSelect),
+        max_select: Math.max(1, grp.maxSelect),
+        sort_order: i,
+      };
+      if (groupId) {
+        await supabase.from("menu_addon_groups").update(groupPayload).eq("id", groupId);
+      } else {
+        const { data, error } = await supabase
+          .from("menu_addon_groups")
+          .insert({ ...groupPayload, menu_item_id: menuItemId, pricing_mode: "addon" })
+          .select("id")
+          .single();
+        if (error || !data) throw new Error(error?.message ?? "create addon group failed");
+        groupId = data.id;
+      }
+
+      // sync options for this group
+      const keepOptIds = grp.options.filter((o) => o.id).map((o) => o.id!) as string[];
+      if (grp.id) {
+        const { data: existing } = await supabase
+          .from("menu_addon_options")
+          .select("id")
+          .eq("group_id", groupId);
+        const optsToDelete = (existing ?? [])
+          .map((e) => e.id)
+          .filter((id) => !keepOptIds.includes(id));
+        if (optsToDelete.length > 0) {
+          await supabase.from("menu_addon_options").delete().in("id", optsToDelete);
+        }
+      }
+      for (let j = 0; j < grp.options.length; j++) {
+        const o = grp.options[j];
+        const priceNum = Number(o.price) || 0;
+        if (o.id) {
+          await supabase
+            .from("menu_addon_options")
+            .update({
+              name: o.name,
+              price_delta: priceNum,
+              is_available: o.isAvailable,
+              sort_order: j,
+            })
+            .eq("id", o.id);
+        } else {
+          await supabase.from("menu_addon_options").insert({
+            group_id: groupId,
+            name: o.name,
+            price_delta: priceNum,
+            is_available: o.isAvailable,
+            sort_order: j,
+          });
+        }
+      }
+
+      // upsert template (per restaurant, by name)
+      const { data: tpl, error: tplErr } = await supabase
+        .from("addon_group_templates")
+        .upsert(
+          {
+            restaurant_id: restaurantId,
+            name: grp.name,
+            is_required: grp.isRequired,
+            min_select: groupPayload.min_select,
+            max_select: groupPayload.max_select,
+          },
+          { onConflict: "restaurant_id,name" },
+        )
+        .select("id")
+        .single();
+      if (!tplErr && tpl) {
+        await supabase
+          .from("addon_group_template_options")
+          .delete()
+          .eq("template_id", tpl.id);
+        if (grp.options.length > 0) {
+          await supabase.from("addon_group_template_options").insert(
+            grp.options.map((o, j) => ({
+              template_id: tpl.id,
+              name: o.name,
+              price_delta: Number(o.price) || 0,
+              sort_order: j,
+            })),
+          );
+        }
+      }
+    }
   }
 
   async function uploadImage(e: ChangeEvent<HTMLInputElement>) {
@@ -662,6 +940,7 @@ function ItemEditDialog({
         if (error) throw new Error(error.message);
       }
       await syncVariants(savedId);
+      await syncAddons(savedId);
       toast.success(isNew ? "เพิ่มเมนูแล้ว" : "บันทึกแล้ว");
       onSaved();
     } catch (e) {
@@ -832,6 +1111,184 @@ function ItemEditDialog({
             )}
           </div>
 
+          {/* Addon groups (toppings / extras) */}
+          <div className="rounded-lg border border-border p-3 space-y-3">
+            <div className="flex items-center gap-1.5">
+              <Label className="m-0">ตัวเลือกเสริม (ท็อปปิ้ง / ของเพิ่ม)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 text-muted-foreground"
+                  >
+                    <Info className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 text-xs leading-relaxed">
+                  <p className="font-semibold text-sm mb-1">เคล็ดลับการใช้งาน</p>
+                  <p className="text-muted-foreground">
+                    เพิ่มตัวเลือกเสริมที่ <b>บวกเพิ่มจากราคาฐาน</b> เช่น ไข่ดาว +10฿,
+                    ชีส +20฿
+                  </p>
+                  <p className="text-muted-foreground mt-2">
+                    กลุ่มที่สร้างจะถูก <b>บันทึกอัตโนมัติเป็นเทมเพลต</b> ของร้าน
+                    เลือกใช้ซ้ำในเมนูอื่นได้จากดรอปดาวน์ "ใช้กลุ่มที่เคยตั้งไว้"
+                  </p>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {addonGroups.map((g) => (
+              <Card key={g.tempKey} className="p-3 space-y-3">
+                <div className="flex items-start gap-2">
+                  <Input
+                    placeholder='เช่น "ท็อปปิ้ง"'
+                    value={g.name}
+                    onChange={(e) => updateAddonGroup(g.tempKey, { name: e.target.value })}
+                    className="font-medium"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="text-destructive shrink-0"
+                    onClick={() => removeAddonGroup(g.tempKey)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-xs items-center">
+                  <label className="flex items-center gap-2">
+                    <Switch
+                      checked={g.isRequired}
+                      onCheckedChange={(v) => updateAddonGroup(g.tempKey, { isRequired: v })}
+                    />
+                    บังคับ
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <span>ขั้นต่ำ</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={g.minSelect}
+                      onChange={(e) =>
+                        updateAddonGroup(g.tempKey, {
+                          minSelect: Math.max(0, Number(e.target.value) || 0),
+                        })
+                      }
+                      className="h-8"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span>สูงสุด</span>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={g.maxSelect}
+                      onChange={(e) =>
+                        updateAddonGroup(g.tempKey, {
+                          maxSelect: Math.max(1, Number(e.target.value) || 1),
+                        })
+                      }
+                      className="h-8"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {g.options.map((o) => (
+                    <div key={o.tempKey} className="flex items-center gap-2">
+                      <Input
+                        placeholder="ชื่อ"
+                        value={o.name}
+                        onChange={(e) =>
+                          updateOption(g.tempKey, o.tempKey, { name: e.target.value })
+                        }
+                        className="flex-1"
+                      />
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        placeholder="+ราคา"
+                        value={o.price}
+                        onChange={(e) =>
+                          updateOption(g.tempKey, o.tempKey, { price: e.target.value })
+                        }
+                        className="w-20"
+                      />
+                      <Switch
+                        checked={o.isAvailable}
+                        onCheckedChange={(v) =>
+                          updateOption(g.tempKey, o.tempKey, { isAvailable: v })
+                        }
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="text-destructive shrink-0"
+                        onClick={() => removeOption(g.tempKey, o.tempKey)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => addOption(g.tempKey)}
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> เพิ่มตัวเลือก
+                  </Button>
+                </div>
+              </Card>
+            ))}
+
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addAddonGroup()}
+              >
+                <Plus className="h-4 w-4 mr-1" /> เพิ่มกลุ่มใหม่
+              </Button>
+              <Select
+                value=""
+                onValueChange={(v) => v && applyTemplate(v)}
+                disabled={templates.length === 0}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue
+                    placeholder={
+                      templates.length === 0
+                        ? "ยังไม่มีเทมเพลต"
+                        : "ใช้กลุ่มที่เคยตั้งไว้"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name} ({t.options.length} ตัวเลือก)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {addonGroups.length === 0 && (
+              <p className="text-[11px] text-muted-foreground text-center">
+                ไม่ต้องตั้งค่าหากเมนูนี้ไม่มีตัวเลือกเสริม
+              </p>
+            )}
+          </div>
+
           <div className="flex items-center justify-between rounded-lg border border-border p-3">
             <div>
               <p className="text-sm font-medium">พร้อมขายวันนี้</p>
@@ -857,242 +1314,3 @@ function ItemEditDialog({
   );
 }
 
-/* ----------------------- Add-ons dialog ----------------------- */
-
-function AddonsDialog({
-  menuItem,
-  onClose,
-}: {
-  menuItem: MenuItem;
-  onClose: () => void;
-}) {
-  const [groups, setGroups] = useState<AddonGroup[]>([]);
-  const [optionsMap, setOptionsMap] = useState<Record<string, AddonOption[]>>({});
-  const [loading, setLoading] = useState(true);
-  const [newGroupName, setNewGroupName] = useState("");
-
-  async function load() {
-    const { data: g } = await supabase
-      .from("menu_addon_groups")
-      .select("*")
-      .eq("menu_item_id", menuItem.id)
-      .neq("pricing_mode", "variant")
-      .order("sort_order");
-    const groupList = (g ?? []) as AddonGroup[];
-    setGroups(groupList);
-    if (groupList.length > 0) {
-      const { data: o } = await supabase
-        .from("menu_addon_options")
-        .select("*")
-        .in("group_id", groupList.map((x) => x.id))
-        .order("sort_order");
-      const map: Record<string, AddonOption[]> = {};
-      for (const opt of (o ?? []) as AddonOption[]) {
-        (map[opt.group_id] ??= []).push(opt);
-      }
-      setOptionsMap(map);
-    } else {
-      setOptionsMap({});
-    }
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [menuItem.id]);
-
-  async function addGroup() {
-    if (!newGroupName.trim()) return;
-    const { error } = await supabase.from("menu_addon_groups").insert({
-      menu_item_id: menuItem.id,
-      name: newGroupName.trim(),
-      sort_order: groups.length,
-    });
-    if (error) return toast.error(error.message);
-    setNewGroupName("");
-    load();
-  }
-
-  async function updateGroup(g: AddonGroup, patch: Partial<AddonGroup>) {
-    const { error } = await supabase
-      .from("menu_addon_groups")
-      .update(patch)
-      .eq("id", g.id);
-    if (error) return toast.error(error.message);
-    load();
-  }
-
-  async function removeGroup(id: string) {
-    if (!confirm("ลบกลุ่มนี้และตัวเลือกทั้งหมด?")) return;
-    await supabase.from("menu_addon_groups").delete().eq("id", id);
-    load();
-  }
-
-  async function addOption(groupId: string) {
-    const opts = optionsMap[groupId] ?? [];
-    const { error } = await supabase.from("menu_addon_options").insert({
-      group_id: groupId,
-      name: "ตัวเลือกใหม่",
-      price_delta: 0,
-      sort_order: opts.length,
-    });
-    if (error) return toast.error(error.message);
-    load();
-  }
-
-  async function updateOption(opt: AddonOption, patch: Partial<AddonOption>) {
-    const { error } = await supabase
-      .from("menu_addon_options")
-      .update(patch)
-      .eq("id", opt.id);
-    if (error) return toast.error(error.message);
-    load();
-  }
-
-  async function removeOption(id: string) {
-    await supabase.from("menu_addon_options").delete().eq("id", id);
-    load();
-  }
-
-  return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>ตัวเลือกเสริม — {menuItem.name}</DialogTitle>
-        </DialogHeader>
-
-        {loading ? (
-          <div className="flex justify-center py-6">
-            <Loader2 className="h-5 w-5 animate-spin" />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder='เช่น "ระดับความเผ็ด", "ขนาด"'
-                value={newGroupName}
-                onChange={(e) => setNewGroupName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addGroup()}
-              />
-              <Button onClick={addGroup}>
-                <Plus className="h-4 w-4 mr-1" /> เพิ่มกลุ่ม
-              </Button>
-            </div>
-
-            {groups.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                ยังไม่มีกลุ่มตัวเลือก
-              </p>
-            )}
-
-            {groups.map((g) => (
-              <Card key={g.id} className="p-3 space-y-3">
-                <div className="flex items-start gap-2">
-                  <Input
-                    defaultValue={g.name}
-                    onBlur={(e) =>
-                      e.target.value !== g.name && updateGroup(g, { name: e.target.value })
-                    }
-                    className="font-medium"
-                  />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="text-destructive"
-                    onClick={() => removeGroup(g.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 text-xs">
-                  <label className="flex items-center gap-2">
-                    <Switch
-                      checked={g.is_required}
-                      onCheckedChange={(v) => updateGroup(g, { is_required: v })}
-                    />
-                    บังคับเลือก
-                  </label>
-                  <div className="flex items-center gap-1">
-                    <span>ขั้นต่ำ</span>
-                    <Input
-                      type="number"
-                      min={0}
-                      defaultValue={g.min_select}
-                      onBlur={(e) =>
-                        updateGroup(g, { min_select: Math.max(0, Number(e.target.value) || 0) })
-                      }
-                      className="h-8"
-                    />
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span>สูงสุด</span>
-                    <Input
-                      type="number"
-                      min={1}
-                      defaultValue={g.max_select}
-                      onBlur={(e) =>
-                        updateGroup(g, { max_select: Math.max(1, Number(e.target.value) || 1) })
-                      }
-                      className="h-8"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  {(optionsMap[g.id] ?? []).map((opt) => (
-                    <div key={opt.id} className="flex items-center gap-2">
-                      <Input
-                        defaultValue={opt.name}
-                        onBlur={(e) =>
-                          e.target.value !== opt.name &&
-                          updateOption(opt, { name: e.target.value })
-                        }
-                        placeholder="ชื่อ"
-                        className="flex-1"
-                      />
-                      <Input
-                        type="number"
-                        defaultValue={opt.price_delta}
-                        onBlur={(e) =>
-                          updateOption(opt, { price_delta: Number(e.target.value) || 0 })
-                        }
-                      placeholder="+ราคา"
-                      className="w-24"
-                      />
-                      <Switch
-                        checked={opt.is_available}
-                        onCheckedChange={(v) => updateOption(opt, { is_available: v })}
-                      />
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="text-destructive"
-                        onClick={() => removeOption(opt.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => addOption(g.id)}
-                  >
-                    <Plus className="h-4 w-4 mr-1" /> เพิ่มตัวเลือก
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        <DialogFooter>
-          <Button onClick={onClose}>เสร็จสิ้น</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
