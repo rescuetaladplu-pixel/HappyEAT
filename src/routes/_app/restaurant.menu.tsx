@@ -998,6 +998,7 @@ function ItemEditDialog({
       restaurant_id: restaurantId,
       name: name.trim(),
       description: description.trim() || null,
+      allergen_info: allergenInfo.trim() || null,
       price: priceNum,
       image_url: imageUrl,
       category_id: categoryId,
