@@ -77,7 +77,7 @@ function HomePage() {
     async function load() {
       const { data } = await supabase
         .from("restaurants")
-        .select("id, name, description, category, image_url, rating, delivery_fee, is_open")
+        .select("id, name, description, category, image_url, cover_url, logo_url, rating, delivery_fee, is_open")
         .eq("is_approved", true)
         .order("rating", { ascending: false });
       setRestaurants((data ?? []) as Restaurant[]);
