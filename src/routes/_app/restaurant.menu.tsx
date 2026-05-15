@@ -365,13 +365,11 @@ function ItemList({
   items,
   categories,
   onEdit,
-  onAddons,
   onChange,
 }: {
   items: MenuItem[];
   categories: Category[];
   onEdit: (it: MenuItem) => void;
-  onAddons: (it: MenuItem) => void;
   onChange: () => void;
 }) {
   async function toggle(it: MenuItem, v: boolean) {
