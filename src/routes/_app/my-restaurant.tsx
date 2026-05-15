@@ -196,7 +196,7 @@ function MyRestaurantPage() {
     );
   }
 
-  if (role !== "restaurant" && role !== "admin") {
+  if (role !== "restaurant" && role !== "admin" && !restaurant) {
     return (
       <main className="max-w-2xl mx-auto p-4">
         <Card className="p-6 text-center space-y-3">
