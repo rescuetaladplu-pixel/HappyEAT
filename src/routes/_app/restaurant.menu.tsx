@@ -497,6 +497,51 @@ function ItemEditDialog({
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Variants (size/type) — stored as a single addon_group with pricing_mode='variant'
+  type VariantRow = { id?: string; name: string; price: string; tempKey: string };
+  const [variants, setVariants] = useState<VariantRow[]>([]);
+  const [variantGroupId, setVariantGroupId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!item.id) return;
+    (async () => {
+      const { data: g } = await supabase
+        .from("menu_addon_groups")
+        .select("id")
+        .eq("menu_item_id", item.id)
+        .eq("pricing_mode", "variant")
+        .maybeSingle();
+      if (!g) return;
+      setVariantGroupId(g.id);
+      const { data: opts } = await supabase
+        .from("menu_addon_options")
+        .select("id, name, price_delta, sort_order")
+        .eq("group_id", g.id)
+        .order("sort_order");
+      setVariants(
+        (opts ?? []).map((o) => ({
+          id: o.id,
+          name: o.name,
+          price: String(o.price_delta),
+          tempKey: o.id,
+        })),
+      );
+    })();
+  }, [item.id]);
+
+  function addVariant() {
+    setVariants((v) => [
+      ...v,
+      { name: "", price: "", tempKey: `new-${Date.now()}-${Math.random()}` },
+    ]);
+  }
+  function updateVariant(key: string, patch: Partial<VariantRow>) {
+    setVariants((v) => v.map((x) => (x.tempKey === key ? { ...x, ...patch } : x)));
+  }
+  function removeVariant(key: string) {
+    setVariants((v) => v.filter((x) => x.tempKey !== key));
+  }
+
   async function uploadImage(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -511,10 +556,84 @@ function ItemEditDialog({
     toast.success("อัปโหลดรูปแล้ว");
   }
 
+  async function syncVariants(menuItemId: string) {
+    const cleanRows = variants
+      .map((v) => ({ ...v, name: v.name.trim() }))
+      .filter((v) => v.name.length > 0);
+
+    // Case 1: no variants → delete existing group if any
+    if (cleanRows.length === 0) {
+      if (variantGroupId) {
+        await supabase.from("menu_addon_groups").delete().eq("id", variantGroupId);
+      }
+      return;
+    }
+
+    // Case 2: ensure group exists
+    let groupId = variantGroupId;
+    if (!groupId) {
+      const { data, error } = await supabase
+        .from("menu_addon_groups")
+        .insert({
+          menu_item_id: menuItemId,
+          name: "ขนาด",
+          pricing_mode: "variant",
+          is_required: true,
+          min_select: 1,
+          max_select: 1,
+          sort_order: 0,
+        })
+        .select("id")
+        .single();
+      if (error || !data) throw new Error(error?.message ?? "create variant group failed");
+      groupId = data.id;
+    }
+
+    // Sync options: delete removed, upsert kept/new
+    const keepIds = cleanRows.filter((r) => r.id).map((r) => r.id!) as string[];
+    if (variantGroupId) {
+      const { data: existing } = await supabase
+        .from("menu_addon_options")
+        .select("id")
+        .eq("group_id", groupId);
+      const toDelete = (existing ?? [])
+        .map((e) => e.id)
+        .filter((id) => !keepIds.includes(id));
+      if (toDelete.length > 0) {
+        await supabase.from("menu_addon_options").delete().in("id", toDelete);
+      }
+    }
+
+    for (let i = 0; i < cleanRows.length; i++) {
+      const r = cleanRows[i];
+      const priceNum = Number(r.price) || 0;
+      if (r.id) {
+        await supabase
+          .from("menu_addon_options")
+          .update({ name: r.name, price_delta: priceNum, sort_order: i })
+          .eq("id", r.id);
+      } else {
+        await supabase.from("menu_addon_options").insert({
+          group_id: groupId,
+          name: r.name,
+          price_delta: priceNum,
+          sort_order: i,
+          is_available: true,
+        });
+      }
+    }
+  }
+
   async function save() {
     if (!name.trim()) return toast.error("กรุณาใส่ชื่อเมนู");
     const priceNum = Number(price);
     if (!Number.isFinite(priceNum) || priceNum < 0) return toast.error("ราคาไม่ถูกต้อง");
+    // Validate variant prices
+    for (const v of variants) {
+      if (v.name.trim() && (!Number.isFinite(Number(v.price)) || Number(v.price) < 0)) {
+        return toast.error(`ราคาตัวเลือก "${v.name}" ไม่ถูกต้อง`);
+      }
+    }
     setSaving(true);
     const payload = {
       restaurant_id: restaurantId,
@@ -525,13 +644,31 @@ function ItemEditDialog({
       category_id: categoryId,
       is_available: isAvailable,
     };
-    const { error } = isNew
-      ? await supabase.from("menu_items").insert(payload)
-      : await supabase.from("menu_items").update(payload).eq("id", item.id);
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success(isNew ? "เพิ่มเมนูแล้ว" : "บันทึกแล้ว");
-    onSaved();
+    try {
+      let savedId = item.id;
+      if (isNew) {
+        const { data, error } = await supabase
+          .from("menu_items")
+          .insert(payload)
+          .select("id")
+          .single();
+        if (error || !data) throw new Error(error?.message ?? "insert failed");
+        savedId = data.id;
+      } else {
+        const { error } = await supabase
+          .from("menu_items")
+          .update(payload)
+          .eq("id", item.id);
+        if (error) throw new Error(error.message);
+      }
+      await syncVariants(savedId);
+      toast.success(isNew ? "เพิ่มเมนูแล้ว" : "บันทึกแล้ว");
+      onSaved();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "บันทึกไม่สำเร็จ");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -608,6 +745,91 @@ function ItemEditDialog({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Variants (size/type) section */}
+          <div className="rounded-lg border border-border p-3 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <Label className="m-0">ขนาด / ประเภท (ที่เปลี่ยนราคา)</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-muted-foreground"
+                    >
+                      <Info className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 text-xs leading-relaxed">
+                    <p className="font-semibold text-sm mb-1">เคล็ดลับการใช้งาน</p>
+                    <p className="text-muted-foreground">
+                      เปิดใช้เมื่อเมนูมี <b>หลายขนาด/ประเภทที่ราคาต่างกัน</b> เช่น
+                      ชานม แก้วเล็ก 50฿ / แก้วใหญ่ 70฿
+                    </p>
+                    <p className="text-muted-foreground mt-2">
+                      ลูกค้าจะเห็นราคาบนการ์ดเมนูเป็น <b>"เริ่มต้น ฿50"</b> และ
+                      เมื่อเลือกขนาด ราคาที่เลือกจะกลายเป็นราคาเมนู
+                      (ไม่ใช่บวกเพิ่มจากราคาฐาน)
+                    </p>
+                    <p className="text-muted-foreground mt-2">
+                      ส่วน <b>ตัวเลือกเสริม</b> เช่น ท็อปปิ้ง ไข่ดาว ที่บวกเพิ่ม
+                      จากราคาฐาน ให้ใช้เมนู "ตัวเลือกเสริม" จากหน้ารายการเมนูเหมือนเดิม
+                    </p>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            {variants.length > 0 && (
+              <div className="space-y-2">
+                {variants.map((v) => (
+                  <div key={v.tempKey} className="flex items-center gap-2">
+                    <Input
+                      placeholder="เช่น แก้วเล็ก"
+                      value={v.name}
+                      onChange={(e) => updateVariant(v.tempKey, { name: e.target.value })}
+                      className="flex-1"
+                    />
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      placeholder="ราคา"
+                      value={v.price}
+                      onChange={(e) => updateVariant(v.tempKey, { price: e.target.value })}
+                      className="w-24"
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="text-destructive shrink-0"
+                      onClick={() => removeVariant(v.tempKey)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={addVariant}
+            >
+              <Plus className="h-4 w-4 mr-1" /> เพิ่มตัวเลือกขนาด
+            </Button>
+
+            {variants.length === 0 && (
+              <p className="text-[11px] text-muted-foreground text-center">
+                ไม่ต้องตั้งค่าหากเมนูมีราคาเดียว
+              </p>
+            )}
           </div>
 
           <div className="flex items-center justify-between rounded-lg border border-border p-3">
