@@ -92,13 +92,26 @@ function HomePage() {
   const [savingAddr, setSavingAddr] = useState(false);
 
   const loadRestaurants = useCallback(async () => {
-    const { data } = await supabase
-      .from("restaurants")
-      .select("id, name, description, category, image_url, cover_url, logo_url, rating, delivery_fee, is_open")
-      .eq("is_approved", true)
-      .order("rating", { ascending: false });
-    setRestaurants((data ?? []) as Restaurant[]);
-    setLoading(false);
+    try {
+      setLoadError(null);
+      const res = await withTimeout(
+        supabase
+          .from("restaurants")
+          .select("id, name, description, category, image_url, cover_url, logo_url, rating, delivery_fee, is_open")
+          .eq("is_approved", true)
+          .order("rating", { ascending: false }),
+        10000,
+      );
+      if (res.error) throw new Error(res.error.message);
+      setRestaurants((res.data ?? []) as Restaurant[]);
+    } catch (error) {
+      const message = error instanceof Error && error.message === "timeout"
+        ? "โหลดร้านอาหารใช้เวลานานเกินไป"
+        : "โหลดรายการร้านไม่สำเร็จ";
+      setLoadError(message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
