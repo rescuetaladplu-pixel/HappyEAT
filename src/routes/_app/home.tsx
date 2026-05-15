@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useRefetchOnFocus } from "@/hooks/use-refetch-on-focus";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -73,18 +74,21 @@ function HomePage() {
   const [lng, setLng] = useState<number | null>(null);
   const [savingAddr, setSavingAddr] = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      const { data } = await supabase
-        .from("restaurants")
-        .select("id, name, description, category, image_url, cover_url, logo_url, rating, delivery_fee, is_open")
-        .eq("is_approved", true)
-        .order("rating", { ascending: false });
-      setRestaurants((data ?? []) as Restaurant[]);
-      setLoading(false);
-    }
-    load();
+  const loadRestaurants = useCallback(async () => {
+    const { data } = await supabase
+      .from("restaurants")
+      .select("id, name, description, category, image_url, cover_url, logo_url, rating, delivery_fee, is_open")
+      .eq("is_approved", true)
+      .order("rating", { ascending: false });
+    setRestaurants((data ?? []) as Restaurant[]);
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    loadRestaurants();
+  }, [loadRestaurants]);
+
+  useRefetchOnFocus(loadRestaurants);
 
   useEffect(() => {
     if (!user) return;

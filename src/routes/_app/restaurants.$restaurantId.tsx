@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRefetchOnFocus } from "@/hooks/use-refetch-on-focus";
 import { useCart, SelectedAddon } from "@/lib/cart";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -80,65 +81,68 @@ function RestaurantDetail() {
   const [loading, setLoading] = useState(true);
   const [picking, setPicking] = useState<MenuItem | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      const [{ data: r }, { data: c }, { data: m }] = await Promise.all([
-        supabase.from("restaurants").select("*").eq("id", restaurantId).maybeSingle(),
-        supabase
-          .from("menu_categories")
-          .select("*")
-          .eq("restaurant_id", restaurantId)
-          .order("sort_order"),
-        supabase
-          .from("menu_items")
-          .select("*")
-          .eq("restaurant_id", restaurantId)
-          .order("sort_order"),
-      ]);
-      setRestaurant(r as Restaurant | null);
-      setCategories((c ?? []) as Category[]);
-      const itemList = (m ?? []) as MenuItem[];
-      setItems(itemList);
+  const load = useCallback(async () => {
+    const [{ data: r }, { data: c }, { data: m }] = await Promise.all([
+      supabase.from("restaurants").select("*").eq("id", restaurantId).maybeSingle(),
+      supabase
+        .from("menu_categories")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .order("sort_order"),
+      supabase
+        .from("menu_items")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .order("sort_order"),
+    ]);
+    setRestaurant(r as Restaurant | null);
+    setCategories((c ?? []) as Category[]);
+    const itemList = (m ?? []) as MenuItem[];
+    setItems(itemList);
 
-      // Compute variant minimum price per item
-      if (itemList.length > 0) {
-        const { data: groupsData } = await supabase
-          .from("menu_addon_groups")
-          .select("id, menu_item_id, pricing_mode")
-          .in("menu_item_id", itemList.map((i) => i.id))
-          .eq("pricing_mode", "variant");
-        const variantGroups = (groupsData ?? []) as {
-          id: string;
-          menu_item_id: string;
-        }[];
-        if (variantGroups.length > 0) {
-          const { data: optsData } = await supabase
-            .from("menu_addon_options")
-            .select("group_id, price_delta, is_available")
-            .in(
-              "group_id",
-              variantGroups.map((g) => g.id),
-            )
-            .eq("is_available", true);
-          const minByItem: Record<string, number> = {};
-          for (const opt of (optsData ?? []) as {
-            group_id: string;
-            price_delta: number;
-          }[]) {
-            const grp = variantGroups.find((g) => g.id === opt.group_id);
-            if (!grp) continue;
-            const p = Number(opt.price_delta);
-            if (minByItem[grp.menu_item_id] === undefined || p < minByItem[grp.menu_item_id]) {
-              minByItem[grp.menu_item_id] = p;
-            }
+    // Compute variant minimum price per item
+    if (itemList.length > 0) {
+      const { data: groupsData } = await supabase
+        .from("menu_addon_groups")
+        .select("id, menu_item_id, pricing_mode")
+        .in("menu_item_id", itemList.map((i) => i.id))
+        .eq("pricing_mode", "variant");
+      const variantGroups = (groupsData ?? []) as {
+        id: string;
+        menu_item_id: string;
+      }[];
+      if (variantGroups.length > 0) {
+        const { data: optsData } = await supabase
+          .from("menu_addon_options")
+          .select("group_id, price_delta, is_available")
+          .in(
+            "group_id",
+            variantGroups.map((g) => g.id),
+          )
+          .eq("is_available", true);
+        const minByItem: Record<string, number> = {};
+        for (const opt of (optsData ?? []) as {
+          group_id: string;
+          price_delta: number;
+        }[]) {
+          const grp = variantGroups.find((g) => g.id === opt.group_id);
+          if (!grp) continue;
+          const p = Number(opt.price_delta);
+          if (minByItem[grp.menu_item_id] === undefined || p < minByItem[grp.menu_item_id]) {
+            minByItem[grp.menu_item_id] = p;
           }
-          setVariantMin(minByItem);
         }
+        setVariantMin(minByItem);
       }
-      setLoading(false);
     }
-    load();
+    setLoading(false);
   }, [restaurantId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useRefetchOnFocus(load);
 
   const grouped = useMemo(() => {
     const out: { cat: Category | null; rows: MenuItem[] }[] = [];
