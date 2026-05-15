@@ -29,12 +29,11 @@ function AuthPage() {
   const [siIdentifier, setSiIdentifier] = useState("");
   const [siPassword, setSiPassword] = useState("");
 
-  // Sign-up fields (no admin option)
+  // Sign-up fields (ทุกคนเริ่มเป็นลูกค้า; เปิดร้านได้ในหน้าโปรไฟล์)
   const [suName, setSuName] = useState("");
   const [suEmail, setSuEmail] = useState("");
   const [suPhone, setSuPhone] = useState("");
   const [suPassword, setSuPassword] = useState("");
-  const [suRole, setSuRole] = useState<Exclude<AppRole, "admin">>("customer");
 
   async function handleSignIn(e: FormEvent) {
     e.preventDefault();
@@ -52,7 +51,7 @@ function AuthPage() {
   async function handleSignUp(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const { error } = await signUp(suEmail, suPassword, suName, suRole, suPhone);
+    const { error } = await signUp(suEmail, suPassword, suName, "customer", suPhone);
     setLoading(false);
     if (error) return toast.error(error);
     toast.success("สมัครสมาชิกสำเร็จ! กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชี");
