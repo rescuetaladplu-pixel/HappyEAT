@@ -95,7 +95,44 @@ function RestaurantDetail() {
       ]);
       setRestaurant(r as Restaurant | null);
       setCategories((c ?? []) as Category[]);
-      setItems((m ?? []) as MenuItem[]);
+      const itemList = (m ?? []) as MenuItem[];
+      setItems(itemList);
+
+      // Compute variant minimum price per item
+      if (itemList.length > 0) {
+        const { data: groupsData } = await supabase
+          .from("menu_addon_groups")
+          .select("id, menu_item_id, pricing_mode")
+          .in("menu_item_id", itemList.map((i) => i.id))
+          .eq("pricing_mode", "variant");
+        const variantGroups = (groupsData ?? []) as {
+          id: string;
+          menu_item_id: string;
+        }[];
+        if (variantGroups.length > 0) {
+          const { data: optsData } = await supabase
+            .from("menu_addon_options")
+            .select("group_id, price_delta, is_available")
+            .in(
+              "group_id",
+              variantGroups.map((g) => g.id),
+            )
+            .eq("is_available", true);
+          const minByItem: Record<string, number> = {};
+          for (const opt of (optsData ?? []) as {
+            group_id: string;
+            price_delta: number;
+          }[]) {
+            const grp = variantGroups.find((g) => g.id === opt.group_id);
+            if (!grp) continue;
+            const p = Number(opt.price_delta);
+            if (minByItem[grp.menu_item_id] === undefined || p < minByItem[grp.menu_item_id]) {
+              minByItem[grp.menu_item_id] = p;
+            }
+          }
+          setVariantMin(minByItem);
+        }
+      }
       setLoading(false);
     }
     load();
