@@ -339,34 +339,36 @@ function HomePage() {
                       <UtensilsCrossed className="h-12 w-12" />
                     </div>
                   )}
-                  {r.logo_url && (
-                    <img
-                      src={r.logo_url}
-                      alt=""
-                      className="absolute bottom-2 left-2 h-12 w-12 rounded-full border-2 border-background object-cover shadow-md"
-                      loading="lazy"
-                    />
-                  )}
                   {!r.is_open && (
                     <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
                       <span className="font-semibold text-foreground">ปิดอยู่</span>
                     </div>
                   )}
                 </div>
-                <div className="p-3">
-                  <h3 className="font-semibold text-foreground">{r.name}</h3>
-                  {r.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{r.description}</p>
-                  )}
-                  <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-primary text-primary" />
-                      {Number(r.rating).toFixed(1)}
-                    </span>
-                    <span>•</span>
-                    <span>ค่าส่ง ฿{Number(r.delivery_fee).toFixed(0)}</span>
-                    {r.category && <><span>•</span><span>{r.category}</span></>}
+                <div className="p-3 flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-foreground">{r.name}</h3>
+                    {r.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{r.description}</p>
+                    )}
+                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Star className="h-3 w-3 fill-primary text-primary" />
+                        {Number(r.rating).toFixed(1)}
+                      </span>
+                      <span>•</span>
+                      <span>ค่าส่ง ฿{Number(r.delivery_fee).toFixed(0)}</span>
+                      {r.category && <><span>•</span><span>{r.category}</span></>}
+                    </div>
                   </div>
+                  {r.logo_url && (
+                    <img
+                      src={r.logo_url}
+                      alt=""
+                      className="h-14 w-14 rounded-full border border-border object-cover shrink-0"
+                      loading="lazy"
+                    />
+                  )}
                 </div>
               </Card>
             </Link>
