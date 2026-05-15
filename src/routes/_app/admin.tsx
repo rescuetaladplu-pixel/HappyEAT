@@ -61,10 +61,45 @@ function AdminPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [creating, setCreating] = useState(false);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [pwTarget, setPwTarget] = useState<UserRow | null>(null);
+  const [newPw, setNewPw] = useState("");
+  const [savingPw, setSavingPw] = useState(false);
 
   const createFn = useServerFn(createAdminAccount);
   const listFn = useServerFn(listAdmins);
   const listUsersFn = useServerFn(listAllUsers);
+  const confirmEmailFn = useServerFn(confirmUserEmail);
+  const resetPwFn = useServerFn(resetUserPassword);
+
+  async function handleConfirmEmail(u: UserRow) {
+    setConfirmingId(u.user_id);
+    try {
+      await confirmEmailFn({ data: { userId: u.user_id } });
+      toast.success(`ยืนยันอีเมล ${u.email} สำเร็จ`);
+      loadUsers();
+    } catch (e: any) {
+      toast.error(e?.message ?? "ยืนยันไม่สำเร็จ");
+    } finally {
+      setConfirmingId(null);
+    }
+  }
+
+  async function handleResetPassword(e: FormEvent) {
+    e.preventDefault();
+    if (!pwTarget) return;
+    setSavingPw(true);
+    try {
+      await resetPwFn({ data: { userId: pwTarget.user_id, password: newPw } });
+      toast.success(`ตั้งรหัสผ่านใหม่ให้ ${pwTarget.email} สำเร็จ`);
+      setPwTarget(null);
+      setNewPw("");
+    } catch (e: any) {
+      toast.error(e?.message ?? "ตั้งรหัสผ่านไม่สำเร็จ");
+    } finally {
+      setSavingPw(false);
+    }
+  }
 
   async function loadAdmins() {
     try {
