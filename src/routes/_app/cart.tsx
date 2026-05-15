@@ -24,7 +24,37 @@ function CartPage() {
   const [submitting, setSubmitting] = useState(false);
   const [deliveryLat, setDeliveryLat] = useState<number | null>(null);
   const [deliveryLng, setDeliveryLng] = useState<number | null>(null);
+  const [promoCode, setPromoCode] = useState("");
+  const [promo, setPromo] = useState<{ id: string; code: string; discount: number } | null>(null);
+  const [checking, setChecking] = useState(false);
   const deliveryFee = 30;
+  const discount = promo?.discount ?? 0;
+
+  async function applyPromo() {
+    if (!restaurantId || !promoCode.trim()) return;
+    setChecking(true);
+    const code = promoCode.trim().toUpperCase();
+    const { data, error } = await supabase
+      .from("promotions")
+      .select("id, code, type, value, min_order, max_discount, starts_at, ends_at, usage_limit, used_count, is_active")
+      .eq("restaurant_id", restaurantId)
+      .eq("code", code)
+      .maybeSingle();
+    setChecking(false);
+    if (error || !data) return toast.error("ไม่พบคูปองนี้");
+    if (!data.is_active) return toast.error("คูปองถูกปิดใช้งาน");
+    const now = new Date();
+    if (data.starts_at && new Date(data.starts_at) > now) return toast.error("คูปองยังไม่เริ่มใช้");
+    if (data.ends_at && new Date(data.ends_at) < now) return toast.error("คูปองหมดอายุ");
+    if (data.usage_limit !== null && data.used_count >= data.usage_limit) return toast.error("คูปองถูกใช้ครบแล้ว");
+    if (Number(data.min_order) > total) return toast.error(`ต้องสั่งขั้นต่ำ ฿${data.min_order}`);
+
+    let d = data.type === "percent" ? (total * Number(data.value)) / 100 : Number(data.value);
+    if (data.max_discount) d = Math.min(d, Number(data.max_discount));
+    d = Math.min(d, total);
+    setPromo({ id: data.id, code: data.code, discount: Math.round(d) });
+    toast.success(`ใช้คูปอง ${data.code} ลด ฿${Math.round(d)}`);
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -57,7 +87,7 @@ function CartPage() {
     setSubmitting(true);
 
     const subtotal = total;
-    const grandTotal = subtotal + deliveryFee;
+    const grandTotal = subtotal + deliveryFee - discount;
 
     const { data: order, error } = await supabase
       .from("orders")
@@ -69,6 +99,7 @@ function CartPage() {
         delivery_lng: deliveryLng,
         subtotal,
         delivery_fee: deliveryFee,
+        discount,
         total: grandTotal,
         notes,
         payment_method: "cash",
@@ -103,6 +134,17 @@ function CartPage() {
     if (itemsErr) {
       setSubmitting(false);
       return toast.error(itemsErr.message);
+    }
+
+    if (promo) {
+      await supabase.from("order_promotions").insert({
+        order_id: order.id,
+        promotion_id: promo.id,
+        code: promo.code,
+        discount_amount: promo.discount,
+      });
+      const { data: cur } = await supabase.from("promotions").select("used_count").eq("id", promo.id).maybeSingle();
+      if (cur) await supabase.from("promotions").update({ used_count: (cur.used_count ?? 0) + 1 }).eq("id", promo.id);
     }
 
     clear();
@@ -168,6 +210,19 @@ function CartPage() {
       </Card>
 
       <Card className="p-4 space-y-2">
+        <Label htmlFor="promo">โค้ดส่วนลด</Label>
+        <div className="flex gap-2">
+          <Input id="promo" placeholder="เช่น WELCOME10" value={promoCode} onChange={(e) => setPromoCode(e.target.value.toUpperCase())} disabled={!!promo} />
+          {promo ? (
+            <Button variant="outline" onClick={() => { setPromo(null); setPromoCode(""); }}>ลบ</Button>
+          ) : (
+            <Button variant="outline" onClick={applyPromo} disabled={checking}>{checking ? "..." : "ใช้"}</Button>
+          )}
+        </div>
+        {promo && <p className="text-xs text-green-600">✓ ใช้ {promo.code} ลด ฿{promo.discount}</p>}
+      </Card>
+
+      <Card className="p-4 space-y-2">
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">ยอดอาหาร</span>
           <span>฿{total.toFixed(0)}</span>
@@ -176,16 +231,22 @@ function CartPage() {
           <span className="text-muted-foreground">ค่าส่ง</span>
           <span>฿{deliveryFee.toFixed(0)}</span>
         </div>
+        {discount > 0 && (
+          <div className="flex justify-between text-sm text-green-600">
+            <span>ส่วนลด</span>
+            <span>-฿{discount.toFixed(0)}</span>
+          </div>
+        )}
         <div className="flex justify-between font-semibold text-lg pt-2 border-t border-border">
           <span>รวมทั้งหมด</span>
-          <span className="text-primary">฿{(total + deliveryFee).toFixed(0)}</span>
+          <span className="text-primary">฿{(total + deliveryFee - discount).toFixed(0)}</span>
         </div>
       </Card>
 
       <div className="fixed bottom-20 inset-x-0 px-4 z-30">
         <div className="max-w-2xl mx-auto">
           <Button size="lg" className="w-full shadow-lg" onClick={handleCheckout} disabled={submitting}>
-            {submitting ? "กำลังสั่ง..." : `สั่งเลย — ฿${(total + deliveryFee).toFixed(0)} (เก็บเงินปลายทาง)`}
+            {submitting ? "กำลังสั่ง..." : `สั่งเลย — ฿${(total + deliveryFee - discount).toFixed(0)} (เก็บเงินปลายทาง)`}
           </Button>
         </div>
       </div>

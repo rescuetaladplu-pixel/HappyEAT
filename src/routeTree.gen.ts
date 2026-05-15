@@ -21,7 +21,11 @@ import { Route as AppHomeRouteImport } from './routes/_app/home'
 import { Route as AppCartRouteImport } from './routes/_app/cart'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
 import { Route as AppRestaurantsRestaurantIdRouteImport } from './routes/_app/restaurants.$restaurantId'
+import { Route as AppRestaurantReviewsRouteImport } from './routes/_app/restaurant.reviews'
+import { Route as AppRestaurantPromotionsRouteImport } from './routes/_app/restaurant.promotions'
+import { Route as AppRestaurantOrdersRouteImport } from './routes/_app/restaurant.orders'
 import { Route as AppRestaurantMenuRouteImport } from './routes/_app/restaurant.menu'
+import { Route as AppRestaurantAnalyticsRouteImport } from './routes/_app/restaurant.analytics'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -83,9 +87,29 @@ const AppRestaurantsRestaurantIdRoute =
     path: '/restaurants/$restaurantId',
     getParentRoute: () => AppRoute,
   } as any)
+const AppRestaurantReviewsRoute = AppRestaurantReviewsRouteImport.update({
+  id: '/restaurant/reviews',
+  path: '/restaurant/reviews',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRestaurantPromotionsRoute = AppRestaurantPromotionsRouteImport.update({
+  id: '/restaurant/promotions',
+  path: '/restaurant/promotions',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRestaurantOrdersRoute = AppRestaurantOrdersRouteImport.update({
+  id: '/restaurant/orders',
+  path: '/restaurant/orders',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRestaurantMenuRoute = AppRestaurantMenuRouteImport.update({
   id: '/restaurant/menu',
   path: '/restaurant/menu',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRestaurantAnalyticsRoute = AppRestaurantAnalyticsRouteImport.update({
+  id: '/restaurant/analytics',
+  path: '/restaurant/analytics',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -100,7 +124,11 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AppProfileRoute
   '/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/rider-dashboard': typeof AppRiderDashboardRoute
+  '/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
   '/restaurant/menu': typeof AppRestaurantMenuRoute
+  '/restaurant/orders': typeof AppRestaurantOrdersRoute
+  '/restaurant/promotions': typeof AppRestaurantPromotionsRoute
+  '/restaurant/reviews': typeof AppRestaurantReviewsRoute
   '/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
 }
 export interface FileRoutesByTo {
@@ -114,7 +142,11 @@ export interface FileRoutesByTo {
   '/profile': typeof AppProfileRoute
   '/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/rider-dashboard': typeof AppRiderDashboardRoute
+  '/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
   '/restaurant/menu': typeof AppRestaurantMenuRoute
+  '/restaurant/orders': typeof AppRestaurantOrdersRoute
+  '/restaurant/promotions': typeof AppRestaurantPromotionsRoute
+  '/restaurant/reviews': typeof AppRestaurantReviewsRoute
   '/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
 }
 export interface FileRoutesById {
@@ -130,7 +162,11 @@ export interface FileRoutesById {
   '/_app/profile': typeof AppProfileRoute
   '/_app/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/_app/rider-dashboard': typeof AppRiderDashboardRoute
+  '/_app/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
   '/_app/restaurant/menu': typeof AppRestaurantMenuRoute
+  '/_app/restaurant/orders': typeof AppRestaurantOrdersRoute
+  '/_app/restaurant/promotions': typeof AppRestaurantPromotionsRoute
+  '/_app/restaurant/reviews': typeof AppRestaurantReviewsRoute
   '/_app/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
 }
 export interface FileRouteTypes {
@@ -146,7 +182,11 @@ export interface FileRouteTypes {
     | '/profile'
     | '/restaurant-dashboard'
     | '/rider-dashboard'
+    | '/restaurant/analytics'
     | '/restaurant/menu'
+    | '/restaurant/orders'
+    | '/restaurant/promotions'
+    | '/restaurant/reviews'
     | '/restaurants/$restaurantId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -160,7 +200,11 @@ export interface FileRouteTypes {
     | '/profile'
     | '/restaurant-dashboard'
     | '/rider-dashboard'
+    | '/restaurant/analytics'
     | '/restaurant/menu'
+    | '/restaurant/orders'
+    | '/restaurant/promotions'
+    | '/restaurant/reviews'
     | '/restaurants/$restaurantId'
   id:
     | '__root__'
@@ -175,7 +219,11 @@ export interface FileRouteTypes {
     | '/_app/profile'
     | '/_app/restaurant-dashboard'
     | '/_app/rider-dashboard'
+    | '/_app/restaurant/analytics'
     | '/_app/restaurant/menu'
+    | '/_app/restaurant/orders'
+    | '/_app/restaurant/promotions'
+    | '/_app/restaurant/reviews'
     | '/_app/restaurants/$restaurantId'
   fileRoutesById: FileRoutesById
 }
@@ -271,11 +319,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRestaurantsRestaurantIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/restaurant/reviews': {
+      id: '/_app/restaurant/reviews'
+      path: '/restaurant/reviews'
+      fullPath: '/restaurant/reviews'
+      preLoaderRoute: typeof AppRestaurantReviewsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/restaurant/promotions': {
+      id: '/_app/restaurant/promotions'
+      path: '/restaurant/promotions'
+      fullPath: '/restaurant/promotions'
+      preLoaderRoute: typeof AppRestaurantPromotionsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/restaurant/orders': {
+      id: '/_app/restaurant/orders'
+      path: '/restaurant/orders'
+      fullPath: '/restaurant/orders'
+      preLoaderRoute: typeof AppRestaurantOrdersRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/restaurant/menu': {
       id: '/_app/restaurant/menu'
       path: '/restaurant/menu'
       fullPath: '/restaurant/menu'
       preLoaderRoute: typeof AppRestaurantMenuRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/restaurant/analytics': {
+      id: '/_app/restaurant/analytics'
+      path: '/restaurant/analytics'
+      fullPath: '/restaurant/analytics'
+      preLoaderRoute: typeof AppRestaurantAnalyticsRouteImport
       parentRoute: typeof AppRoute
     }
   }
@@ -290,7 +366,11 @@ interface AppRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
   AppRestaurantDashboardRoute: typeof AppRestaurantDashboardRoute
   AppRiderDashboardRoute: typeof AppRiderDashboardRoute
+  AppRestaurantAnalyticsRoute: typeof AppRestaurantAnalyticsRoute
   AppRestaurantMenuRoute: typeof AppRestaurantMenuRoute
+  AppRestaurantOrdersRoute: typeof AppRestaurantOrdersRoute
+  AppRestaurantPromotionsRoute: typeof AppRestaurantPromotionsRoute
+  AppRestaurantReviewsRoute: typeof AppRestaurantReviewsRoute
   AppRestaurantsRestaurantIdRoute: typeof AppRestaurantsRestaurantIdRoute
 }
 
@@ -303,7 +383,11 @@ const AppRouteChildren: AppRouteChildren = {
   AppProfileRoute: AppProfileRoute,
   AppRestaurantDashboardRoute: AppRestaurantDashboardRoute,
   AppRiderDashboardRoute: AppRiderDashboardRoute,
+  AppRestaurantAnalyticsRoute: AppRestaurantAnalyticsRoute,
   AppRestaurantMenuRoute: AppRestaurantMenuRoute,
+  AppRestaurantOrdersRoute: AppRestaurantOrdersRoute,
+  AppRestaurantPromotionsRoute: AppRestaurantPromotionsRoute,
+  AppRestaurantReviewsRoute: AppRestaurantReviewsRoute,
   AppRestaurantsRestaurantIdRoute: AppRestaurantsRestaurantIdRoute,
 }
 
