@@ -67,19 +67,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function fetchRole(userId: string) {
-    const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+    try {
+      const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
 
-    if (error) {
+      if (error) {
+        setRole("customer");
+        return;
+      }
+
+      const roles = (data ?? []).map((row) => row.role as AppRole);
+      setRole(ROLE_PRIORITY.find((candidate) => roles.includes(candidate)) ?? "customer");
+    } catch {
       setRole("customer");
-      return;
     }
-
-    const roles = (data ?? []).map((row) => row.role as AppRole);
-    setRole(ROLE_PRIORITY.find((candidate) => roles.includes(candidate)) ?? "customer");
   }
 
   async function signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error) {
+      const nextSession = data.session;
+      const nextUser = data.user ?? nextSession?.user ?? null;
+      setSession(nextSession ?? null);
+      setUser(nextUser);
+      if (nextUser) await fetchRole(nextUser.id);
+    }
+    setLoading(false);
     return { error: error?.message ?? null };
   }
 
@@ -103,6 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     await supabase.auth.signOut();
+    setSession(null);
+    setUser(null);
+    setRole(null);
+    setLoading(false);
   }
 
   return (
