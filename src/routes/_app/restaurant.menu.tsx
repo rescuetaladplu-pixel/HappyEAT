@@ -80,7 +80,7 @@ interface AddonOption {
 }
 
 function MenuManagementPage() {
-  const { user, role } = useAuth();
+  const { user } = useAuth();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
