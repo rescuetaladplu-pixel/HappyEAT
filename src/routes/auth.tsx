@@ -34,6 +34,30 @@ function AuthPage() {
   const [suEmail, setSuEmail] = useState("");
   const [suPhone, setSuPhone] = useState("");
   const [suPassword, setSuPassword] = useState("");
+  const [suPasswordConfirm, setSuPasswordConfirm] = useState("");
+
+  function translateAuthError(msg: string): string {
+    const m = msg.toLowerCase();
+    if (m.includes("password") && (m.includes("weak") || m.includes("pwned") || m.includes("compromis") || m.includes("breach") || m.includes("found in"))) {
+      return "รหัสผ่านนี้ง่ายเกินไปหรือเคยถูกเปิดเผยในเหตุข้อมูลรั่วไหล กรุณาเลือกรหัสผ่านที่ปลอดภัยกว่านี้";
+    }
+    if (m.includes("password") && m.includes("should be at least")) {
+      return "รหัสผ่านสั้นเกินไป กรุณาใช้อย่างน้อย 6 ตัวอักษร";
+    }
+    if (m.includes("password")) {
+      return "รหัสผ่านไม่ผ่านเงื่อนไขความปลอดภัย กรุณาลองใหม่ด้วยรหัสที่ซับซ้อนขึ้น";
+    }
+    if (m.includes("user already registered") || m.includes("already registered")) {
+      return "อีเมลนี้ถูกใช้สมัครไปแล้ว กรุณาเข้าสู่ระบบหรือใช้อีเมลอื่น";
+    }
+    if (m.includes("invalid") && m.includes("email")) {
+      return "รูปแบบอีเมลไม่ถูกต้อง";
+    }
+    if (m.includes("invalid login")) {
+      return "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
+    }
+    return msg;
+  }
 
   async function handleSignIn(e: FormEvent) {
     e.preventDefault();
