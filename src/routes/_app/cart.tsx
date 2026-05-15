@@ -47,7 +47,6 @@ function CartPage() {
         if (data.phone_secondary) parts.push(`สำรอง: ${data.phone_secondary}`);
         if (data.rider_note) parts.push(`โน้ต: ${data.rider_note}`);
         const info = parts.join(" | ");
-        setContactInfo(info);
         setNotes((prev) => prev || info);
       });
   }, [user]);
