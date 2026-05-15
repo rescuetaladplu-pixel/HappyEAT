@@ -71,3 +71,49 @@ export const listAdmins = createServerFn({ method: "GET" })
       full_name: r.profiles?.full_name ?? null,
     }));
   });
+
+export const listAllUsers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+
+    // Fetch auth users (paginated, up to 1000 — sufficient for early stage)
+    const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    if (authErr) throw new Error(authErr.message);
+
+    const userIds = authData.users.map((u) => u.id);
+
+    const [{ data: profiles }, { data: roles }] = await Promise.all([
+      supabaseAdmin.from("profiles").select("id, full_name, phone, username, avatar_url").in("id", userIds),
+      supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", userIds),
+    ]);
+
+    const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+    const rolesMap = new Map<string, string[]>();
+    for (const r of roles ?? []) {
+      const arr = rolesMap.get((r as any).user_id) ?? [];
+      arr.push((r as any).role);
+      rolesMap.set((r as any).user_id, arr);
+    }
+
+    return authData.users
+      .map((u) => {
+        const p: any = profileMap.get(u.id) ?? {};
+        return {
+          user_id: u.id,
+          email: u.email ?? null,
+          created_at: u.created_at,
+          last_sign_in_at: u.last_sign_in_at ?? null,
+          email_confirmed: !!u.email_confirmed_at,
+          full_name: p.full_name ?? null,
+          phone: p.phone ?? null,
+          username: p.username ?? null,
+          avatar_url: p.avatar_url ?? null,
+          roles: rolesMap.get(u.id) ?? [],
+        };
+      })
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  });

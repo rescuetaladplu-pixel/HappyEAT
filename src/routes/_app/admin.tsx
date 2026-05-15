@@ -7,26 +7,51 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, UserPlus } from "lucide-react";
+import { Shield, UserPlus, Users, Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { createAdminAccount, listAdmins } from "@/lib/admin.functions";
+import { createAdminAccount, listAdmins, listAllUsers } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_app/admin")({
   component: AdminPage,
 });
 
 type AdminRow = { user_id: string; created_at: string; username: string | null; full_name: string | null };
+type UserRow = {
+  user_id: string;
+  email: string | null;
+  created_at: string;
+  last_sign_in_at: string | null;
+  email_confirmed: boolean;
+  full_name: string | null;
+  phone: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  roles: string[];
+};
+
+const ROLE_LABEL: Record<string, string> = {
+  customer: "ลูกค้า",
+  restaurant: "เจ้าของร้าน",
+  rider: "ไรเดอร์",
+  admin: "แอดมิน",
+};
 
 function AdminPage() {
   const { role } = useAuth();
   const [stats, setStats] = useState({ orders: 0, restaurants: 0, riders: 0 });
   const [admins, setAdmins] = useState<AdminRow[]>([]);
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [creating, setCreating] = useState(false);
 
   const createFn = useServerFn(createAdminAccount);
   const listFn = useServerFn(listAdmins);
+  const listUsersFn = useServerFn(listAllUsers);
 
   async function loadAdmins() {
     try {
@@ -34,6 +59,18 @@ function AdminPage() {
       setAdmins(rows as AdminRow[]);
     } catch (e: any) {
       console.error(e);
+    }
+  }
+
+  async function loadUsers() {
+    setUsersLoading(true);
+    try {
+      const rows = await listUsersFn();
+      setUsers(rows as UserRow[]);
+    } catch (e: any) {
+      toast.error(e?.message ?? "โหลดรายชื่อผู้ใช้ไม่สำเร็จ");
+    } finally {
+      setUsersLoading(false);
     }
   }
 
@@ -48,6 +85,7 @@ function AdminPage() {
       setStats({ orders: o.count ?? 0, restaurants: r.count ?? 0, riders: ri.count ?? 0 });
     })();
     loadAdmins();
+    loadUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role]);
 
@@ -77,7 +115,7 @@ function AdminPage() {
   }
 
   return (
-    <main className="max-w-2xl mx-auto p-4 space-y-4">
+    <main className="max-w-4xl mx-auto p-4 space-y-4">
       <h1 className="text-2xl font-bold">แดชบอร์ดแอดมิน</h1>
       <div className="grid grid-cols-3 gap-3">
         <Stat label="ออเดอร์" value={stats.orders} />
@@ -136,6 +174,115 @@ function AdminPage() {
           ))}
           {admins.length === 0 && (
             <p className="text-sm text-muted-foreground">ยังไม่มีแอดมิน</p>
+          )}
+        </div>
+      </Card>
+
+      <Card className="p-5 space-y-4">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            <h2 className="font-semibold">ผู้ใช้ทั้งหมด ({users.length})</h2>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadUsers} disabled={usersLoading}>
+            {usersLoading ? "กำลังโหลด..." : "รีเฟรช"}
+          </Button>
+        </div>
+
+        <div className="flex gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="ค้นหาอีเมล / ชื่อ / เบอร์ / username"
+              className="pl-8"
+            />
+          </div>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+          >
+            <option value="all">ทุกบทบาท</option>
+            <option value="customer">ลูกค้า</option>
+            <option value="restaurant">เจ้าของร้าน</option>
+            <option value="rider">ไรเดอร์</option>
+            <option value="admin">แอดมิน</option>
+          </select>
+        </div>
+
+        <div className="overflow-x-auto -mx-5">
+          <table className="w-full text-sm">
+            <thead className="border-b text-xs text-muted-foreground">
+              <tr>
+                <th className="text-left font-medium px-5 py-2">ผู้ใช้</th>
+                <th className="text-left font-medium px-3 py-2">อีเมล</th>
+                <th className="text-left font-medium px-3 py-2">เบอร์โทร</th>
+                <th className="text-left font-medium px-3 py-2">บทบาท</th>
+                <th className="text-left font-medium px-3 py-2">สมัครเมื่อ</th>
+                <th className="text-left font-medium px-5 py-2">เข้าระบบล่าสุด</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users
+                .filter((u) => roleFilter === "all" || u.roles.includes(roleFilter))
+                .filter((u) => {
+                  if (!search.trim()) return true;
+                  const q = search.trim().toLowerCase();
+                  return (
+                    (u.email ?? "").toLowerCase().includes(q) ||
+                    (u.full_name ?? "").toLowerCase().includes(q) ||
+                    (u.phone ?? "").toLowerCase().includes(q) ||
+                    (u.username ?? "").toLowerCase().includes(q)
+                  );
+                })
+                .map((u) => (
+                  <tr key={u.user_id} className="border-b last:border-0 align-top">
+                    <td className="px-5 py-2">
+                      <p className="font-medium">{u.full_name || u.username || "—"}</p>
+                      {u.username && u.full_name && (
+                        <p className="text-xs text-muted-foreground">@{u.username}</p>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <p className="break-all">{u.email ?? "—"}</p>
+                      {!u.email_confirmed && u.email && (
+                        <p className="text-xs text-amber-600">ยังไม่ยืนยัน</p>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">{u.phone || "—"}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap gap-1">
+                        {u.roles.length === 0 ? (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        ) : (
+                          u.roles.map((r) => (
+                            <Badge
+                              key={r}
+                              variant={r === "admin" ? "default" : "secondary"}
+                              className="text-xs"
+                            >
+                              {ROLE_LABEL[r] ?? r}
+                            </Badge>
+                          ))
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(u.created_at).toLocaleDateString("th-TH")}
+                    </td>
+                    <td className="px-5 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                      {u.last_sign_in_at
+                        ? new Date(u.last_sign_in_at).toLocaleDateString("th-TH")
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+          {users.length === 0 && !usersLoading && (
+            <p className="text-sm text-muted-foreground text-center py-6">ยังไม่มีผู้ใช้</p>
           )}
         </div>
       </Card>
