@@ -17,6 +17,7 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { LocationPicker } from "@/components/restaurant/LocationPicker";
+import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
 import { Search, MapPin, Star, UtensilsCrossed, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
