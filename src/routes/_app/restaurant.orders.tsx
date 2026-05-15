@@ -8,8 +8,16 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Volume2, VolumeX, Bell } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, Volume2, VolumeX, Bell, Play } from "lucide-react";
 import { toast } from "sonner";
+import {
+  playNotificationSound,
+  SOUND_OPTIONS,
+  type SoundId,
+} from "@/lib/notification-sounds";
 
 export const Route = createFileRoute("/_app/restaurant/orders")({
   component: RestaurantOrdersPage,
@@ -71,21 +79,6 @@ const TABS: { key: string; label: string; statuses: OrderStatus[] }[] = [
   { key: "cancelled", label: "ยกเลิก", statuses: ["cancelled"] },
 ];
 
-function playDing() {
-  try {
-    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
-    o.type = "sine"; o.frequency.value = 880;
-    g.gain.setValueAtTime(0.0001, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
-    o.start(); o.stop(ctx.currentTime + 0.55);
-    setTimeout(() => ctx.close(), 700);
-  } catch { /* noop */ }
-}
-
 function RestaurantOrdersPage() {
   const { user } = useAuth();
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
@@ -94,6 +87,11 @@ function RestaurantOrdersPage() {
   const [soundOn, setSoundOn] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem("rest-sound") !== "off";
+  });
+  const [soundType, setSoundType] = useState<SoundId>(() => {
+    if (typeof window === "undefined") return "ding";
+    const saved = localStorage.getItem("rest-sound-type") as SoundId | null;
+    return saved && SOUND_OPTIONS.some((s) => s.id === saved) ? saved : "ding";
   });
   const knownIdsRef = useRef<Set<string>>(new Set());
   const initRef = useRef(false);
@@ -116,7 +114,7 @@ function RestaurantOrdersPage() {
         (o) => o.status === "pending" && !knownIdsRef.current.has(o.id),
       );
       if (newPending.length > 0) {
-        if (soundOn) playDing();
+        if (soundOn) playNotificationSound(soundType);
         toast.success(`มีออเดอร์ใหม่ ${newPending.length} รายการ!`);
       }
     }
@@ -159,7 +157,12 @@ function RestaurantOrdersPage() {
   function toggleSound(on: boolean) {
     setSoundOn(on);
     localStorage.setItem("rest-sound", on ? "on" : "off");
-    if (on) playDing();
+    if (on) playNotificationSound(soundType);
+  }
+
+  function selectSound(id: SoundId) {
+    setSoundType(id);
+    localStorage.setItem("rest-sound-type", id);
   }
 
   async function setStatus(o: Order, status: OrderStatus) {
@@ -191,10 +194,69 @@ function RestaurantOrdersPage() {
     <main className="max-w-3xl mx-auto p-4 pb-24 space-y-4">
       <div className="flex items-center justify-between">
         <Button asChild variant="ghost" size="sm"><Link to="/my-restaurant"><ArrowLeft className="h-4 w-4 mr-1" />หน้าร้าน</Link></Button>
-        <div className="flex items-center gap-2 text-sm">
-          {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4 text-muted-foreground" />}
-          <Switch checked={soundOn} onCheckedChange={toggleSound} />
-        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="sm" className="gap-2">
+              {soundOn ? (
+                <Volume2 className="h-4 w-4" />
+              ) : (
+                <VolumeX className="h-4 w-4 text-muted-foreground" />
+              )}
+              <span className="text-sm">เสียงแจ้งเตือน</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-80">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">เปิดเสียงแจ้งเตือน</p>
+                  <p className="text-xs text-muted-foreground">
+                    เล่นเสียงเมื่อมีออเดอร์ใหม่
+                  </p>
+                </div>
+                <Switch checked={soundOn} onCheckedChange={toggleSound} />
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">เลือกเสียง</p>
+                <RadioGroup
+                  value={soundType}
+                  onValueChange={(v) => selectSound(v as SoundId)}
+                  className="space-y-1"
+                >
+                  {SOUND_OPTIONS.map((opt) => (
+                    <div
+                      key={opt.id}
+                      className="flex items-center gap-2 rounded-md border p-2"
+                    >
+                      <RadioGroupItem value={opt.id} id={`snd-${opt.id}`} />
+                      <Label
+                        htmlFor={`snd-${opt.id}`}
+                        className="flex-1 cursor-pointer"
+                      >
+                        <div className="text-sm font-medium">{opt.label}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {opt.description}
+                        </div>
+                      </Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          playNotificationSound(opt.id);
+                        }}
+                      >
+                        <Play className="h-3 w-3 mr-1" />
+                        ฟัง
+                      </Button>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="flex items-center gap-2">
