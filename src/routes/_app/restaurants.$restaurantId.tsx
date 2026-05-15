@@ -238,6 +238,12 @@ function RestaurantDetail() {
                   {item.description && (
                     <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
                   )}
+                  {item.allergen_info && (
+                    <div className="mt-1 flex items-start gap-1 text-xs text-amber-700 dark:text-amber-400">
+                      <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                      <span className="line-clamp-1">แพ้: {item.allergen_info}</span>
+                    </div>
+                  )}
                   {variantMin[item.id] !== undefined ? (
                     <p className="text-primary font-semibold mt-1">
                       เริ่มต้น ฿{variantMin[item.id].toFixed(0)}
