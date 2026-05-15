@@ -22,7 +22,6 @@ import {
   Phone,
   Clock,
   Star,
-  Truck,
   ChevronRight,
   Utensils,
 } from "lucide-react";
@@ -299,10 +298,6 @@ function MyRestaurantHub() {
             <div className="flex items-center gap-2 text-muted-foreground">
               <Star className="h-4 w-4 shrink-0 text-yellow-500" />
               <span>{Number(restaurant.rating).toFixed(1)} คะแนน</span>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Truck className="h-4 w-4 shrink-0" />
-              <span>ค่าส่ง ฿{Number(restaurant.delivery_fee).toFixed(0)}</span>
             </div>
             {restaurant.phone && (
               <div className="flex items-center gap-2 text-muted-foreground">
