@@ -24,7 +24,37 @@ function CartPage() {
   const [submitting, setSubmitting] = useState(false);
   const [deliveryLat, setDeliveryLat] = useState<number | null>(null);
   const [deliveryLng, setDeliveryLng] = useState<number | null>(null);
+  const [promoCode, setPromoCode] = useState("");
+  const [promo, setPromo] = useState<{ id: string; code: string; discount: number } | null>(null);
+  const [checking, setChecking] = useState(false);
   const deliveryFee = 30;
+  const discount = promo?.discount ?? 0;
+
+  async function applyPromo() {
+    if (!restaurantId || !promoCode.trim()) return;
+    setChecking(true);
+    const code = promoCode.trim().toUpperCase();
+    const { data, error } = await supabase
+      .from("promotions")
+      .select("id, code, type, value, min_order, max_discount, starts_at, ends_at, usage_limit, used_count, is_active")
+      .eq("restaurant_id", restaurantId)
+      .eq("code", code)
+      .maybeSingle();
+    setChecking(false);
+    if (error || !data) return toast.error("ไม่พบคูปองนี้");
+    if (!data.is_active) return toast.error("คูปองถูกปิดใช้งาน");
+    const now = new Date();
+    if (data.starts_at && new Date(data.starts_at) > now) return toast.error("คูปองยังไม่เริ่มใช้");
+    if (data.ends_at && new Date(data.ends_at) < now) return toast.error("คูปองหมดอายุ");
+    if (data.usage_limit !== null && data.used_count >= data.usage_limit) return toast.error("คูปองถูกใช้ครบแล้ว");
+    if (Number(data.min_order) > total) return toast.error(`ต้องสั่งขั้นต่ำ ฿${data.min_order}`);
+
+    let d = data.type === "percent" ? (total * Number(data.value)) / 100 : Number(data.value);
+    if (data.max_discount) d = Math.min(d, Number(data.max_discount));
+    d = Math.min(d, total);
+    setPromo({ id: data.id, code: data.code, discount: Math.round(d) });
+    toast.success(`ใช้คูปอง ${data.code} ลด ฿${Math.round(d)}`);
+  }
 
   useEffect(() => {
     if (!user) return;
