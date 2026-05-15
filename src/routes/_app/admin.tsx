@@ -363,6 +363,43 @@ function AdminPage() {
           )}
         </div>
       </Card>
+
+      <Dialog open={!!pwTarget} onOpenChange={(open) => !open && setPwTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>ตั้งรหัสผ่านใหม่</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              ผู้ใช้: <span className="font-medium text-foreground">{pwTarget?.email}</span>
+              <br />
+              <span className="text-xs">
+                ระบบไม่สามารถดูรหัสผ่านเดิมได้ (เข้ารหัสไว้) ใช้การตั้งรหัสใหม่แล้วแจ้งผู้ใช้แทน
+              </span>
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="reset-pw">รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)</Label>
+              <Input
+                id="reset-pw"
+                type="text"
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+                minLength={6}
+                required
+                autoFocus
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setPwTarget(null)}>
+                ยกเลิก
+              </Button>
+              <Button type="submit" disabled={savingPw}>
+                {savingPw ? "กำลังบันทึก..." : "บันทึกรหัสผ่านใหม่"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
