@@ -331,7 +331,7 @@ function HomePage() {
           filtered.map((r) => (
             <Link key={r.id} to="/restaurants/$restaurantId" params={{ restaurantId: r.id }}>
               <Card className="overflow-hidden p-0 hover:shadow-md transition">
-                <div className="aspect-[2/1] bg-gradient-to-br from-accent to-secondary relative">
+                <div className="h-40 bg-gradient-to-br from-accent to-secondary relative">
                   {(r.cover_url || r.image_url) ? (
                     <img src={r.cover_url || r.image_url || ""} alt={r.name} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
