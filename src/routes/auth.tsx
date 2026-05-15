@@ -11,9 +11,6 @@ import { toast } from "sonner";
 import { UtensilsCrossed } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
-  beforeLoad: () => {
-    throw redirect({ to: "/home" });
-  },
   component: AuthPage,
 });
 
