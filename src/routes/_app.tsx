@@ -20,7 +20,7 @@ function AppLayout() {
   ];
 
   const restaurantNav = [
-    { to: "/restaurant-dashboard", icon: Store, label: "ร้านของฉัน" },
+    { to: "/my-restaurant", icon: Store, label: "ร้านของฉัน" },
     { to: "/orders", icon: ClipboardList, label: "ออเดอร์" },
     { to: "/profile", icon: User, label: "ฉัน" },
   ];
