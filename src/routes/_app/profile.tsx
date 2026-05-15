@@ -41,8 +41,10 @@ function ProfilePage() {
       .select("id, is_open")
       .eq("owner_id", user.id)
       .maybeSingle()
-      .then(({ data }) => setRestaurant((data as MyRestaurant | null) ?? null))
-      .catch(() => { /* ignore */ });
+      .then(
+        ({ data }) => setRestaurant((data as MyRestaurant | null) ?? null),
+        () => { /* ignore */ },
+      );
   }, [user]);
 
   if (authLoading) {
