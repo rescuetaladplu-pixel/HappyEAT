@@ -237,7 +237,13 @@ function RestaurantDetail() {
                   {item.description && (
                     <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
                   )}
-                  <p className="text-primary font-semibold mt-1">฿{Number(item.price).toFixed(0)}</p>
+                  {variantMin[item.id] !== undefined ? (
+                    <p className="text-primary font-semibold mt-1">
+                      เริ่มต้น ฿{variantMin[item.id].toFixed(0)}
+                    </p>
+                  ) : (
+                    <p className="text-primary font-semibold mt-1">฿{Number(item.price).toFixed(0)}</p>
+                  )}
                 </div>
                 <Button
                   size="icon"
