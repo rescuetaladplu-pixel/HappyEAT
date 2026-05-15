@@ -149,28 +149,27 @@ function HomePage() {
     if (phoneSecondary.trim() && !PHONE_RE.test(phoneSecondary.trim()))
       return toast.error("รูปแบบเบอร์ติดต่อสำรองไม่ถูกต้อง");
     setSavingAddr(true);
-    const { data: sessionData } = await supabase.auth.getSession();
-    const activeUser = sessionData.session?.user ?? user;
-    if (!activeUser) {
-      setSavingAddr(false);
-      toast.error("กรุณาเข้าสู่ระบบก่อนบันทึกที่อยู่");
-      setAddrOpen(false);
-      navigate({ to: "/auth" });
-      return;
-    }
-    const payload = {
-      user_id: activeUser.id,
-      label: addrLabel.trim() || "บ้าน",
-      address: addrText.trim(),
-      is_default: true,
-      latitude: lat,
-      longitude: lng,
-      contact_name: contactName.trim() || null,
-      phone_primary: phonePrimary.trim(),
-      phone_secondary: phoneSecondary.trim() || null,
-      rider_note: riderNote.trim() || null,
-    };
     try {
+      const { data: sessionData } = await withTimeout(supabase.auth.getSession(), 5000);
+      const activeUser = sessionData.session?.user ?? user;
+      if (!activeUser) {
+        toast.error("กรุณาเข้าสู่ระบบก่อนบันทึกที่อยู่");
+        setAddrOpen(false);
+        navigate({ to: "/auth" });
+        return;
+      }
+      const payload = {
+        user_id: activeUser.id,
+        label: addrLabel.trim() || "บ้าน",
+        address: addrText.trim(),
+        is_default: true,
+        latitude: lat,
+        longitude: lng,
+        contact_name: contactName.trim() || null,
+        phone_primary: phonePrimary.trim(),
+        phone_secondary: phoneSecondary.trim() || null,
+        rider_note: riderNote.trim() || null,
+      };
       const res = await withTimeout(
         addr
           ? supabase.from("addresses").update(payload).eq("id", addr.id).select().single()
