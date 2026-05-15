@@ -7,10 +7,23 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, UserPlus, Users, Search } from "lucide-react";
+import { Shield, UserPlus, Users, Search, MailCheck, KeyRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { createAdminAccount, listAdmins, listAllUsers } from "@/lib/admin.functions";
+import {
+  createAdminAccount,
+  listAdmins,
+  listAllUsers,
+  confirmUserEmail,
+  resetUserPassword,
+} from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_app/admin")({
   component: AdminPage,
@@ -32,7 +45,7 @@ type UserRow = {
 
 const ROLE_LABEL: Record<string, string> = {
   customer: "ลูกค้า",
-  restaurant: "เจ้าของร้าน",
+  restaurant: "ร้านค้า",
   rider: "ไรเดอร์",
   admin: "แอดมิน",
 };
@@ -48,10 +61,45 @@ function AdminPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [creating, setCreating] = useState(false);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [pwTarget, setPwTarget] = useState<UserRow | null>(null);
+  const [newPw, setNewPw] = useState("");
+  const [savingPw, setSavingPw] = useState(false);
 
   const createFn = useServerFn(createAdminAccount);
   const listFn = useServerFn(listAdmins);
   const listUsersFn = useServerFn(listAllUsers);
+  const confirmEmailFn = useServerFn(confirmUserEmail);
+  const resetPwFn = useServerFn(resetUserPassword);
+
+  async function handleConfirmEmail(u: UserRow) {
+    setConfirmingId(u.user_id);
+    try {
+      await confirmEmailFn({ data: { userId: u.user_id } });
+      toast.success(`ยืนยันอีเมล ${u.email} สำเร็จ`);
+      loadUsers();
+    } catch (e: any) {
+      toast.error(e?.message ?? "ยืนยันไม่สำเร็จ");
+    } finally {
+      setConfirmingId(null);
+    }
+  }
+
+  async function handleResetPassword(e: FormEvent) {
+    e.preventDefault();
+    if (!pwTarget) return;
+    setSavingPw(true);
+    try {
+      await resetPwFn({ data: { userId: pwTarget.user_id, password: newPw } });
+      toast.success(`ตั้งรหัสผ่านใหม่ให้ ${pwTarget.email} สำเร็จ`);
+      setPwTarget(null);
+      setNewPw("");
+    } catch (e: any) {
+      toast.error(e?.message ?? "ตั้งรหัสผ่านไม่สำเร็จ");
+    } finally {
+      setSavingPw(false);
+    }
+  }
 
   async function loadAdmins() {
     try {
@@ -206,7 +254,7 @@ function AdminPage() {
           >
             <option value="all">ทุกบทบาท</option>
             <option value="customer">ลูกค้า</option>
-            <option value="restaurant">เจ้าของร้าน</option>
+            <option value="restaurant">ร้านค้า</option>
             <option value="rider">ไรเดอร์</option>
             <option value="admin">แอดมิน</option>
           </select>
@@ -221,7 +269,8 @@ function AdminPage() {
                 <th className="text-left font-medium px-3 py-2">เบอร์โทร</th>
                 <th className="text-left font-medium px-3 py-2">บทบาท</th>
                 <th className="text-left font-medium px-3 py-2">สมัครเมื่อ</th>
-                <th className="text-left font-medium px-5 py-2">เข้าระบบล่าสุด</th>
+                <th className="text-left font-medium px-3 py-2">เข้าระบบล่าสุด</th>
+                <th className="text-left font-medium px-5 py-2">การดำเนินการ</th>
               </tr>
             </thead>
             <tbody>
@@ -272,10 +321,38 @@ function AdminPage() {
                     <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
                       {new Date(u.created_at).toLocaleDateString("th-TH")}
                     </td>
-                    <td className="px-5 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                    <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
                       {u.last_sign_in_at
                         ? new Date(u.last_sign_in_at).toLocaleDateString("th-TH")
                         : "—"}
+                    </td>
+                    <td className="px-5 py-2 whitespace-nowrap">
+                      <div className="flex gap-1.5">
+                        {!u.email_confirmed && u.email && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleConfirmEmail(u)}
+                            disabled={confirmingId === u.user_id}
+                            title="ยืนยันอีเมลให้ผู้ใช้"
+                          >
+                            <MailCheck className="h-3.5 w-3.5 mr-1" />
+                            {confirmingId === u.user_id ? "..." : "ยืนยัน"}
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setPwTarget(u);
+                            setNewPw("");
+                          }}
+                          title="ตั้งรหัสผ่านใหม่"
+                        >
+                          <KeyRound className="h-3.5 w-3.5 mr-1" />
+                          รหัสผ่าน
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -286,6 +363,43 @@ function AdminPage() {
           )}
         </div>
       </Card>
+
+      <Dialog open={!!pwTarget} onOpenChange={(open) => !open && setPwTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>ตั้งรหัสผ่านใหม่</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              ผู้ใช้: <span className="font-medium text-foreground">{pwTarget?.email}</span>
+              <br />
+              <span className="text-xs">
+                ระบบไม่สามารถดูรหัสผ่านเดิมได้ (เข้ารหัสไว้) ใช้การตั้งรหัสใหม่แล้วแจ้งผู้ใช้แทน
+              </span>
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="reset-pw">รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)</Label>
+              <Input
+                id="reset-pw"
+                type="text"
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+                minLength={6}
+                required
+                autoFocus
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setPwTarget(null)}>
+                ยกเลิก
+              </Button>
+              <Button type="submit" disabled={savingPw}>
+                {savingPw ? "กำลังบันทึก..." : "บันทึกรหัสผ่านใหม่"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

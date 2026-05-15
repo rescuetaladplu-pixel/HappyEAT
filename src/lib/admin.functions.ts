@@ -58,18 +58,61 @@ export const listAdmins = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.userId);
-    const { data, error } = await supabaseAdmin
+    const { data: roleRows, error } = await supabaseAdmin
       .from("user_roles")
-      .select("user_id, created_at, profiles!inner(username, full_name)")
+      .select("user_id, created_at")
       .eq("role", "admin")
       .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
-    return (data ?? []).map((r: any) => ({
-      user_id: r.user_id,
-      created_at: r.created_at,
-      username: r.profiles?.username ?? null,
-      full_name: r.profiles?.full_name ?? null,
-    }));
+    const ids = (roleRows ?? []).map((r) => r.user_id);
+    if (ids.length === 0) return [];
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles")
+      .select("id, username, full_name")
+      .in("id", ids);
+    const pmap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+    return (roleRows ?? []).map((r) => {
+      const p: any = pmap.get(r.user_id) ?? {};
+      return {
+        user_id: r.user_id,
+        created_at: r.created_at,
+        username: p.username ?? null,
+        full_name: p.full_name ?? null,
+      };
+    });
+  });
+
+export const confirmUserEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ userId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+      email_confirm: true,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const resetUserPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        password: z.string().min(6, "รหัสผ่านอย่างน้อย 6 ตัว").max(72),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+      password: data.password,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 export const listAllUsers = createServerFn({ method: "GET" })
