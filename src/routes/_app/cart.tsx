@@ -24,6 +24,21 @@ function CartPage() {
   const [submitting, setSubmitting] = useState(false);
   const deliveryFee = 30;
 
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("addresses")
+      .select("address")
+      .eq("user_id", user.id)
+      .order("is_default", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.address) setAddress((prev) => prev || data.address);
+      });
+  }, [user]);
+
   async function handleCheckout() {
     if (!user || !restaurantId || items.length === 0) return;
     if (!address.trim()) return toast.error("กรุณากรอกที่อยู่จัดส่ง");
