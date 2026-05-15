@@ -51,7 +51,15 @@ interface AddressRow {
   rider_note: string | null;
 }
 
-const CATEGORIES = ["ทั้งหมด", "ตามสั่ง", "ก๋วยเตี๋ยว", "ส้มตำ", "เครื่องดื่ม", "ของหวาน", "ฟาสต์ฟู้ด"];
+const CATEGORIES = [
+  "ทั้งหมด",
+  "ตามสั่ง",
+  "ก๋วยเตี๋ยว",
+  "ส้มตำ",
+  "เครื่องดื่ม",
+  "ของหวาน",
+  "ฟาสต์ฟู้ด",
+];
 const PHONE_RE = /^[0-9+\-\s()]{8,20}$/;
 const ADDRESS_SAVE_TIMEOUT_MS = 15000;
 
@@ -98,7 +106,9 @@ function HomePage() {
       const res = await withTimeout(
         supabase
           .from("restaurants")
-          .select("id, name, description, category, image_url, cover_url, logo_url, rating, delivery_fee, is_open")
+          .select(
+            "id, name, description, category, image_url, cover_url, logo_url, rating, delivery_fee, is_open",
+          )
           .eq("is_approved", true)
           .order("rating", { ascending: false }),
         10000,
@@ -106,9 +116,10 @@ function HomePage() {
       if (res.error) throw new Error(res.error.message);
       setRestaurants((res.data ?? []) as Restaurant[]);
     } catch (error) {
-      const message = error instanceof Error && error.message === "timeout"
-        ? "โหลดร้านอาหารใช้เวลานานเกินไป"
-        : "โหลดรายการร้านไม่สำเร็จ";
+      const message =
+        error instanceof Error && error.message === "timeout"
+          ? "โหลดร้านอาหารใช้เวลานานเกินไป"
+          : "โหลดรายการร้านไม่สำเร็จ";
       setLoadError(message);
     } finally {
       setLoading(false);
@@ -128,7 +139,9 @@ function HomePage() {
         const res = await withTimeout(
           supabase
             .from("addresses")
-            .select("id, label, address, is_default, latitude, longitude, contact_name, phone_primary, phone_secondary, rider_note")
+            .select(
+              "id, label, address, is_default, latitude, longitude, contact_name, phone_primary, phone_secondary, rider_note",
+            )
             .eq("user_id", user!.id)
             .order("is_default", { ascending: false })
             .order("created_at", { ascending: false })
@@ -204,9 +217,10 @@ function HomePage() {
       setAddrOpen(false);
       toast.success("บันทึกที่อยู่แล้ว");
     } catch (error) {
-      const message = error instanceof Error && error.message === "timeout"
-        ? "บันทึกที่อยู่ไม่สำเร็จ: การเชื่อมต่อใช้เวลานานเกินไป กรุณาลองใหม่"
-        : "บันทึกที่อยู่ไม่สำเร็จ กรุณาลองใหม่";
+      const message =
+        error instanceof Error && error.message === "timeout"
+          ? "บันทึกที่อยู่ไม่สำเร็จ: การเชื่อมต่อใช้เวลานานเกินไป กรุณาลองใหม่"
+          : "บันทึกที่อยู่ไม่สำเร็จ กรุณาลองใหม่";
       toast.error(message);
     } finally {
       setSavingAddr(false);
@@ -221,12 +235,18 @@ function HomePage() {
 
   if (role && role !== "customer") {
     const dest =
-      role === "restaurant" ? "/restaurant-dashboard" : role === "rider" ? "/rider-dashboard" : "/admin";
+      role === "restaurant"
+        ? "/restaurant-dashboard"
+        : role === "rider"
+          ? "/rider-dashboard"
+          : "/admin";
     return (
       <main className="p-6 max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold mb-2">ยินดีต้อนรับ</h1>
         <p className="text-muted-foreground mb-4">บัญชีนี้ไม่ใช่บัญชีลูกค้า</p>
-        <Link to={dest} className="text-primary underline">ไปที่แดชบอร์ดของคุณ</Link>
+        <Link to={dest} className="text-primary underline">
+          ไปที่แดชบอร์ดของคุณ
+        </Link>
       </main>
     );
   }
@@ -279,7 +299,14 @@ function HomePage() {
               </div>
               <div className="space-y-2">
                 <Label>ปักหมุดบนแผนที่ (คลิกเพื่อเลือกตำแหน่ง)</Label>
-                <LocationPicker lat={lat} lng={lng} onChange={(la, ln) => { setLat(la); setLng(ln); }} />
+                <LocationPicker
+                  lat={lat}
+                  lng={lng}
+                  onChange={(la, ln) => {
+                    setLat(la);
+                    setLng(ln);
+                  }}
+                />
                 {lat !== null && lng !== null && (
                   <p className="text-xs text-muted-foreground">
                     พิกัด: {lat.toFixed(5)}, {lng.toFixed(5)}
@@ -292,7 +319,10 @@ function HomePage() {
                   onClick={() => {
                     if (!navigator.geolocation) return toast.error("เบราว์เซอร์ไม่รองรับ GPS");
                     navigator.geolocation.getCurrentPosition(
-                      (pos) => { setLat(pos.coords.latitude); setLng(pos.coords.longitude); },
+                      (pos) => {
+                        setLat(pos.coords.latitude);
+                        setLng(pos.coords.longitude);
+                      },
                       () => toast.error("ไม่สามารถดึงตำแหน่งได้"),
                     );
                   }}
@@ -390,7 +420,9 @@ function HomePage() {
 
       <section className="px-4 pb-6 space-y-3">
         {loading ? (
-          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)
+          Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-xl" />
+          ))
         ) : loadError ? (
           <div className="text-center py-12 text-muted-foreground space-y-3">
             <UtensilsCrossed className="h-12 w-12 mx-auto opacity-30" />
@@ -398,7 +430,10 @@ function HomePage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => { setLoading(true); loadRestaurants(); }}
+              onClick={() => {
+                setLoading(true);
+                loadRestaurants();
+              }}
             >
               ลองใหม่
             </Button>
@@ -406,7 +441,11 @@ function HomePage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <UtensilsCrossed className="h-12 w-12 mx-auto mb-2 opacity-30" />
-            <p>{restaurants.length === 0 ? "ยังไม่มีร้านค้าออนไลน์ในขณะนี้" : "ไม่พบร้านที่ตรงกับคำค้นหา"}</p>
+            <p>
+              {restaurants.length === 0
+                ? "ยังไม่มีร้านค้าออนไลน์ในขณะนี้"
+                : "ไม่พบร้านที่ตรงกับคำค้นหา"}
+            </p>
             <p className="text-xs mt-1">ลองเปลี่ยนหมวดหมู่หรือคำค้นหา</p>
           </div>
         ) : (
@@ -414,8 +453,13 @@ function HomePage() {
             <Link key={r.id} to="/restaurants/$restaurantId" params={{ restaurantId: r.id }}>
               <Card className="overflow-hidden p-0 hover:shadow-md transition">
                 <div className="h-40 bg-gradient-to-br from-accent to-secondary relative">
-                  {(r.cover_url || r.image_url) ? (
-                    <img src={r.cover_url || r.image_url || ""} alt={r.name} className="w-full h-full object-cover" loading="lazy" />
+                  {r.cover_url || r.image_url ? (
+                    <img
+                      src={r.cover_url || r.image_url || ""}
+                      alt={r.name}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-primary/30">
                       <UtensilsCrossed className="h-12 w-12" />
@@ -431,7 +475,9 @@ function HomePage() {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-foreground">{r.name}</h3>
                     {r.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{r.description}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                        {r.description}
+                      </p>
                     )}
                     <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
@@ -440,7 +486,12 @@ function HomePage() {
                       </span>
                       <span>•</span>
                       <span>ค่าส่ง ฿{Number(r.delivery_fee).toFixed(0)}</span>
-                      {r.category && <><span>•</span><span>{r.category}</span></>}
+                      {r.category && (
+                        <>
+                          <span>•</span>
+                          <span>{r.category}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                   {r.logo_url && (

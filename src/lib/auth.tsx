@@ -48,13 +48,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Then check existing session — always release loading even if it hangs
     const safetyTimer = setTimeout(() => setLoading(false), 4000);
-    supabase.auth.getSession()
+    supabase.auth
+      .getSession()
       .then(({ data }) => {
         setSession(data.session);
         setUser(data.session?.user ?? null);
         if (data.session?.user) fetchRole(data.session.user.id);
       })
-      .catch(() => { /* ignore */ })
+      .catch(() => {
+        /* ignore */
+      })
       .finally(() => {
         clearTimeout(safetyTimer);
         setLoading(false);
@@ -68,7 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function fetchRole(userId: string) {
     try {
-      const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
 
       if (error) {
         setRole("customer");

@@ -38,7 +38,14 @@ function AuthPage() {
 
   function translateAuthError(msg: string): string {
     const m = msg.toLowerCase();
-    if (m.includes("password") && (m.includes("weak") || m.includes("pwned") || m.includes("compromis") || m.includes("breach") || m.includes("found in"))) {
+    if (
+      m.includes("password") &&
+      (m.includes("weak") ||
+        m.includes("pwned") ||
+        m.includes("compromis") ||
+        m.includes("breach") ||
+        m.includes("found in"))
+    ) {
       return "รหัสผ่านนี้ง่ายเกินไปหรือเคยถูกเปิดเผยในเหตุข้อมูลรั่วไหล กรุณาเลือกรหัสผ่านที่ปลอดภัยกว่านี้";
     }
     if (m.includes("password") && m.includes("should be at least")) {
@@ -194,7 +201,8 @@ function AuthPage() {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    สมัครแล้วใช้สั่งอาหารได้ทันที — อยากเปิดร้านขายของก็เปิดเพิ่มได้ภายหลังในหน้าโปรไฟล์
+                    สมัครแล้วใช้สั่งอาหารได้ทันที —
+                    อยากเปิดร้านขายของก็เปิดเพิ่มได้ภายหลังในหน้าโปรไฟล์
                   </p>
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? "กำลังสมัคร..." : "สมัครสมาชิก"}
