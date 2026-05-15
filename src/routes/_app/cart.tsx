@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
@@ -23,6 +23,21 @@ function CartPage() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const deliveryFee = 30;
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("addresses")
+      .select("address")
+      .eq("user_id", user.id)
+      .order("is_default", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.address) setAddress((prev) => prev || data.address);
+      });
+  }, [user]);
 
   async function handleCheckout() {
     if (!user || !restaurantId || items.length === 0) return;

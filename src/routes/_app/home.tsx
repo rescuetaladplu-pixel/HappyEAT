@@ -4,8 +4,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, MapPin, Star, UtensilsCrossed } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+} from "@/components/ui/sheet";
+import { Search, MapPin, Star, UtensilsCrossed, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/home")({
   component: HomePage,
@@ -22,6 +34,13 @@ interface Restaurant {
   is_open: boolean;
 }
 
+interface AddressRow {
+  id: string;
+  label: string;
+  address: string;
+  is_default: boolean;
+}
+
 const CATEGORIES = ["ทั้งหมด", "ตามสั่ง", "ก๋วยเตี๋ยว", "ส้มตำ", "เครื่องดื่ม", "ของหวาน", "ฟาสต์ฟู้ด"];
 
 function HomePage() {
@@ -30,6 +49,13 @@ function HomePage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("ทั้งหมด");
+
+  // Address state
+  const [addr, setAddr] = useState<AddressRow | null>(null);
+  const [addrOpen, setAddrOpen] = useState(false);
+  const [addrLabel, setAddrLabel] = useState("บ้าน");
+  const [addrText, setAddrText] = useState("");
+  const [savingAddr, setSavingAddr] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -43,6 +69,54 @@ function HomePage() {
     }
     load();
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    async function loadAddr() {
+      const { data } = await supabase
+        .from("addresses")
+        .select("id, label, address, is_default")
+        .eq("user_id", user!.id)
+        .order("is_default", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        setAddr(data as AddressRow);
+        setAddrLabel(data.label);
+        setAddrText(data.address);
+      }
+    }
+    loadAddr();
+  }, [user]);
+
+  async function saveAddress() {
+    if (!user) return;
+    if (!addrText.trim()) return toast.error("กรุณากรอกที่อยู่");
+    setSavingAddr(true);
+    const payload = {
+      user_id: user.id,
+      label: addrLabel.trim() || "บ้าน",
+      address: addrText.trim(),
+      is_default: true,
+    };
+    let res;
+    if (addr) {
+      res = await supabase
+        .from("addresses")
+        .update(payload)
+        .eq("id", addr.id)
+        .select()
+        .single();
+    } else {
+      res = await supabase.from("addresses").insert(payload).select().single();
+    }
+    setSavingAddr(false);
+    if (res.error) return toast.error(res.error.message);
+    setAddr(res.data as AddressRow);
+    setAddrOpen(false);
+    toast.success("บันทึกที่อยู่แล้ว");
+  }
 
   const filtered = restaurants.filter((r) => {
     const okCat = category === "ทั้งหมด" || r.category === category;
@@ -66,17 +140,55 @@ function HomePage() {
   return (
     <main className="max-w-2xl mx-auto">
       <header className="px-4 pt-6 pb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">
-            <UtensilsCrossed className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <MapPin className="h-3 w-3" /> ส่งไปยัง
-            </p>
-            <p className="text-sm font-semibold">บ้านของฉัน</p>
-          </div>
-        </div>
+        <Sheet open={addrOpen} onOpenChange={setAddrOpen}>
+          <SheetTrigger asChild>
+            <button className="flex items-center gap-2 mb-3 w-full text-left rounded-xl hover:bg-secondary/60 active:bg-secondary p-1 -m-1 transition">
+              <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shrink-0">
+                <UtensilsCrossed className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> ส่งไปยัง
+                </p>
+                <p className="text-sm font-semibold truncate">
+                  {addr ? `${addr.label} · ${addr.address}` : "เพิ่มที่อยู่จัดส่ง"}
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            </button>
+          </SheetTrigger>
+          <SheetContent side="bottom" className="rounded-t-2xl">
+            <SheetHeader>
+              <SheetTitle>ที่อยู่จัดส่ง</SheetTitle>
+            </SheetHeader>
+            <div className="space-y-3 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="addr-label">ชื่อสถานที่</Label>
+                <Input
+                  id="addr-label"
+                  placeholder="เช่น บ้าน, ที่ทำงาน"
+                  value={addrLabel}
+                  onChange={(e) => setAddrLabel(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="addr-text">ที่อยู่</Label>
+                <Textarea
+                  id="addr-text"
+                  placeholder="บ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด"
+                  value={addrText}
+                  onChange={(e) => setAddrText(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <SheetFooter>
+              <Button onClick={saveAddress} disabled={savingAddr} className="w-full">
+                {savingAddr ? "กำลังบันทึก..." : "บันทึก"}
+              </Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
         <h1 className="text-2xl font-bold leading-tight">หิวอะไรวันนี้?</h1>
         <p className="text-sm text-muted-foreground mt-1">สวัสดี {user?.email?.split("@")[0]}</p>
       </header>
