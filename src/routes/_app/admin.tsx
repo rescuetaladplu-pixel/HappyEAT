@@ -45,12 +45,8 @@ type UserRow = {
 
 const ROLE_LABEL: Record<string, string> = {
   customer: "ลูกค้า",
-const ROLE_LABEL: Record<string, string> = {
-  customer: "ลูกค้า",
   restaurant: "ร้านค้า",
   rider: "ไรเดอร์",
-  admin: "แอดมิน",
-};
   admin: "แอดมิน",
 };
 
