@@ -30,6 +30,8 @@ interface Restaurant {
   description: string | null;
   category: string | null;
   image_url: string | null;
+  cover_url: string | null;
+  logo_url: string | null;
   rating: number;
   delivery_fee: number;
   is_open: boolean;
@@ -75,7 +77,7 @@ function HomePage() {
     async function load() {
       const { data } = await supabase
         .from("restaurants")
-        .select("id, name, description, category, image_url, rating, delivery_fee, is_open")
+        .select("id, name, description, category, image_url, cover_url, logo_url, rating, delivery_fee, is_open")
         .eq("is_approved", true)
         .order("rating", { ascending: false });
       setRestaurants((data ?? []) as Restaurant[]);
@@ -330,12 +332,20 @@ function HomePage() {
             <Link key={r.id} to="/restaurants/$restaurantId" params={{ restaurantId: r.id }}>
               <Card className="overflow-hidden p-0 hover:shadow-md transition">
                 <div className="aspect-[2/1] bg-gradient-to-br from-accent to-secondary relative">
-                  {r.image_url ? (
-                    <img src={r.image_url} alt={r.name} className="w-full h-full object-cover" loading="lazy" />
+                  {(r.cover_url || r.image_url) ? (
+                    <img src={r.cover_url || r.image_url || ""} alt={r.name} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-primary/30">
                       <UtensilsCrossed className="h-12 w-12" />
                     </div>
+                  )}
+                  {r.logo_url && (
+                    <img
+                      src={r.logo_url}
+                      alt=""
+                      className="absolute bottom-2 left-2 h-12 w-12 rounded-full border-2 border-background object-cover shadow-md"
+                      loading="lazy"
+                    />
                   )}
                   {!r.is_open && (
                     <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
