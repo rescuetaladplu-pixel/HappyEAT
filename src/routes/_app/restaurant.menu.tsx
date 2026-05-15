@@ -198,7 +198,6 @@ function MenuManagementPage() {
               items={items}
               categories={categories}
               onEdit={setEditItem}
-              onAddons={setAddonsForItem}
               onChange={load}
             />
           )}
