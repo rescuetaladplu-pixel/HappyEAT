@@ -940,6 +940,7 @@ function ItemEditDialog({
         if (error) throw new Error(error.message);
       }
       await syncVariants(savedId);
+      await syncAddons(savedId);
       toast.success(isNew ? "เพิ่มเมนูแล้ว" : "บันทึกแล้ว");
       onSaved();
     } catch (e) {
