@@ -1111,7 +1111,184 @@ function ItemEditDialog({
             )}
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+          {/* Addon groups (toppings / extras) */}
+          <div className="rounded-lg border border-border p-3 space-y-3">
+            <div className="flex items-center gap-1.5">
+              <Label className="m-0">ตัวเลือกเสริม (ท็อปปิ้ง / ของเพิ่ม)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 text-muted-foreground"
+                  >
+                    <Info className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 text-xs leading-relaxed">
+                  <p className="font-semibold text-sm mb-1">เคล็ดลับการใช้งาน</p>
+                  <p className="text-muted-foreground">
+                    เพิ่มตัวเลือกเสริมที่ <b>บวกเพิ่มจากราคาฐาน</b> เช่น ไข่ดาว +10฿,
+                    ชีส +20฿
+                  </p>
+                  <p className="text-muted-foreground mt-2">
+                    กลุ่มที่สร้างจะถูก <b>บันทึกอัตโนมัติเป็นเทมเพลต</b> ของร้าน
+                    เลือกใช้ซ้ำในเมนูอื่นได้จากดรอปดาวน์ "ใช้กลุ่มที่เคยตั้งไว้"
+                  </p>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {addonGroups.map((g) => (
+              <Card key={g.tempKey} className="p-3 space-y-3">
+                <div className="flex items-start gap-2">
+                  <Input
+                    placeholder='เช่น "ท็อปปิ้ง"'
+                    value={g.name}
+                    onChange={(e) => updateAddonGroup(g.tempKey, { name: e.target.value })}
+                    className="font-medium"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="text-destructive shrink-0"
+                    onClick={() => removeAddonGroup(g.tempKey)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-xs items-center">
+                  <label className="flex items-center gap-2">
+                    <Switch
+                      checked={g.isRequired}
+                      onCheckedChange={(v) => updateAddonGroup(g.tempKey, { isRequired: v })}
+                    />
+                    บังคับ
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <span>ขั้นต่ำ</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={g.minSelect}
+                      onChange={(e) =>
+                        updateAddonGroup(g.tempKey, {
+                          minSelect: Math.max(0, Number(e.target.value) || 0),
+                        })
+                      }
+                      className="h-8"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span>สูงสุด</span>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={g.maxSelect}
+                      onChange={(e) =>
+                        updateAddonGroup(g.tempKey, {
+                          maxSelect: Math.max(1, Number(e.target.value) || 1),
+                        })
+                      }
+                      className="h-8"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {g.options.map((o) => (
+                    <div key={o.tempKey} className="flex items-center gap-2">
+                      <Input
+                        placeholder="ชื่อ"
+                        value={o.name}
+                        onChange={(e) =>
+                          updateOption(g.tempKey, o.tempKey, { name: e.target.value })
+                        }
+                        className="flex-1"
+                      />
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        placeholder="+ราคา"
+                        value={o.price}
+                        onChange={(e) =>
+                          updateOption(g.tempKey, o.tempKey, { price: e.target.value })
+                        }
+                        className="w-20"
+                      />
+                      <Switch
+                        checked={o.isAvailable}
+                        onCheckedChange={(v) =>
+                          updateOption(g.tempKey, o.tempKey, { isAvailable: v })
+                        }
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="text-destructive shrink-0"
+                        onClick={() => removeOption(g.tempKey, o.tempKey)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => addOption(g.tempKey)}
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> เพิ่มตัวเลือก
+                  </Button>
+                </div>
+              </Card>
+            ))}
+
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addAddonGroup()}
+              >
+                <Plus className="h-4 w-4 mr-1" /> เพิ่มกลุ่มใหม่
+              </Button>
+              <Select
+                value=""
+                onValueChange={(v) => v && applyTemplate(v)}
+                disabled={templates.length === 0}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue
+                    placeholder={
+                      templates.length === 0
+                        ? "ยังไม่มีเทมเพลต"
+                        : "ใช้กลุ่มที่เคยตั้งไว้"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name} ({t.options.length} ตัวเลือก)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {addonGroups.length === 0 && (
+              <p className="text-[11px] text-muted-foreground text-center">
+                ไม่ต้องตั้งค่าหากเมนูนี้ไม่มีตัวเลือกเสริม
+              </p>
+            )}
+          </div>
+
             <div>
               <p className="text-sm font-medium">พร้อมขายวันนี้</p>
               <p className="text-xs text-muted-foreground">
