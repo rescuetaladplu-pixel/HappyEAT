@@ -110,7 +110,7 @@ function AnalyticsPage() {
   return (
     <main className="max-w-4xl mx-auto p-4 pb-24 space-y-4">
       <div className="flex items-center justify-between">
-        <Button asChild variant="ghost" size="sm"><Link to="/restaurant-dashboard"><ArrowLeft className="h-4 w-4 mr-1" />หน้าร้าน</Link></Button>
+        <Button asChild variant="ghost" size="sm"><Link to="/my-restaurant"><ArrowLeft className="h-4 w-4 mr-1" />หน้าร้าน</Link></Button>
       </div>
 
       <div className="flex items-center gap-2">
