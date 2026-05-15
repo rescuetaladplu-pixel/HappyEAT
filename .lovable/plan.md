@@ -1,52 +1,91 @@
 
-# แผน: ระบบบัญชีแอดมินแบบใช้ username
+# แผนสร้างระบบจัดการร้านอาหารแบบครบวงจร
 
-## สรุปโจทย์
-- สร้างแอดมินคนแรก: **username = `adminmai`**, **password = `adminmai001`**
-- ระบบเดิมใช้ Supabase Auth ซึ่ง**บังคับต้องเป็นอีเมล** → ใช้วิธี map username เป็น "อีเมลภายใน" เช่น `adminmai@admin.local`
-- หน้าแอดมินต้องมีปุ่ม **"สร้างแอดมินใหม่"** ที่กรอกแค่ username + password ได้เลย
+## ภาพรวม
+ปรับหน้า "ฉัน" (Profile) ให้แสดงเมนูเข้าสู่ "ร้านอาหารของฉัน" สำหรับผู้ที่มี role = `restaurant` (และเพิ่มปุ่ม "สมัครเปิดร้าน" สำหรับ customer ที่ยังไม่มีร้าน) จากนั้นขยาย restaurant-dashboard เดิมให้รองรับฟังก์ชันครบทั้ง 12 ข้อ
 
----
-
-## สิ่งที่จะทำ
-
-### 1. ฐานข้อมูล (1 migration)
-- เพิ่มคอลัมน์ `username` (text, unique, nullable) ใน table `profiles`
-- สร้างบัญชีแอดมินแรก:
-  - email ภายในระบบ: `adminmai@admin.local`
-  - password: `adminmai001`
-  - profile.username = `adminmai`, full_name = `Admin`
-  - user_roles.role = `admin`
-
-### 2. หน้า Login (`src/routes/auth.tsx`)
-- เพิ่ม toggle: **"เข้าสู่ระบบด้วย Username (สำหรับแอดมิน)"**
-- ถ้าเลือก username mode: แปลง `adminmai` → `adminmai@admin.local` ก่อนส่งให้ Supabase
-- ถ้า mode email ปกติ: ทำงานเหมือนเดิม
-- เอา option **"แอดมิน"** ออกจากหน้าสมัครสมาชิก (กันคนสุ่มสมัครเป็นแอดมิน)
-
-### 3. หน้าแอดมิน (`src/routes/_app/admin.tsx`)
-- เพิ่มส่วน **"จัดการแอดมิน"**: ฟอร์มกรอก username + password → กดสร้าง
-- รายชื่อแอดมินทั้งหมด (username + วันที่สร้าง)
-
-### 4. Server Function สำหรับสร้างแอดมิน (`src/lib/admin.functions.ts`)
-- ใช้ `requireSupabaseAuth` + เช็ค `has_role(userId, 'admin')` ก่อน
-- ใช้ `supabaseAdmin` เรียก `auth.admin.createUser()` ด้วย email สังเคราะห์ + email_confirm: true
-- เพิ่ม username ลง profiles + role 'admin' ลง user_roles
-- Validate: username 3–32 ตัว, [a-z0-9_], password ≥ 6 ตัว
+แบ่งงานเป็น 3 เฟส เพื่อให้ตรวจงานได้ทีละส่วน
 
 ---
 
-## รายละเอียดด้านเทคนิค
+## เฟส 1 — โปรไฟล์ร้าน + แผนที่ + เวลาเปิด-ปิด
 
-**ทำไมต้องใช้ "อีเมลสังเคราะห์":** Supabase Auth บังคับ email format เปลี่ยนไม่ได้ — วิธีมาตรฐานคือ map username → `<username>@<internal-domain>` แล้วเก็บ username จริงไว้ใน profiles เพื่อใช้แสดงผล/ค้นหา
+### 1.1 Database migration
+เพิ่มฟิลด์ใน `restaurants`:
+- `logo_url`, `cover_url` (text)
+- `opening_hours` (jsonb) — โครงสร้าง `{ mon: {open:"08:00", close:"20:00", closed:false}, tue:..., ... }`
 
-**ความปลอดภัย:** การสร้างแอดมินทำผ่าน server function ที่ verify role ก่อนเสมอ (ไม่ trust client) + RLS บน user_roles อนุญาตเฉพาะแอดมินจัดการ role อยู่แล้ว
+เพิ่มตาราง `menu_categories` (id, restaurant_id, name, sort_order)
 
-**โดเมน internal:** `admin.local` (ไม่ส่งอีเมลจริง เพราะปิด email confirm สำหรับบัญชีแอดมิน)
+Storage bucket: `restaurant-images` (public) สำหรับโลโก้/ปก/รูปเมนู พร้อม RLS ให้เจ้าของร้านอัปโหลดได้
+
+### 1.2 หน้า "ร้านอาหารของฉัน" (`/_app/my-restaurant`)
+แท็บย่อย:
+- **โปรไฟล์ร้าน**: ชื่อ, โลโก้ (อัปโหลด), ภาพปก (อัปโหลด), เบอร์โทร, รายละเอียด, หมวดหมู่ร้าน
+- **ที่อยู่ & แผนที่**: ใช้ `react-leaflet` + OpenStreetMap tiles (ฟรี ไม่ต้องคีย์) ปักหมุด lat/lng
+- **เวลาเปิด-ปิด**: ตารางรายวัน 7 วัน + ปุ่ม Toggle "เปิด/ปิดร้านชั่วคราว" (ฟิลด์ `is_open` เดิม)
+
+### 1.3 ปรับหน้า Profile
+เพิ่มการ์ด "ร้านอาหารของฉัน" ถ้า role = restaurant → ลิงก์ไป `/my-restaurant`
+ถ้า role = customer → ปุ่ม "เปิดร้านอาหารกับเรา" (เปลี่ยน role + redirect)
 
 ---
 
-## ผลลัพธ์
-- ล็อกอินด้วย `adminmai` / `adminmai001` ได้ทันที
-- หลังเข้าระบบ → ไปหน้า /admin → สร้างแอดมินคนต่อไปเองได้ผ่าน UI
-- ลูกค้า/ร้าน/ไรเดอร์ยังคงสมัครและล็อกอินด้วยอีเมลเหมือนเดิม
+## เฟส 2 — เมนู, ตัวเลือกเสริม, สต็อก, ออเดอร์ Real-time
+
+### 2.1 Database migration
+- ตาราง `menu_addon_groups` (id, menu_item_id, name, is_required, max_select)
+- ตาราง `menu_addon_options` (id, group_id, name, price)
+- เพิ่มฟิลด์ `category_id` ใน `menu_items` (อ้าง `menu_categories`)
+- เพิ่ม `image_url` (มีอยู่แล้ว) และ `is_available` (มีอยู่แล้ว = สถานะหมด/ไม่หมด)
+
+### 2.2 หน้าจัดการเมนู (แท็บใน my-restaurant)
+- จัดการหมวดหมู่ (เพิ่ม/ลบ/ลำดับ)
+- เพิ่ม/แก้ไขเมนู: ชื่อ, รูป (upload), รายละเอียด, ราคา, หมวดหมู่
+- จัดการ Add-ons ต่อเมนู: กลุ่ม + ตัวเลือก (เช่น "ระดับความเผ็ด" → น้อย/กลาง/เผ็ด)
+- Toggle "หมดวันนี้" ต่อเมนู
+
+### 2.3 แดชบอร์ดออเดอร์ Real-time
+- Subscribe `orders` table (มีอยู่แล้ว) + เล่นเสียง beep ผ่าน Web Audio API เมื่อมีออเดอร์ใหม่
+- แสดงรายการออเดอร์พร้อม items, ที่อยู่, หมายเหตุ, ราคารวม
+- ปุ่มเปลี่ยนสถานะ: pending → accepted → preparing → ready (ส่งมอบไรเดอร์) → delivered
+
+---
+
+## เฟส 3 — Dashboard ยอดขาย, โปรโมชั่น, รีวิว
+
+### 3.1 Database migration
+- ตาราง `promotions` (id, restaurant_id, code, type: 'percent'|'amount', value, menu_item_id NULL = ทั้งร้าน, active, valid_from, valid_to)
+- เพิ่มฟิลด์ `restaurant_reply` (text) ใน `reviews`
+
+### 3.2 Dashboard ยอดขาย
+- Server function รวมยอด orders ที่ status='delivered' ของร้าน
+- กราฟรายวัน (7 วันล่าสุด) + รายเดือน + ยอดรวม + จำนวนออเดอร์ + AOV
+- ใช้ recharts (มีในโปรเจกต์แล้ว)
+
+### 3.3 จัดการโปรโมชั่น
+- สร้าง/แก้ไข/ปิดโค้ดส่วนลด หรือส่วนลดรายเมนู
+- (การใช้โค้ดในฝั่งลูกค้าเตรียมไว้ในเฟสถัดไป — เฟสนี้แค่ฝั่งเจ้าของร้าน)
+
+### 3.4 รีวิวและคะแนน
+- รายการรีวิวลูกค้า (จากตาราง `reviews`)
+- ช่องตอบกลับ (`restaurant_reply`)
+- คะแนนเฉลี่ย + กราฟ
+
+---
+
+## รายละเอียดทางเทคนิค
+
+- Map: `bun add react-leaflet leaflet @types/leaflet` + import CSS leaflet
+- Audio: `new AudioContext()` + oscillator beep (ไม่ต้องไฟล์)
+- รูปภาพทั้งหมดใช้ Supabase Storage bucket `restaurant-images` (public read)
+- ทุก mutation ผ่าน Supabase client ฝั่ง browser (RLS เดิมรองรับ owner_id แล้ว)
+- Realtime: `ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;` (ถ้ายังไม่ได้เพิ่ม)
+- Route ใหม่: `src/routes/_app/my-restaurant.tsx` (แท็บภายในด้วย shadcn Tabs) — จะแทนที่/เสริม `restaurant-dashboard.tsx` เดิม
+
+## ลำดับการ implement
+1. Migration + storage bucket ของเฟส 1
+2. หน้า my-restaurant (โปรไฟล์ + แผนที่ + เวลา) + ปรับ Profile
+3. หยุดให้ผู้ใช้ตรวจ → ดำเนินเฟส 2 → ตรวจ → เฟส 3
+
+เริ่มจากเฟส 1 ก่อนนะครับ

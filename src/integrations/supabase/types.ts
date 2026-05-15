@@ -47,6 +47,30 @@ export type Database = {
         }
         Relationships: []
       }
+      menu_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          restaurant_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          restaurant_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          restaurant_id?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       menu_items: {
         Row: {
           category: string | null
@@ -232,6 +256,7 @@ export type Database = {
         Row: {
           address: string | null
           category: string | null
+          cover_url: string | null
           created_at: string
           delivery_fee: number
           description: string | null
@@ -240,8 +265,10 @@ export type Database = {
           is_approved: boolean
           is_open: boolean
           latitude: number | null
+          logo_url: string | null
           longitude: number | null
           name: string
+          opening_hours: Json
           owner_id: string
           phone: string | null
           rating: number
@@ -250,6 +277,7 @@ export type Database = {
         Insert: {
           address?: string | null
           category?: string | null
+          cover_url?: string | null
           created_at?: string
           delivery_fee?: number
           description?: string | null
@@ -258,8 +286,10 @@ export type Database = {
           is_approved?: boolean
           is_open?: boolean
           latitude?: number | null
+          logo_url?: string | null
           longitude?: number | null
           name: string
+          opening_hours?: Json
           owner_id: string
           phone?: string | null
           rating?: number
@@ -268,6 +298,7 @@ export type Database = {
         Update: {
           address?: string | null
           category?: string | null
+          cover_url?: string | null
           created_at?: string
           delivery_fee?: number
           description?: string | null
@@ -276,8 +307,10 @@ export type Database = {
           is_approved?: boolean
           is_open?: boolean
           latitude?: number | null
+          logo_url?: string | null
           longitude?: number | null
           name?: string
+          opening_hours?: Json
           owner_id?: string
           phone?: string | null
           rating?: number
