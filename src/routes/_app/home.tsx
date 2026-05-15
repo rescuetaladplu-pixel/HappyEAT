@@ -74,6 +74,7 @@ function HomePage() {
   const navigate = useNavigate();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("ทั้งหมด");
 
@@ -91,13 +92,26 @@ function HomePage() {
   const [savingAddr, setSavingAddr] = useState(false);
 
   const loadRestaurants = useCallback(async () => {
-    const { data } = await supabase
-      .from("restaurants")
-      .select("id, name, description, category, image_url, cover_url, logo_url, rating, delivery_fee, is_open")
-      .eq("is_approved", true)
-      .order("rating", { ascending: false });
-    setRestaurants((data ?? []) as Restaurant[]);
-    setLoading(false);
+    try {
+      setLoadError(null);
+      const res = await withTimeout(
+        supabase
+          .from("restaurants")
+          .select("id, name, description, category, image_url, cover_url, logo_url, rating, delivery_fee, is_open")
+          .eq("is_approved", true)
+          .order("rating", { ascending: false }),
+        10000,
+      );
+      if (res.error) throw new Error(res.error.message);
+      setRestaurants((res.data ?? []) as Restaurant[]);
+    } catch (error) {
+      const message = error instanceof Error && error.message === "timeout"
+        ? "โหลดร้านอาหารใช้เวลานานเกินไป"
+        : "โหลดรายการร้านไม่สำเร็จ";
+      setLoadError(message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -109,25 +123,33 @@ function HomePage() {
   useEffect(() => {
     if (!user) return;
     async function loadAddr() {
-      const { data } = await supabase
-        .from("addresses")
-        .select("id, label, address, is_default, latitude, longitude, contact_name, phone_primary, phone_secondary, rider_note")
-        .eq("user_id", user!.id)
-        .order("is_default", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (data) {
-        const r = data as AddressRow;
-        setAddr(r);
-        setAddrLabel(r.label);
-        setAddrText(r.address);
-        setContactName(r.contact_name ?? "");
-        setPhonePrimary(r.phone_primary ?? "");
-        setPhoneSecondary(r.phone_secondary ?? "");
-        setRiderNote(r.rider_note ?? "");
-        setLat(r.latitude !== null ? Number(r.latitude) : null);
-        setLng(r.longitude !== null ? Number(r.longitude) : null);
+      try {
+        const res = await withTimeout(
+          supabase
+            .from("addresses")
+            .select("id, label, address, is_default, latitude, longitude, contact_name, phone_primary, phone_secondary, rider_note")
+            .eq("user_id", user!.id)
+            .order("is_default", { ascending: false })
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          10000,
+        );
+        const data = res.data;
+        if (data) {
+          const r = data as AddressRow;
+          setAddr(r);
+          setAddrLabel(r.label);
+          setAddrText(r.address);
+          setContactName(r.contact_name ?? "");
+          setPhonePrimary(r.phone_primary ?? "");
+          setPhoneSecondary(r.phone_secondary ?? "");
+          setRiderNote(r.rider_note ?? "");
+          setLat(r.latitude !== null ? Number(r.latitude) : null);
+          setLng(r.longitude !== null ? Number(r.longitude) : null);
+        }
+      } catch {
+        // ignore — ไม่ต้องบล็อกหน้าแรกถ้าโหลดที่อยู่ไม่สำเร็จ
       }
     }
     loadAddr();
@@ -368,6 +390,18 @@ function HomePage() {
       <section className="px-4 pb-6 space-y-3">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)
+        ) : loadError ? (
+          <div className="text-center py-12 text-muted-foreground space-y-3">
+            <UtensilsCrossed className="h-12 w-12 mx-auto opacity-30" />
+            <p>{loadError}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setLoading(true); loadRestaurants(); }}
+            >
+              ลองใหม่
+            </Button>
+          </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <UtensilsCrossed className="h-12 w-12 mx-auto mb-2 opacity-30" />
