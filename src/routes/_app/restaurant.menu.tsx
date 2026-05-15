@@ -61,6 +61,7 @@ interface MenuItem {
   restaurant_id: string;
   name: string;
   description: string | null;
+  allergen_info: string | null;
   price: number;
   image_url: string | null;
   is_available: boolean;
