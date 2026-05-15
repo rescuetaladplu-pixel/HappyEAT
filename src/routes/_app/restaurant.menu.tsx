@@ -649,6 +649,51 @@ function ItemEditDialog({
     })();
   }, [restaurantId]);
 
+  // load reusable variant templates for this restaurant
+  useEffect(() => {
+    (async () => {
+      const { data: t } = await supabase
+        .from("variant_group_templates")
+        .select("id, name")
+        .eq("restaurant_id", restaurantId)
+        .order("name");
+      const tList = t ?? [];
+      if (tList.length === 0) {
+        setVariantTemplates([]);
+        return;
+      }
+      const { data: o } = await supabase
+        .from("variant_group_template_options")
+        .select("template_id, name, price_delta, sort_order")
+        .in("template_id", tList.map((x) => x.id))
+        .order("sort_order");
+      const byT: Record<string, VariantTemplate["options"]> = {};
+      for (const opt of o ?? []) {
+        (byT[opt.template_id] ??= []).push({
+          name: opt.name,
+          price_delta: Number(opt.price_delta),
+          sort_order: opt.sort_order,
+        });
+      }
+      setVariantTemplates(
+        tList.map((x) => ({ id: x.id, name: x.name, options: byT[x.id] ?? [] })),
+      );
+    })();
+  }, [restaurantId]);
+
+  function applyVariantTemplate(templateId: string) {
+    const t = variantTemplates.find((x) => x.id === templateId);
+    if (!t) return;
+    const base = Number(price) || 0;
+    setVariants(
+      t.options.map((o) => ({
+        name: o.name,
+        price: String(base + Number(o.price_delta || 0)),
+        tempKey: `new-${Date.now()}-${Math.random()}`,
+      })),
+    );
+  }
+
   function newKey() {
     return `new-${Date.now()}-${Math.random()}`;
   }
