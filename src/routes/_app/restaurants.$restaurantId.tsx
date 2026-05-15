@@ -57,6 +57,7 @@ interface AddonGroup {
   min_select: number;
   max_select: number;
   sort_order: number;
+  pricing_mode: "addon" | "variant";
 }
 interface AddonOption {
   id: string;
@@ -74,6 +75,7 @@ function RestaurantDetail() {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
+  const [variantMin, setVariantMin] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [picking, setPicking] = useState<MenuItem | null>(null);
 
@@ -94,7 +96,44 @@ function RestaurantDetail() {
       ]);
       setRestaurant(r as Restaurant | null);
       setCategories((c ?? []) as Category[]);
-      setItems((m ?? []) as MenuItem[]);
+      const itemList = (m ?? []) as MenuItem[];
+      setItems(itemList);
+
+      // Compute variant minimum price per item
+      if (itemList.length > 0) {
+        const { data: groupsData } = await supabase
+          .from("menu_addon_groups")
+          .select("id, menu_item_id, pricing_mode")
+          .in("menu_item_id", itemList.map((i) => i.id))
+          .eq("pricing_mode", "variant");
+        const variantGroups = (groupsData ?? []) as {
+          id: string;
+          menu_item_id: string;
+        }[];
+        if (variantGroups.length > 0) {
+          const { data: optsData } = await supabase
+            .from("menu_addon_options")
+            .select("group_id, price_delta, is_available")
+            .in(
+              "group_id",
+              variantGroups.map((g) => g.id),
+            )
+            .eq("is_available", true);
+          const minByItem: Record<string, number> = {};
+          for (const opt of (optsData ?? []) as {
+            group_id: string;
+            price_delta: number;
+          }[]) {
+            const grp = variantGroups.find((g) => g.id === opt.group_id);
+            if (!grp) continue;
+            const p = Number(opt.price_delta);
+            if (minByItem[grp.menu_item_id] === undefined || p < minByItem[grp.menu_item_id]) {
+              minByItem[grp.menu_item_id] = p;
+            }
+          }
+          setVariantMin(minByItem);
+        }
+      }
       setLoading(false);
     }
     load();
@@ -198,7 +237,13 @@ function RestaurantDetail() {
                   {item.description && (
                     <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
                   )}
-                  <p className="text-primary font-semibold mt-1">฿{Number(item.price).toFixed(0)}</p>
+                  {variantMin[item.id] !== undefined ? (
+                    <p className="text-primary font-semibold mt-1">
+                      เริ่มต้น ฿{variantMin[item.id].toFixed(0)}
+                    </p>
+                  ) : (
+                    <p className="text-primary font-semibold mt-1">฿{Number(item.price).toFixed(0)}</p>
+                  )}
                 </div>
                 <Button
                   size="icon"
@@ -298,18 +343,24 @@ function ItemPickerDialog({
     });
   }
 
-  const addonsTotal = useMemo(() => {
-    let s = 0;
+  const { unitPrice, addonsTotal } = useMemo(() => {
+    let variantPrice: number | null = null;
+    let extras = 0;
     for (const g of groups) {
       for (const oid of selected[g.id] ?? []) {
         const opt = (optionsMap[g.id] ?? []).find((o) => o.id === oid);
-        if (opt) s += Number(opt.price_delta);
+        if (!opt) continue;
+        if (g.pricing_mode === "variant") {
+          variantPrice = Number(opt.price_delta);
+        } else {
+          extras += Number(opt.price_delta);
+        }
       }
     }
-    return s;
-  }, [groups, selected, optionsMap]);
-
-  const unitPrice = Number(item.price) + addonsTotal;
+    const base = variantPrice ?? Number(item.price);
+    return { unitPrice: base + extras, addonsTotal: extras };
+  }, [groups, selected, optionsMap, item.price]);
+  void addonsTotal;
 
   function handleAdd() {
     // validate required
@@ -329,10 +380,20 @@ function ItemPickerDialog({
     }
 
     const addons: SelectedAddon[] = [];
+    let variantPrice: number | null = null;
     for (const g of groups) {
       for (const oid of selected[g.id] ?? []) {
         const opt = (optionsMap[g.id] ?? []).find((o) => o.id === oid);
-        if (opt) {
+        if (!opt) continue;
+        if (g.pricing_mode === "variant") {
+          variantPrice = Number(opt.price_delta);
+          // store for display, but priceDelta=0 since it's the base
+          addons.push({
+            groupName: g.name,
+            optionName: opt.name,
+            priceDelta: 0,
+          });
+        } else {
           addons.push({
             groupName: g.name,
             optionName: opt.name,
@@ -346,7 +407,7 @@ function ItemPickerDialog({
       menuItemId: item.id,
       restaurantId,
       name: item.name,
-      basePrice: Number(item.price),
+      basePrice: variantPrice ?? Number(item.price),
       imageUrl: item.image_url,
       addons,
       note: note.trim() || null,
@@ -404,12 +465,16 @@ function ItemPickerDialog({
                             <RadioGroupItem value={opt.id} id={opt.id} />
                             <span className="text-sm">{opt.name}</span>
                           </div>
-                          {Number(opt.price_delta) !== 0 && (
+                          {g.pricing_mode === "variant" ? (
+                            <span className="text-sm text-muted-foreground">
+                              ฿{Number(opt.price_delta).toFixed(0)}
+                            </span>
+                          ) : Number(opt.price_delta) !== 0 ? (
                             <span className="text-sm text-muted-foreground">
                               {Number(opt.price_delta) > 0 ? "+" : ""}
                               ฿{Number(opt.price_delta).toFixed(0)}
                             </span>
-                          )}
+                          ) : null}
                         </label>
                       ))}
                     </RadioGroup>

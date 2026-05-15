@@ -1,24 +1,34 @@
-## ปัญหาที่พบ
+## ปัญหา
+ตอนนี้ทุกตัวเลือกเสริมจะ **บวกเพิ่ม** จากราคาเมนูหลัก เลยเกิดเคส ชานม 50฿ + แก้วใหญ่ 70฿ = 120฿ ทั้งที่ร้านตั้งใจให้แก้วใหญ่ = 70฿
 
-**1. กด "จัดการข้อมูลร้านค้า" แล้วไม่มีอะไรเกิดขึ้น**
-- ไฟล์ `my-restaurant.tsx` และ `my-restaurant.settings.tsx` อยู่ติดกัน ใน TanStack Router flat routing แบบนี้ไฟล์ลูก (`.settings`) จะถูกซ้อน (nested) อยู่ใต้ไฟล์แม่ (`my-restaurant.tsx`) โดยอัตโนมัติ
-- แต่ component `MyRestaurantHub` ไม่ได้ render `<Outlet />` — ดังนั้นกดแล้ว URL เปลี่ยนเป็น `/my-restaurant/settings` จริง แต่หน้า settings ไม่โผล่ เพราะถูก parent ทับ
+## แนวทาง
+แยกกลุ่มตัวเลือกเป็น 2 แบบ:
+- **กลุ่มขนาด/ประเภท (variant)** — ราคาในตัวเลือก = ราคาสุทธิ (แทนที่ราคาเมนูหลัก) ใช้ได้กลุ่มเดียวต่อเมนู, บังคับเลือก 1
+- **กลุ่มท็อปปิ้ง/เสริม (addon)** — บวกเพิ่มจากราคาฐาน เหมือนเดิม
 
-**2. กดย้อนกลับจากหน้าจัดการเมนูแล้วไปที่ `/restaurant-dashboard`**
-- ปุ่มย้อนกลับในไฟล์ `restaurant.menu.tsx`, `restaurant.orders.tsx`, `restaurant.analytics.tsx`, `restaurant.promotions.tsx`, `restaurant.reviews.tsx` ถูก hard-code ไปที่ `/restaurant-dashboard` ซึ่งเป็นหน้าเก่า ไม่ใช่ `/my-restaurant` ที่เป็น hub ปัจจุบัน
+## การเปลี่ยนแปลง
 
-## แผนการแก้
+### 1. ฐานข้อมูล (migration)
+เพิ่มคอลัมน์ `pricing_mode text not null default 'addon'` ใน `menu_addon_groups` (ค่าที่อนุญาต: `'addon'` | `'variant'`) พร้อม CHECK constraint
 
-**แก้ปัญหา 1:** เปลี่ยนชื่อไฟล์ `src/routes/_app/my-restaurant.settings.tsx` → `src/routes/_app/my-restaurant_.settings.tsx` (เติม `_` ท้าย segment แม่) เพื่อบอก TanStack Router ว่า "อย่าซ้อน route นี้ใต้ `my-restaurant`" — path URL ยังเป็น `/my-restaurant/settings` เหมือนเดิม แต่จะแทนที่หน้าทั้งหมดแทนที่จะรอ Outlet
+### 2. หน้าจัดการเมนู (`restaurant.menu.tsx`)
+ในตัวแก้ไขกลุ่มตัวเลือก เพิ่ม Switch "เป็นตัวเลือกขนาด/ประเภท (เปลี่ยนราคาเมนู)"
+- เมื่อเปิด: ตั้ง `pricing_mode='variant'`, บังคับ `is_required=true`, `min_select=1`, `max_select=1` อัตโนมัติ
+- ป้ายราคาในช่องตัวเลือก เปลี่ยนจาก "+฿" เป็น "฿" (ราคาเต็ม)
 
-**แก้ปัญหา 2:** ในไฟล์ทั้ง 5 (`restaurant.menu.tsx`, `restaurant.orders.tsx`, `restaurant.analytics.tsx`, `restaurant.promotions.tsx`, `restaurant.reviews.tsx`) เปลี่ยนทุก `<Link to="/restaurant-dashboard">` (ทั้งปุ่มย้อนกลับและปุ่ม "ไปตั้งค่าร้าน" ตอนยังไม่มีร้าน) → `<Link to="/my-restaurant">`
+### 3. หน้าเลือกอาหาร (`restaurants.$restaurantId.tsx`)
+- คำนวณ `unitPrice`: ถ้ากลุ่มเป็น variant → ใช้ `price_delta` ของตัวเลือกที่เลือกเป็นราคาฐาน, แล้วบวกเฉพาะ addon อื่น
+- Dialog: กลุ่ม variant แสดงราคาเป็น "฿70" (ไม่ใช่ "+฿70")
+- รายการเมนู: ถ้าเมนูมีกลุ่ม variant ให้ query ราคาต่ำสุดของ variant แล้วแสดง "เริ่มต้น ฿50" แทนราคาคงที่
 
-## ไฟล์ที่แก้
-- เปลี่ยนชื่อ: `src/routes/_app/my-restaurant.settings.tsx` → `my-restaurant_.settings.tsx`
-- แก้: `src/routes/_app/restaurant.menu.tsx`
-- แก้: `src/routes/_app/restaurant.orders.tsx`
-- แก้: `src/routes/_app/restaurant.analytics.tsx`
-- แก้: `src/routes/_app/restaurant.promotions.tsx`
-- แก้: `src/routes/_app/restaurant.reviews.tsx`
+### 4. ตะกร้า (`cart.tsx`) + checkout
+ไม่ต้องแก้ structure — ส่ง `unitPrice` ที่คำนวณแล้วเข้าไปเหมือนเดิม addons array ยังคงเก็บ variant เป็นรายการแรกเพื่อแสดงผล
 
-ไม่กระทบ logic, schema หรือ business rules — เป็นการแก้ routing/navigation ล้วนๆ
+## ไฟล์ที่แตะ
+- migration ใหม่ (เพิ่ม column)
+- `src/routes/_app/restaurant.menu.tsx`
+- `src/routes/_app/restaurants.$restaurantId.tsx`
+- `src/routes/_app/home.tsx` (แสดง "เริ่มต้น ฿X" บนการ์ดเมนู ถ้ามี — optional, ขึ้นกับว่ามีรายการเมนูในหน้านี้ไหม)
+
+## ไม่แตะ
+- โครงสร้างตะกร้า, ออเดอร์, RLS — ไม่กระทบ logic การชำระเงิน

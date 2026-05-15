@@ -68,6 +68,7 @@ export type Database = {
           menu_item_id: string
           min_select: number
           name: string
+          pricing_mode: string
           sort_order: number
         }
         Insert: {
@@ -78,6 +79,7 @@ export type Database = {
           menu_item_id: string
           min_select?: number
           name: string
+          pricing_mode?: string
           sort_order?: number
         }
         Update: {
@@ -88,6 +90,7 @@ export type Database = {
           menu_item_id?: string
           min_select?: number
           name?: string
+          pricing_mode?: string
           sort_order?: number
         }
         Relationships: [

@@ -69,6 +69,7 @@ interface AddonGroup {
   min_select: number;
   max_select: number;
   sort_order: number;
+  pricing_mode: "addon" | "variant";
 }
 interface AddonOption {
   id: string;
@@ -776,39 +777,61 @@ function AddonsDialog({
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 text-xs">
-                  <label className="flex items-center gap-2">
-                    <Switch
-                      checked={g.is_required}
-                      onCheckedChange={(v) => updateGroup(g, { is_required: v })}
-                    />
-                    บังคับเลือก
-                  </label>
-                  <div className="flex items-center gap-1">
-                    <span>ขั้นต่ำ</span>
-                    <Input
-                      type="number"
-                      min={0}
-                      defaultValue={g.min_select}
-                      onBlur={(e) =>
-                        updateGroup(g, { min_select: Math.max(0, Number(e.target.value) || 0) })
-                      }
-                      className="h-8"
-                    />
+                <label className="flex items-center gap-2 text-xs">
+                  <Switch
+                    checked={g.pricing_mode === "variant"}
+                    onCheckedChange={(v) =>
+                      updateGroup(
+                        g,
+                        v
+                          ? {
+                              pricing_mode: "variant",
+                              is_required: true,
+                              min_select: 1,
+                              max_select: 1,
+                            }
+                          : { pricing_mode: "addon" },
+                      )
+                    }
+                  />
+                  เป็นตัวเลือกขนาด/ประเภท (ราคาทดแทนราคาเมนู)
+                </label>
+
+                {g.pricing_mode !== "variant" && (
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <label className="flex items-center gap-2">
+                      <Switch
+                        checked={g.is_required}
+                        onCheckedChange={(v) => updateGroup(g, { is_required: v })}
+                      />
+                      บังคับเลือก
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <span>ขั้นต่ำ</span>
+                      <Input
+                        type="number"
+                        min={0}
+                        defaultValue={g.min_select}
+                        onBlur={(e) =>
+                          updateGroup(g, { min_select: Math.max(0, Number(e.target.value) || 0) })
+                        }
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span>สูงสุด</span>
+                      <Input
+                        type="number"
+                        min={1}
+                        defaultValue={g.max_select}
+                        onBlur={(e) =>
+                          updateGroup(g, { max_select: Math.max(1, Number(e.target.value) || 1) })
+                        }
+                        className="h-8"
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span>สูงสุด</span>
-                    <Input
-                      type="number"
-                      min={1}
-                      defaultValue={g.max_select}
-                      onBlur={(e) =>
-                        updateGroup(g, { max_select: Math.max(1, Number(e.target.value) || 1) })
-                      }
-                      className="h-8"
-                    />
-                  </div>
-                </div>
+                )}
 
                 <div className="space-y-2">
                   {(optionsMap[g.id] ?? []).map((opt) => (
@@ -828,7 +851,7 @@ function AddonsDialog({
                         onBlur={(e) =>
                           updateOption(opt, { price_delta: Number(e.target.value) || 0 })
                         }
-                        placeholder="+ราคา"
+                        placeholder={g.pricing_mode === "variant" ? "ราคา" : "+ราคา"}
                         className="w-24"
                       />
                       <Switch
