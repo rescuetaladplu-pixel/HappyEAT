@@ -254,7 +254,7 @@ function AdminPage() {
           >
             <option value="all">ทุกบทบาท</option>
             <option value="customer">ลูกค้า</option>
-            <option value="restaurant">เจ้าของร้าน</option>
+            <option value="restaurant">ร้านค้า</option>
             <option value="rider">ไรเดอร์</option>
             <option value="admin">แอดมิน</option>
           </select>
