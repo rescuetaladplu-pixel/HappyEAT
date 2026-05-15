@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Store, Upload, MapPin, Clock, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { LocationPicker } from "@/components/restaurant/LocationPicker";
+import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
 
 export const Route = createFileRoute("/_app/my-restaurant_/settings")({
   component: MyRestaurantSettingsPage,
@@ -252,7 +253,17 @@ function MyRestaurantSettingsPage() {
         <TabsContent value="location">
           <Card className="p-5 space-y-4">
             <div className="space-y-2">
-              <Label>ที่อยู่</Label>
+              <Label>ค้นหาสถานที่</Label>
+              <PlaceAutocomplete
+                onSelect={(p) => {
+                  setAddress(p.address);
+                  if (p.lat !== null) setLat(p.lat);
+                  if (p.lng !== null) setLng(p.lng);
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>ที่อยู่ (แก้ไขเพิ่มเติมได้)</Label>
               <Textarea value={address} onChange={(e) => setAddress(e.target.value)} placeholder="เลขที่ ถนน ตำบล อำเภอ จังหวัด" />
             </div>
             <div className="space-y-2">

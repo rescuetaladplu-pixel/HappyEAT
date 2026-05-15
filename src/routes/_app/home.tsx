@@ -17,6 +17,7 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { LocationPicker } from "@/components/restaurant/LocationPicker";
+import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
 import { Search, MapPin, Star, UtensilsCrossed, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -287,7 +288,18 @@ function HomePage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="addr-text">ที่อยู่</Label>
+                <Label>ค้นหาสถานที่</Label>
+                <PlaceAutocomplete
+                  onSelect={(p) => {
+                    setAddrText(p.address);
+                    if (p.lat !== null) setLat(p.lat);
+                    if (p.lng !== null) setLng(p.lng);
+                    if (p.name && !addrLabel.trim()) setAddrLabel(p.name);
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="addr-text">ที่อยู่ (แก้ไขเพิ่มเติมได้ เช่น เลขห้อง/ชั้น)</Label>
                 <Textarea
                   id="addr-text"
                   placeholder="บ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด"
