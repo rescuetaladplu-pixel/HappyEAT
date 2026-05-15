@@ -95,8 +95,11 @@ function ProfilePage() {
       </Card>
 
       {(role === "restaurant" || role === "admin" || hasRestaurant) && (
-        <Link to="/my-restaurant">
-          <Card className="p-5 flex items-center gap-4 hover:bg-accent transition-colors cursor-pointer">
+        <Card className="overflow-hidden">
+          <Link
+            to="/my-restaurant"
+            className="p-5 flex items-center gap-4 hover:bg-accent transition-colors cursor-pointer"
+          >
             <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
               <Store className="h-6 w-6" />
             </div>
@@ -105,8 +108,32 @@ function ProfilePage() {
               <p className="text-sm text-muted-foreground">จัดการโปรไฟล์ร้าน เมนู และออเดอร์</p>
             </div>
             <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </Card>
-        </Link>
+          </Link>
+
+          {restaurant && (
+            <div className="border-t px-5 py-3 flex items-center gap-3 bg-muted/30">
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                {restaurant.is_open && (
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75" />
+                )}
+                <span
+                  className={`relative inline-flex h-2.5 w-2.5 rounded-full ${
+                    restaurant.is_open ? "bg-green-500" : "bg-muted-foreground"
+                  }`}
+                />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium leading-tight">
+                  {restaurant.is_open ? "สถานะร้าน: ออนไลน์" : "สถานะร้าน: ออฟไลน์"}
+                </p>
+                <p className="text-xs text-muted-foreground leading-tight">
+                  {restaurant.is_open ? "พร้อมรับออเดอร์" : "ปิดรับออเดอร์ชั่วคราว"}
+                </p>
+              </div>
+              <Switch checked={restaurant.is_open} onCheckedChange={toggleOpen} />
+            </div>
+          )}
+        </Card>
       )}
 
       {role === "customer" && user && !hasRestaurant && (
