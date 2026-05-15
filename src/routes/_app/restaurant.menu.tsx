@@ -226,12 +226,6 @@ function MenuManagementPage() {
         />
       )}
 
-      {addonsForItem && (
-        <AddonsDialog
-          menuItem={addonsForItem}
-          onClose={() => setAddonsForItem(null)}
-        />
-      )}
     </main>
   );
 }
