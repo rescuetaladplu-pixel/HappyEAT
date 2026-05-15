@@ -7,9 +7,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, UserPlus } from "lucide-react";
+import { Shield, UserPlus, Users, Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { createAdminAccount, listAdmins } from "@/lib/admin.functions";
+import { createAdminAccount, listAdmins, listAllUsers } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_app/admin")({
   component: AdminPage,
