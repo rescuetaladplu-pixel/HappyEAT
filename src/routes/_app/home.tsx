@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -53,9 +53,21 @@ interface AddressRow {
 
 const CATEGORIES = ["ทั้งหมด", "ตามสั่ง", "ก๋วยเตี๋ยว", "ส้มตำ", "เครื่องดื่ม", "ของหวาน", "ฟาสต์ฟู้ด"];
 const PHONE_RE = /^[0-9+\-\s()]{8,20}$/;
+const ADDRESS_SAVE_TIMEOUT_MS = 15000;
+
+async function withAbortTimeout<T>(run: (signal: AbortSignal) => PromiseLike<T>, ms: number) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), ms);
+  try {
+    return await run(controller.signal);
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
 
 function HomePage() {
-  const { user, role } = useAuth();
+  const { user, role, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -117,8 +129,23 @@ function HomePage() {
     loadAddr();
   }, [user]);
 
+  function handleAddressOpen(nextOpen: boolean) {
+    if (nextOpen && !authLoading && !user) {
+      toast.error("กรุณาเข้าสู่ระบบก่อนบันทึกที่อยู่");
+      navigate({ to: "/auth" });
+      return;
+    }
+    setAddrOpen(nextOpen);
+  }
+
   async function saveAddress() {
-    if (!user) return;
+    if (authLoading) return toast.message("กำลังตรวจสอบบัญชี กรุณารอสักครู่");
+    if (!user) {
+      toast.error("กรุณาเข้าสู่ระบบก่อนบันทึกที่อยู่");
+      setAddrOpen(false);
+      navigate({ to: "/auth" });
+      return;
+    }
     if (!addrText.trim()) return toast.error("กรุณากรอกที่อยู่");
     if (!phonePrimary.trim()) return toast.error("กรุณากรอกเบอร์ติดต่อหลัก");
     if (!PHONE_RE.test(phonePrimary.trim())) return toast.error("รูปแบบเบอร์ติดต่อหลักไม่ถูกต้อง");
@@ -137,14 +164,26 @@ function HomePage() {
       phone_secondary: phoneSecondary.trim() || null,
       rider_note: riderNote.trim() || null,
     };
-    const res = addr
-      ? await supabase.from("addresses").update(payload).eq("id", addr.id).select().single()
-      : await supabase.from("addresses").insert(payload).select().single();
-    setSavingAddr(false);
-    if (res.error) return toast.error(res.error.message);
-    setAddr(res.data as AddressRow);
-    setAddrOpen(false);
-    toast.success("บันทึกที่อยู่แล้ว");
+    try {
+      const res = await withAbortTimeout(
+        (signal) =>
+          addr
+            ? supabase.from("addresses").update(payload).eq("id", addr.id).select().single().abortSignal(signal)
+            : supabase.from("addresses").insert(payload).select().single().abortSignal(signal),
+        ADDRESS_SAVE_TIMEOUT_MS,
+      );
+      if (res.error) return toast.error(res.error.message);
+      setAddr(res.data as AddressRow);
+      setAddrOpen(false);
+      toast.success("บันทึกที่อยู่แล้ว");
+    } catch (error) {
+      const message = error instanceof DOMException && error.name === "AbortError"
+        ? "บันทึกที่อยู่ไม่สำเร็จ: การเชื่อมต่อใช้เวลานานเกินไป กรุณาลองใหม่"
+        : "บันทึกที่อยู่ไม่สำเร็จ กรุณาลองใหม่";
+      toast.error(message);
+    } finally {
+      setSavingAddr(false);
+    }
   }
 
   const filtered = restaurants.filter((r) => {
@@ -168,7 +207,7 @@ function HomePage() {
   return (
     <main className="max-w-2xl mx-auto">
       <header className="px-4 pt-6 pb-4">
-        <Sheet open={addrOpen} onOpenChange={setAddrOpen}>
+        <Sheet open={addrOpen} onOpenChange={handleAddressOpen}>
           <SheetTrigger asChild>
             <button className="flex items-center gap-2 mb-3 w-full text-left rounded-xl hover:bg-secondary/60 active:bg-secondary p-1 -m-1 transition">
               <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shrink-0">
