@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,14 +16,14 @@ export const Route = createFileRoute("/auth")({
 const ADMIN_EMAIL_DOMAIN = "admin.local";
 
 function AuthPage() {
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
 
-  if (user) {
-    setTimeout(() => navigate({ to: "/home" }), 0);
-  }
+  useEffect(() => {
+    if (!authLoading && user) navigate({ to: "/home", replace: true });
+  }, [authLoading, navigate, user]);
 
   // Sign-in fields
   const [siIdentifier, setSiIdentifier] = useState("");
@@ -62,14 +62,17 @@ function AuthPage() {
   async function handleSignIn(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const raw = siIdentifier.trim();
-    // ถ้าไม่มี @ ถือว่าเป็น username (แอดมิน) → แปลงเป็นอีเมลภายใน
-    const email = raw.includes("@") ? raw : `${raw.toLowerCase()}@${ADMIN_EMAIL_DOMAIN}`;
-    const { error } = await signIn(email, siPassword);
-    setLoading(false);
-    if (error) return toast.error(translateAuthError(error));
-    toast.success("เข้าสู่ระบบสำเร็จ");
-    navigate({ to: "/home" });
+    try {
+      const raw = siIdentifier.trim();
+      // ถ้าไม่มี @ ถือว่าเป็น username (แอดมิน) → แปลงเป็นอีเมลภายใน
+      const email = raw.includes("@") ? raw : `${raw.toLowerCase()}@${ADMIN_EMAIL_DOMAIN}`;
+      const { error } = await signIn(email, siPassword);
+      if (error) return toast.error(translateAuthError(error));
+      toast.success("เข้าสู่ระบบสำเร็จ");
+      navigate({ to: "/home", replace: true });
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleSignUp(e: FormEvent) {
