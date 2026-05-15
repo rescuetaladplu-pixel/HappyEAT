@@ -39,9 +39,54 @@ const DAY_LABELS: Record<DayKey, string> = {
 const JS_DAY_TO_KEY: Record<number, DayKey> = {
   0: "sun", 1: "mon", 2: "tue", 3: "wed", 4: "thu", 5: "fri", 6: "sat",
 };
+const DAY_SHORT: Record<DayKey, string> = {
+  mon: "จ.", tue: "อ.", wed: "พ.", thu: "พฤ.", fri: "ศ.", sat: "ส.", sun: "อา.",
+};
+const WEEK_ORDER: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
 interface OpeningHours {
   [k: string]: { open: string; close: string; closed: boolean };
+}
+
+function summarizeOpeningHours(oh: OpeningHours | null | undefined): string[] {
+  if (!oh) return ["ยังไม่ได้ตั้งเวลาทำการ"];
+  const openDays = WEEK_ORDER.filter((d) => oh[d] && !oh[d].closed);
+  if (openDays.length === 0) return ["ยังไม่ได้ตั้งเวลาทำการ"];
+
+  // group by time signature
+  const groups = new Map<string, DayKey[]>();
+  for (const d of openDays) {
+    const key = `${oh[d].open}-${oh[d].close}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(d);
+  }
+
+  // all 7 days same time
+  if (openDays.length === 7 && groups.size === 1) {
+    const [time] = [...groups.keys()];
+    const [open, close] = time.split("-");
+    return [`เปิดทุกวัน ${open} - ${close}`];
+  }
+
+  const formatDays = (days: DayKey[]): string => {
+    // Mon-Fri shortcut
+    const isWeekdays = days.length === 5 && ["mon","tue","wed","thu","fri"].every(d => days.includes(d as DayKey));
+    if (isWeekdays) return "จ.-ศ.";
+    const isWeekend = days.length === 2 && days.includes("sat") && days.includes("sun");
+    if (isWeekend) return "ส.-อา.";
+    // Detect contiguous range in WEEK_ORDER
+    const idx = days.map(d => WEEK_ORDER.indexOf(d)).sort((a,b)=>a-b);
+    const contiguous = idx.every((v,i) => i === 0 || v === idx[i-1] + 1);
+    if (contiguous && days.length >= 3) {
+      return `${DAY_SHORT[WEEK_ORDER[idx[0]]]}-${DAY_SHORT[WEEK_ORDER[idx[idx.length-1]]]}`;
+    }
+    return days.map(d => DAY_SHORT[d]).join(", ");
+  };
+
+  return [...groups.entries()].map(([time, days]) => {
+    const [open, close] = time.split("-");
+    return `${formatDays(days)} ${open} - ${close}`;
+  });
 }
 
 interface Restaurant {
