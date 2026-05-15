@@ -269,7 +269,8 @@ function AdminPage() {
                 <th className="text-left font-medium px-3 py-2">เบอร์โทร</th>
                 <th className="text-left font-medium px-3 py-2">บทบาท</th>
                 <th className="text-left font-medium px-3 py-2">สมัครเมื่อ</th>
-                <th className="text-left font-medium px-5 py-2">เข้าระบบล่าสุด</th>
+                <th className="text-left font-medium px-3 py-2">เข้าระบบล่าสุด</th>
+                <th className="text-left font-medium px-5 py-2">การดำเนินการ</th>
               </tr>
             </thead>
             <tbody>
