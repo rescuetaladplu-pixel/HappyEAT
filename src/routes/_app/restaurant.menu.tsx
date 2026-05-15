@@ -179,6 +179,7 @@ function MenuManagementPage() {
                 restaurant_id: restaurant.id,
                 name: "",
                 description: "",
+                allergen_info: "",
                 price: 0,
                 image_url: null,
                 is_available: true,
