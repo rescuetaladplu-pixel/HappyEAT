@@ -951,6 +951,33 @@ function ItemEditDialog({
         });
       }
     }
+
+    // upsert variant template (per restaurant, by group name)
+    const prices = cleanRows.map((r) => Number(r.price) || 0);
+    const minPrice = Math.min(...prices);
+    const tplName = "ขนาด";
+    const { data: tpl, error: tplErr } = await supabase
+      .from("variant_group_templates")
+      .upsert(
+        { restaurant_id: restaurantId, name: tplName },
+        { onConflict: "restaurant_id,name" },
+      )
+      .select("id")
+      .single();
+    if (!tplErr && tpl) {
+      await supabase
+        .from("variant_group_template_options")
+        .delete()
+        .eq("template_id", tpl.id);
+      await supabase.from("variant_group_template_options").insert(
+        cleanRows.map((r, i) => ({
+          template_id: tpl.id,
+          name: r.name,
+          price_delta: (Number(r.price) || 0) - minPrice,
+          sort_order: i,
+        })),
+      );
+    }
   }
 
   async function save() {
