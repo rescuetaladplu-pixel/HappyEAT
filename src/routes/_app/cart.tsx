@@ -210,6 +210,19 @@ function CartPage() {
       </Card>
 
       <Card className="p-4 space-y-2">
+        <Label htmlFor="promo">โค้ดส่วนลด</Label>
+        <div className="flex gap-2">
+          <Input id="promo" placeholder="เช่น WELCOME10" value={promoCode} onChange={(e) => setPromoCode(e.target.value.toUpperCase())} disabled={!!promo} />
+          {promo ? (
+            <Button variant="outline" onClick={() => { setPromo(null); setPromoCode(""); }}>ลบ</Button>
+          ) : (
+            <Button variant="outline" onClick={applyPromo} disabled={checking}>{checking ? "..." : "ใช้"}</Button>
+          )}
+        </div>
+        {promo && <p className="text-xs text-green-600">✓ ใช้ {promo.code} ลด ฿{promo.discount}</p>}
+      </Card>
+
+      <Card className="p-4 space-y-2">
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">ยอดอาหาร</span>
           <span>฿{total.toFixed(0)}</span>
@@ -218,16 +231,22 @@ function CartPage() {
           <span className="text-muted-foreground">ค่าส่ง</span>
           <span>฿{deliveryFee.toFixed(0)}</span>
         </div>
+        {discount > 0 && (
+          <div className="flex justify-between text-sm text-green-600">
+            <span>ส่วนลด</span>
+            <span>-฿{discount.toFixed(0)}</span>
+          </div>
+        )}
         <div className="flex justify-between font-semibold text-lg pt-2 border-t border-border">
           <span>รวมทั้งหมด</span>
-          <span className="text-primary">฿{(total + deliveryFee).toFixed(0)}</span>
+          <span className="text-primary">฿{(total + deliveryFee - discount).toFixed(0)}</span>
         </div>
       </Card>
 
       <div className="fixed bottom-20 inset-x-0 px-4 z-30">
         <div className="max-w-2xl mx-auto">
           <Button size="lg" className="w-full shadow-lg" onClick={handleCheckout} disabled={submitting}>
-            {submitting ? "กำลังสั่ง..." : `สั่งเลย — ฿${(total + deliveryFee).toFixed(0)} (เก็บเงินปลายทาง)`}
+            {submitting ? "กำลังสั่ง..." : `สั่งเลย — ฿${(total + deliveryFee - discount).toFixed(0)} (เก็บเงินปลายทาง)`}
           </Button>
         </div>
       </div>
