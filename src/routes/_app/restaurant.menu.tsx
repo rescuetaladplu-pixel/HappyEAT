@@ -488,6 +488,12 @@ function ItemEditDialog({
   type VariantRow = { id?: string; name: string; price: string; tempKey: string };
   const [variants, setVariants] = useState<VariantRow[]>([]);
   const [variantGroupId, setVariantGroupId] = useState<string | null>(null);
+  type VariantTemplate = {
+    id: string;
+    name: string;
+    options: { name: string; price_delta: number; sort_order: number }[];
+  };
+  const [variantTemplates, setVariantTemplates] = useState<VariantTemplate[]>([]);
 
   useEffect(() => {
     if (!item.id) return;
@@ -642,6 +648,51 @@ function ItemEditDialog({
       );
     })();
   }, [restaurantId]);
+
+  // load reusable variant templates for this restaurant
+  useEffect(() => {
+    (async () => {
+      const { data: t } = await supabase
+        .from("variant_group_templates")
+        .select("id, name")
+        .eq("restaurant_id", restaurantId)
+        .order("name");
+      const tList = t ?? [];
+      if (tList.length === 0) {
+        setVariantTemplates([]);
+        return;
+      }
+      const { data: o } = await supabase
+        .from("variant_group_template_options")
+        .select("template_id, name, price_delta, sort_order")
+        .in("template_id", tList.map((x) => x.id))
+        .order("sort_order");
+      const byT: Record<string, VariantTemplate["options"]> = {};
+      for (const opt of o ?? []) {
+        (byT[opt.template_id] ??= []).push({
+          name: opt.name,
+          price_delta: Number(opt.price_delta),
+          sort_order: opt.sort_order,
+        });
+      }
+      setVariantTemplates(
+        tList.map((x) => ({ id: x.id, name: x.name, options: byT[x.id] ?? [] })),
+      );
+    })();
+  }, [restaurantId]);
+
+  function applyVariantTemplate(templateId: string) {
+    const t = variantTemplates.find((x) => x.id === templateId);
+    if (!t) return;
+    const base = Number(price) || 0;
+    setVariants(
+      t.options.map((o) => ({
+        name: o.name,
+        price: String(base + Number(o.price_delta || 0)),
+        tempKey: `new-${Date.now()}-${Math.random()}`,
+      })),
+    );
+  }
 
   function newKey() {
     return `new-${Date.now()}-${Math.random()}`;
@@ -900,6 +951,33 @@ function ItemEditDialog({
         });
       }
     }
+
+    // upsert variant template (per restaurant, by group name)
+    const prices = cleanRows.map((r) => Number(r.price) || 0);
+    const minPrice = Math.min(...prices);
+    const tplName = "ขนาด";
+    const { data: tpl, error: tplErr } = await supabase
+      .from("variant_group_templates")
+      .upsert(
+        { restaurant_id: restaurantId, name: tplName },
+        { onConflict: "restaurant_id,name" },
+      )
+      .select("id")
+      .single();
+    if (!tplErr && tpl) {
+      await supabase
+        .from("variant_group_template_options")
+        .delete()
+        .eq("template_id", tpl.id);
+      await supabase.from("variant_group_template_options").insert(
+        cleanRows.map((r, i) => ({
+          template_id: tpl.id,
+          name: r.name,
+          price_delta: (Number(r.price) || 0) - minPrice,
+          sort_order: i,
+        })),
+      );
+    }
   }
 
   async function save() {
@@ -1094,15 +1172,39 @@ function ItemEditDialog({
               </div>
             )}
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={addVariant}
-            >
-              <Plus className="h-4 w-4 mr-1" /> เพิ่มตัวเลือกขนาด
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={addVariant}
+              >
+                <Plus className="h-4 w-4 mr-1" /> เพิ่มตัวเลือกขนาด
+              </Button>
+              <Select
+                value=""
+                onValueChange={(v) => v && applyVariantTemplate(v)}
+                disabled={variantTemplates.length === 0}
+              >
+                <SelectTrigger className="flex-1 h-9 text-xs">
+                  <SelectValue
+                    placeholder={
+                      variantTemplates.length === 0
+                        ? "ยังไม่มีเทมเพลต"
+                        : "ใช้เทมเพลตที่บันทึกไว้"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {variantTemplates.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name} ({t.options.map((o) => o.name).join(", ")})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             {variants.length === 0 && (
               <p className="text-[11px] text-muted-foreground text-center">
