@@ -336,10 +336,20 @@ function ItemPickerDialog({
     }
 
     const addons: SelectedAddon[] = [];
+    let variantPrice: number | null = null;
     for (const g of groups) {
       for (const oid of selected[g.id] ?? []) {
         const opt = (optionsMap[g.id] ?? []).find((o) => o.id === oid);
-        if (opt) {
+        if (!opt) continue;
+        if (g.pricing_mode === "variant") {
+          variantPrice = Number(opt.price_delta);
+          // store for display, but priceDelta=0 since it's the base
+          addons.push({
+            groupName: g.name,
+            optionName: opt.name,
+            priceDelta: 0,
+          });
+        } else {
           addons.push({
             groupName: g.name,
             optionName: opt.name,
@@ -353,7 +363,7 @@ function ItemPickerDialog({
       menuItemId: item.id,
       restaurantId,
       name: item.name,
-      basePrice: Number(item.price),
+      basePrice: variantPrice ?? Number(item.price),
       imageUrl: item.image_url,
       addons,
       note: note.trim() || null,
