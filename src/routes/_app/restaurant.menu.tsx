@@ -95,7 +95,6 @@ function MenuManagementPage() {
 
   // dialogs
   const [editItem, setEditItem] = useState<MenuItem | null>(null);
-  const [addonsForItem, setAddonsForItem] = useState<MenuItem | null>(null);
 
   async function load() {
     if (!user) return;
