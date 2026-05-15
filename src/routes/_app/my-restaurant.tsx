@@ -22,7 +22,6 @@ import {
   Phone,
   Clock,
   Star,
-  Truck,
   ChevronRight,
   Utensils,
 } from "lucide-react";
