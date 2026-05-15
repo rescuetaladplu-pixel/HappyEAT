@@ -36,12 +36,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     // Then check existing session
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      if (data.session?.user) {
-        fetchRole(data.session.user.id);
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!data.session) {
+        // DEV: auto-login as tester for easier QA
+        await supabase.auth.signInWithPassword({
+          email: "tester@test.local",
+          password: "tester001",
+        });
+        setLoading(false);
+        return;
       }
+      setSession(data.session);
+      setUser(data.session.user);
+      fetchRole(data.session.user.id);
       setLoading(false);
     });
 
