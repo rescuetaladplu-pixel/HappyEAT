@@ -28,20 +28,37 @@ function ProfilePage() {
   const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
   const [upgrading, setUpgrading] = useState(false);
-  const [hasRestaurant, setHasRestaurant] = useState(false);
+  const [restaurant, setRestaurant] = useState<MyRestaurant | null>(null);
+  const hasRestaurant = !!restaurant;
 
   useEffect(() => {
     if (!user) {
-      setHasRestaurant(false);
+      setRestaurant(null);
       return;
     }
     supabase
       .from("restaurants")
-      .select("id")
+      .select("id, is_open")
       .eq("owner_id", user.id)
       .maybeSingle()
-      .then(({ data }) => setHasRestaurant(!!data));
+      .then(({ data }) => setRestaurant((data as MyRestaurant | null) ?? null));
   }, [user]);
+
+  async function toggleOpen(open: boolean) {
+    if (!restaurant) return;
+    const prev = restaurant.is_open;
+    setRestaurant({ ...restaurant, is_open: open });
+    const { error } = await supabase
+      .from("restaurants")
+      .update({ is_open: open })
+      .eq("id", restaurant.id);
+    if (error) {
+      setRestaurant({ ...restaurant, is_open: prev });
+      toast.error(error.message);
+      return;
+    }
+    toast.success(open ? "เปิดร้านแล้ว — พร้อมรับออเดอร์" : "ปิดร้านชั่วคราว");
+  }
 
   async function handleSignOut() {
     await signOut();
