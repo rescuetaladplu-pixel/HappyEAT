@@ -25,11 +25,19 @@ const ROLE_LABELS = {
 };
 
 function ProfilePage() {
-  const { user, role, signOut } = useAuth();
+  const { user, role, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [upgrading, setUpgrading] = useState(false);
   const [restaurant, setRestaurant] = useState<MyRestaurant | null>(null);
   const hasRestaurant = !!restaurant;
+
+  if (authLoading) {
+    return (
+      <main className="max-w-2xl mx-auto p-4 flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </main>
+    );
+  }
 
   useEffect(() => {
     if (!user) {
