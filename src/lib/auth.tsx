@@ -84,16 +84,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signIn(email: string, password: string) {
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (!error) {
-      const nextSession = data.session;
-      const nextUser = data.user ?? nextSession?.user ?? null;
-      setSession(nextSession ?? null);
-      setUser(nextUser);
-      if (nextUser) await fetchRole(nextUser.id);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (!error) {
+        const nextSession = data.session;
+        const nextUser = data.user ?? nextSession?.user ?? null;
+        setSession(nextSession ?? null);
+        setUser(nextUser);
+        if (nextUser) void fetchRole(nextUser.id);
+      }
+      return { error: error?.message ?? null };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "เข้าสู่ระบบไม่สำเร็จ" };
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-    return { error: error?.message ?? null };
   }
 
   async function signUp(
