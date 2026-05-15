@@ -74,10 +74,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "FoodDash — แอปสั่งอาหาร" },
       { name: "description", content: "สั่งอาหารจากร้านโปรดของคุณ ส่งถึงที่หมายอย่างรวดเร็ว" },
       { name: "author", content: "FoodDash" },
+      { name: "theme-color", content: "#f97316" },
+      { name: "application-name", content: "FoodDash" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: "FoodDash" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { property: "og:title", content: "FoodDash — แอปสั่งอาหาร" },
       { property: "og:description", content: "สั่งอาหารจากร้านโปรดของคุณ ส่งถึงที่หมายอย่างรวดเร็ว" },
       { property: "og:type", content: "website" },
@@ -89,10 +95,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b4633b17-d024-4ee4-814d-5995311da6c6/id-preview-de593e94--7faacf10-1e0d-4113-85d7-b31350be185b.lovable.app-1778822812175.png" },
     ],
     links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
+      { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/icon-192.png" },
+      { rel: "icon", type: "image/png", sizes: "512x512", href: "/icon-512.png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
   shellComponent: RootShell,
