@@ -1,11 +1,23 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useCart } from "@/lib/cart";
+import { useCart, SelectedAddon } from "@/lib/cart";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Plus, Star, UtensilsCrossed } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Plus, Star, UtensilsCrossed, Minus } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/restaurants/$restaurantId")({
@@ -17,10 +29,16 @@ interface Restaurant {
   name: string;
   description: string | null;
   image_url: string | null;
+  cover_url: string | null;
   rating: number;
   delivery_fee: number;
   is_open: boolean;
   address: string | null;
+}
+interface Category {
+  id: string;
+  name: string;
+  sort_order: number;
 }
 interface MenuItem {
   id: string;
@@ -29,44 +47,69 @@ interface MenuItem {
   price: number;
   image_url: string | null;
   is_available: boolean;
-  category: string | null;
+  category_id: string | null;
+  sort_order: number;
+}
+interface AddonGroup {
+  id: string;
+  name: string;
+  is_required: boolean;
+  min_select: number;
+  max_select: number;
+  sort_order: number;
+}
+interface AddonOption {
+  id: string;
+  group_id: string;
+  name: string;
+  price_delta: number;
+  is_available: boolean;
+  sort_order: number;
 }
 
 function RestaurantDetail() {
   const { restaurantId } = Route.useParams();
   const navigate = useNavigate();
-  const { add, count, restaurantId: cartRestaurantId } = useCart();
+  const { count } = useCart();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [picking, setPicking] = useState<MenuItem | null>(null);
 
   useEffect(() => {
     async function load() {
-      const [{ data: r }, { data: m }] = await Promise.all([
+      const [{ data: r }, { data: c }, { data: m }] = await Promise.all([
         supabase.from("restaurants").select("*").eq("id", restaurantId).maybeSingle(),
-        supabase.from("menu_items").select("*").eq("restaurant_id", restaurantId).order("category"),
+        supabase
+          .from("menu_categories")
+          .select("*")
+          .eq("restaurant_id", restaurantId)
+          .order("sort_order"),
+        supabase
+          .from("menu_items")
+          .select("*")
+          .eq("restaurant_id", restaurantId)
+          .order("sort_order"),
       ]);
       setRestaurant(r as Restaurant | null);
+      setCategories((c ?? []) as Category[]);
       setItems((m ?? []) as MenuItem[]);
       setLoading(false);
     }
     load();
   }, [restaurantId]);
 
-  function handleAdd(item: MenuItem) {
-    if (cartRestaurantId && cartRestaurantId !== restaurantId) {
-      const ok = confirm("ตะกร้ามีอาหารจากร้านอื่นอยู่ ต้องการล้างและเริ่มใหม่?");
-      if (!ok) return;
+  const grouped = useMemo(() => {
+    const out: { cat: Category | null; rows: MenuItem[] }[] = [];
+    for (const c of categories) {
+      const rows = items.filter((i) => i.category_id === c.id);
+      if (rows.length > 0) out.push({ cat: c, rows });
     }
-    add({
-      menuItemId: item.id,
-      restaurantId: restaurantId,
-      name: item.name,
-      price: Number(item.price),
-      imageUrl: item.image_url,
-    });
-    toast.success(`เพิ่ม ${item.name} ลงตะกร้าแล้ว`);
-  }
+    const orphan = items.filter((i) => !i.category_id);
+    if (orphan.length > 0) out.push({ cat: null, rows: orphan });
+    return out;
+  }, [items, categories]);
 
   if (loading) {
     return (
@@ -87,11 +130,13 @@ function RestaurantDetail() {
     );
   }
 
+  const cover = restaurant.cover_url || restaurant.image_url;
+
   return (
     <main className="max-w-2xl mx-auto pb-24">
       <div className="relative aspect-[2/1] bg-gradient-to-br from-accent to-secondary">
-        {restaurant.image_url ? (
-          <img src={restaurant.image_url} alt={restaurant.name} className="w-full h-full object-cover" />
+        {cover ? (
+          <img src={cover} alt={restaurant.name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-primary/30">
             <UtensilsCrossed className="h-16 w-16" />
@@ -117,44 +162,57 @@ function RestaurantDetail() {
           </span>
           <span>•</span>
           <span>ค่าส่ง ฿{Number(restaurant.delivery_fee).toFixed(0)}</span>
+          {!restaurant.is_open && (
+            <>
+              <span>•</span>
+              <Badge variant="secondary">ปิดอยู่</Badge>
+            </>
+          )}
         </div>
       </div>
 
-      <section className="p-4 space-y-3">
-        <h2 className="text-lg font-semibold">เมนู</h2>
-        {items.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">ยังไม่มีเมนูในร้านนี้</p>
-        ) : (
-          items.map((item) => (
-            <Card key={item.id} className="p-3 flex gap-3 items-center">
-              <div className="w-20 h-20 rounded-lg bg-secondary overflow-hidden flex-shrink-0">
-                {item.image_url ? (
-                  <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-primary/30">
-                    <UtensilsCrossed className="h-6 w-6" />
+      {grouped.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-8">
+          ยังไม่มีเมนูในร้านนี้
+        </p>
+      ) : (
+        grouped.map((g) => (
+          <section key={g.cat?.id ?? "none"} className="p-4 space-y-3">
+            <h2 className="text-lg font-semibold">{g.cat?.name ?? "เมนู"}</h2>
+            {g.rows.map((item) => (
+              <Card key={item.id} className="p-3 flex gap-3 items-center">
+                <div className="w-20 h-20 rounded-lg bg-secondary overflow-hidden flex-shrink-0">
+                  {item.image_url ? (
+                    <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-primary/30">
+                      <UtensilsCrossed className="h-6 w-6" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium truncate">{item.name}</h3>
+                    {!item.is_available && <Badge variant="secondary">หมด</Badge>}
                   </div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-medium">{item.name}</h3>
-                {item.description && (
-                  <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
-                )}
-                <p className="text-primary font-semibold mt-1">฿{Number(item.price).toFixed(0)}</p>
-              </div>
-              <Button
-                size="icon"
-                onClick={() => handleAdd(item)}
-                disabled={!item.is_available || !restaurant.is_open}
-                className="rounded-full"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </Card>
-          ))
-        )}
-      </section>
+                  {item.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+                  )}
+                  <p className="text-primary font-semibold mt-1">฿{Number(item.price).toFixed(0)}</p>
+                </div>
+                <Button
+                  size="icon"
+                  onClick={() => setPicking(item)}
+                  disabled={!item.is_available || !restaurant.is_open}
+                  className="rounded-full"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </Card>
+            ))}
+          </section>
+        ))
+      )}
 
       {count > 0 && (
         <div className="fixed bottom-20 inset-x-0 px-4 z-30">
@@ -165,6 +223,265 @@ function RestaurantDetail() {
           </div>
         </div>
       )}
+
+      {picking && (
+        <ItemPickerDialog
+          item={picking}
+          restaurantId={restaurantId}
+          onClose={() => setPicking(null)}
+        />
+      )}
     </main>
+  );
+}
+
+/* ----- Item picker dialog with add-ons ----- */
+
+function ItemPickerDialog({
+  item,
+  restaurantId,
+  onClose,
+}: {
+  item: MenuItem;
+  restaurantId: string;
+  onClose: () => void;
+}) {
+  const { add, restaurantId: cartRestaurantId } = useCart();
+  const [groups, setGroups] = useState<AddonGroup[]>([]);
+  const [optionsMap, setOptionsMap] = useState<Record<string, AddonOption[]>>({});
+  const [selected, setSelected] = useState<Record<string, string[]>>({}); // groupId -> [optionId]
+  const [note, setNote] = useState("");
+  const [qty, setQty] = useState(1);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const { data: g } = await supabase
+        .from("menu_addon_groups")
+        .select("*")
+        .eq("menu_item_id", item.id)
+        .order("sort_order");
+      const groupList = (g ?? []) as AddonGroup[];
+      setGroups(groupList);
+      if (groupList.length > 0) {
+        const { data: o } = await supabase
+          .from("menu_addon_options")
+          .select("*")
+          .in("group_id", groupList.map((x) => x.id))
+          .eq("is_available", true)
+          .order("sort_order");
+        const map: Record<string, AddonOption[]> = {};
+        for (const opt of (o ?? []) as AddonOption[]) {
+          (map[opt.group_id] ??= []).push(opt);
+        }
+        setOptionsMap(map);
+      }
+      setLoading(false);
+    }
+    load();
+  }, [item.id]);
+
+  function toggle(group: AddonGroup, optionId: string) {
+    setSelected((prev) => {
+      const cur = prev[group.id] ?? [];
+      if (group.max_select <= 1) {
+        return { ...prev, [group.id]: cur[0] === optionId ? [] : [optionId] };
+      }
+      if (cur.includes(optionId)) {
+        return { ...prev, [group.id]: cur.filter((x) => x !== optionId) };
+      }
+      if (cur.length >= group.max_select) {
+        toast.error(`เลือกได้สูงสุด ${group.max_select} รายการ`);
+        return prev;
+      }
+      return { ...prev, [group.id]: [...cur, optionId] };
+    });
+  }
+
+  const addonsTotal = useMemo(() => {
+    let s = 0;
+    for (const g of groups) {
+      for (const oid of selected[g.id] ?? []) {
+        const opt = (optionsMap[g.id] ?? []).find((o) => o.id === oid);
+        if (opt) s += Number(opt.price_delta);
+      }
+    }
+    return s;
+  }, [groups, selected, optionsMap]);
+
+  const unitPrice = Number(item.price) + addonsTotal;
+
+  function handleAdd() {
+    // validate required
+    for (const g of groups) {
+      const cur = selected[g.id] ?? [];
+      if (g.is_required && cur.length === 0) {
+        return toast.error(`กรุณาเลือก "${g.name}"`);
+      }
+      if (cur.length < g.min_select) {
+        return toast.error(`"${g.name}" ต้องเลือกอย่างน้อย ${g.min_select} รายการ`);
+      }
+    }
+
+    if (cartRestaurantId && cartRestaurantId !== restaurantId) {
+      const ok = confirm("ตะกร้ามีอาหารจากร้านอื่นอยู่ ต้องการล้างและเริ่มใหม่?");
+      if (!ok) return;
+    }
+
+    const addons: SelectedAddon[] = [];
+    for (const g of groups) {
+      for (const oid of selected[g.id] ?? []) {
+        const opt = (optionsMap[g.id] ?? []).find((o) => o.id === oid);
+        if (opt) {
+          addons.push({
+            groupName: g.name,
+            optionName: opt.name,
+            priceDelta: Number(opt.price_delta),
+          });
+        }
+      }
+    }
+
+    add({
+      menuItemId: item.id,
+      restaurantId,
+      name: item.name,
+      basePrice: Number(item.price),
+      imageUrl: item.image_url,
+      addons,
+      note: note.trim() || null,
+      quantity: qty,
+    });
+    toast.success(`เพิ่ม ${item.name} ลงตะกร้าแล้ว`);
+    onClose();
+  }
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{item.name}</DialogTitle>
+        </DialogHeader>
+
+        {item.image_url && (
+          <div className="aspect-video rounded-lg overflow-hidden bg-secondary">
+            <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+          </div>
+        )}
+        {item.description && (
+          <p className="text-sm text-muted-foreground">{item.description}</p>
+        )}
+
+        {loading ? (
+          <p className="text-sm text-muted-foreground">กำลังโหลดตัวเลือก...</p>
+        ) : (
+          <div className="space-y-4">
+            {groups.map((g) => {
+              const opts = optionsMap[g.id] ?? [];
+              if (opts.length === 0) return null;
+              const cur = selected[g.id] ?? [];
+              const isSingle = g.max_select <= 1;
+              return (
+                <div key={g.id} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="font-medium">{g.name}</Label>
+                    <span className="text-xs text-muted-foreground">
+                      {g.is_required ? "จำเป็น" : "ไม่บังคับ"}
+                      {!isSingle && ` • สูงสุด ${g.max_select}`}
+                    </span>
+                  </div>
+                  {isSingle ? (
+                    <RadioGroup
+                      value={cur[0] ?? ""}
+                      onValueChange={(v) => toggle(g, v)}
+                    >
+                      {opts.map((opt) => (
+                        <label
+                          key={opt.id}
+                          className="flex items-center justify-between rounded-md border border-border p-2 cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <RadioGroupItem value={opt.id} id={opt.id} />
+                            <span className="text-sm">{opt.name}</span>
+                          </div>
+                          {Number(opt.price_delta) !== 0 && (
+                            <span className="text-sm text-muted-foreground">
+                              {Number(opt.price_delta) > 0 ? "+" : ""}
+                              ฿{Number(opt.price_delta).toFixed(0)}
+                            </span>
+                          )}
+                        </label>
+                      ))}
+                    </RadioGroup>
+                  ) : (
+                    <div className="space-y-1">
+                      {opts.map((opt) => (
+                        <label
+                          key={opt.id}
+                          className="flex items-center justify-between rounded-md border border-border p-2 cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              checked={cur.includes(opt.id)}
+                              onCheckedChange={() => toggle(g, opt.id)}
+                            />
+                            <span className="text-sm">{opt.name}</span>
+                          </div>
+                          {Number(opt.price_delta) !== 0 && (
+                            <span className="text-sm text-muted-foreground">
+                              {Number(opt.price_delta) > 0 ? "+" : ""}
+                              ฿{Number(opt.price_delta).toFixed(0)}
+                            </span>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            <div className="space-y-2">
+              <Label>โน้ตถึงร้าน (ไม่บังคับ)</Label>
+              <Textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="เช่น ไม่ใส่ผัก, ไม่เผ็ด"
+                rows={2}
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <span className="text-sm">จำนวน</span>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8"
+                  onClick={() => setQty((q) => Math.max(1, q - 1))}
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <span className="w-6 text-center font-medium">{qty}</span>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8"
+                  onClick={() => setQty((q) => q + 1)}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button onClick={handleAdd} className="w-full" disabled={loading}>
+            เพิ่มลงตะกร้า • ฿{(unitPrice * qty).toFixed(0)}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

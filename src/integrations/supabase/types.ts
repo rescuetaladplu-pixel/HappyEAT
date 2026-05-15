@@ -59,6 +59,85 @@ export type Database = {
         }
         Relationships: []
       }
+      menu_addon_groups: {
+        Row: {
+          created_at: string
+          id: string
+          is_required: boolean
+          max_select: number
+          menu_item_id: string
+          min_select: number
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          max_select?: number
+          menu_item_id: string
+          min_select?: number
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          max_select?: number
+          menu_item_id?: string
+          min_select?: number
+          name?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_addon_groups_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_addon_options: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          is_available: boolean
+          name: string
+          price_delta: number
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          is_available?: boolean
+          name: string
+          price_delta?: number
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_available?: boolean
+          name?: string
+          price_delta?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_addon_options_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "menu_addon_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_categories: {
         Row: {
           created_at: string
@@ -86,6 +165,7 @@ export type Database = {
       menu_items: {
         Row: {
           category: string | null
+          category_id: string | null
           created_at: string
           description: string | null
           id: string
@@ -94,9 +174,11 @@ export type Database = {
           name: string
           price: number
           restaurant_id: string
+          sort_order: number
         }
         Insert: {
           category?: string | null
+          category_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -105,9 +187,11 @@ export type Database = {
           name: string
           price: number
           restaurant_id: string
+          sort_order?: number
         }
         Update: {
           category?: string | null
+          category_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -116,8 +200,16 @@ export type Database = {
           name?: string
           price?: number
           restaurant_id?: string
+          sort_order?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "menu_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "menu_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "menu_items_restaurant_id_fkey"
             columns: ["restaurant_id"]

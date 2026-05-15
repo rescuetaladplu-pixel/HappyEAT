@@ -82,13 +82,23 @@ function CartPage() {
       return toast.error(error?.message || "สั่งไม่สำเร็จ");
     }
 
-    const orderItems = items.map((i) => ({
-      order_id: order.id,
-      menu_item_id: i.menuItemId,
-      name: i.name,
-      price: i.price,
-      quantity: i.quantity,
-    }));
+    const orderItems = items.map((i) => {
+      const noteParts: string[] = [];
+      if (i.addons.length > 0) {
+        noteParts.push(
+          i.addons.map((a) => `${a.groupName}: ${a.optionName}`).join(", "),
+        );
+      }
+      if (i.note) noteParts.push(i.note);
+      return {
+        order_id: order.id,
+        menu_item_id: i.menuItemId,
+        name: i.name,
+        price: i.unitPrice,
+        quantity: i.quantity,
+        notes: noteParts.length > 0 ? noteParts.join(" | ") : null,
+      };
+    });
     const { error: itemsErr } = await supabase.from("order_items").insert(orderItems);
     if (itemsErr) {
       setSubmitting(false);
@@ -119,20 +129,25 @@ function CartPage() {
 
       <div className="space-y-2">
         {items.map((item) => (
-          <Card key={item.menuItemId} className="p-3 flex items-center gap-3">
+          <Card key={item.lineId} className="p-3 flex items-center gap-3">
             <div className="flex-1 min-w-0">
               <h3 className="font-medium">{item.name}</h3>
-              <p className="text-sm text-muted-foreground">฿{item.price.toFixed(0)}</p>
+              {item.addons.length > 0 && (
+                <p className="text-xs text-muted-foreground line-clamp-2">
+                  {item.addons.map((a) => a.optionName).join(", ")}
+                </p>
+              )}
+              <p className="text-sm text-muted-foreground">฿{item.unitPrice.toFixed(0)}</p>
             </div>
             <div className="flex items-center gap-2">
-              <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(item.menuItemId, item.quantity - 1)}>
+              <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(item.lineId, item.quantity - 1)}>
                 <Minus className="h-3 w-3" />
               </Button>
               <span className="w-6 text-center font-medium">{item.quantity}</span>
-              <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(item.menuItemId, item.quantity + 1)}>
+              <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(item.lineId, item.quantity + 1)}>
                 <Plus className="h-3 w-3" />
               </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => remove(item.menuItemId)}>
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => remove(item.lineId)}>
                 <Trash2 className="h-3 w-3" />
               </Button>
             </div>

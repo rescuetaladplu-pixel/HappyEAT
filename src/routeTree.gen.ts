@@ -21,6 +21,7 @@ import { Route as AppHomeRouteImport } from './routes/_app/home'
 import { Route as AppCartRouteImport } from './routes/_app/cart'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
 import { Route as AppRestaurantsRestaurantIdRouteImport } from './routes/_app/restaurants.$restaurantId'
+import { Route as AppRestaurantMenuRouteImport } from './routes/_app/restaurant.menu'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -82,6 +83,11 @@ const AppRestaurantsRestaurantIdRoute =
     path: '/restaurants/$restaurantId',
     getParentRoute: () => AppRoute,
   } as any)
+const AppRestaurantMenuRoute = AppRestaurantMenuRouteImport.update({
+  id: '/restaurant/menu',
+  path: '/restaurant/menu',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AppProfileRoute
   '/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/rider-dashboard': typeof AppRiderDashboardRoute
+  '/restaurant/menu': typeof AppRestaurantMenuRoute
   '/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
 }
 export interface FileRoutesByTo {
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AppProfileRoute
   '/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/rider-dashboard': typeof AppRiderDashboardRoute
+  '/restaurant/menu': typeof AppRestaurantMenuRoute
   '/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
 }
 export interface FileRoutesById {
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/_app/profile': typeof AppProfileRoute
   '/_app/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/_app/rider-dashboard': typeof AppRiderDashboardRoute
+  '/_app/restaurant/menu': typeof AppRestaurantMenuRoute
   '/_app/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
 }
 export interface FileRouteTypes {
@@ -137,6 +146,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/restaurant-dashboard'
     | '/rider-dashboard'
+    | '/restaurant/menu'
     | '/restaurants/$restaurantId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/restaurant-dashboard'
     | '/rider-dashboard'
+    | '/restaurant/menu'
     | '/restaurants/$restaurantId'
   id:
     | '__root__'
@@ -164,6 +175,7 @@ export interface FileRouteTypes {
     | '/_app/profile'
     | '/_app/restaurant-dashboard'
     | '/_app/rider-dashboard'
+    | '/_app/restaurant/menu'
     | '/_app/restaurants/$restaurantId'
   fileRoutesById: FileRoutesById
 }
@@ -259,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRestaurantsRestaurantIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/restaurant/menu': {
+      id: '/_app/restaurant/menu'
+      path: '/restaurant/menu'
+      fullPath: '/restaurant/menu'
+      preLoaderRoute: typeof AppRestaurantMenuRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -271,6 +290,7 @@ interface AppRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
   AppRestaurantDashboardRoute: typeof AppRestaurantDashboardRoute
   AppRiderDashboardRoute: typeof AppRiderDashboardRoute
+  AppRestaurantMenuRoute: typeof AppRestaurantMenuRoute
   AppRestaurantsRestaurantIdRoute: typeof AppRestaurantsRestaurantIdRoute
 }
 
@@ -283,6 +303,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProfileRoute: AppProfileRoute,
   AppRestaurantDashboardRoute: AppRestaurantDashboardRoute,
   AppRiderDashboardRoute: AppRiderDashboardRoute,
+  AppRestaurantMenuRoute: AppRestaurantMenuRoute,
   AppRestaurantsRestaurantIdRoute: AppRestaurantsRestaurantIdRoute,
 }
 

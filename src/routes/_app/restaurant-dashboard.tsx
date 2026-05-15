@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Store, Trash2 } from "lucide-react";
+import { Plus, Store, Trash2, ChefHat } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/restaurant-dashboard")({
@@ -202,7 +203,17 @@ function RestaurantDashboard() {
       </Card>
 
       <Card className="p-5">
-        <h2 className="font-semibold mb-3">เมนู</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold">เมนู ({items.length})</h2>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/restaurant/menu">
+              <ChefHat className="h-4 w-4 mr-2" /> จัดการเมนูเต็มรูปแบบ
+            </Link>
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">
+          เพิ่มอย่างเร็วได้ที่นี่ หรือกด "จัดการเมนูเต็มรูปแบบ" เพื่อจัดการหมวดหมู่ + รูป + ตัวเลือกเสริม + เปิดปิดเมนู
+        </p>
         <div className="flex gap-2 mb-3">
           <Input placeholder="ชื่อเมนู" value={itemName} onChange={(e) => setItemName(e.target.value)} />
           <Input placeholder="ราคา" type="number" className="w-24" value={itemPrice} onChange={(e) => setItemPrice(e.target.value)} />
@@ -212,7 +223,7 @@ function RestaurantDashboard() {
           <p className="text-sm text-muted-foreground">ยังไม่มีเมนู</p>
         ) : (
           <div className="space-y-2">
-            {items.map((it) => (
+            {items.slice(0, 5).map((it) => (
               <div key={it.id} className="flex items-center justify-between p-2 rounded border border-border">
                 <div>
                   <p className="font-medium">{it.name}</p>
@@ -223,6 +234,11 @@ function RestaurantDashboard() {
                 </Button>
               </div>
             ))}
+            {items.length > 5 && (
+              <p className="text-xs text-center text-muted-foreground pt-1">
+                ยังมีอีก {items.length - 5} รายการ — กด "จัดการเมนูเต็มรูปแบบ"
+              </p>
+            )}
           </div>
         )}
       </Card>
