@@ -168,6 +168,7 @@ export type Database = {
           category_id: string | null
           created_at: string
           description: string | null
+          discount_price: number | null
           id: string
           image_url: string | null
           is_available: boolean
@@ -181,6 +182,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           description?: string | null
+          discount_price?: number | null
           id?: string
           image_url?: string | null
           is_available?: boolean
@@ -194,6 +196,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           description?: string | null
+          discount_price?: number | null
           id?: string
           image_url?: string | null
           is_available?: boolean
@@ -264,6 +267,33 @@ export type Database = {
           },
         ]
       }
+      order_promotions: {
+        Row: {
+          code: string
+          created_at: string
+          discount_amount: number
+          id: string
+          order_id: string
+          promotion_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          discount_amount: number
+          id?: string
+          order_id: string
+          promotion_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          discount_amount?: number
+          id?: string
+          order_id?: string
+          promotion_id?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           created_at: string
@@ -272,6 +302,7 @@ export type Database = {
           delivery_fee: number
           delivery_lat: number | null
           delivery_lng: number | null
+          discount: number
           id: string
           notes: string | null
           payment_method: string
@@ -289,6 +320,7 @@ export type Database = {
           delivery_fee?: number
           delivery_lat?: number | null
           delivery_lng?: number | null
+          discount?: number
           id?: string
           notes?: string | null
           payment_method?: string
@@ -306,6 +338,7 @@ export type Database = {
           delivery_fee?: number
           delivery_lat?: number | null
           delivery_lng?: number | null
+          discount?: number
           id?: string
           notes?: string | null
           payment_method?: string
@@ -353,6 +386,57 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      promotions: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          max_discount: number | null
+          min_order: number
+          restaurant_id: string
+          starts_at: string | null
+          type: string
+          usage_limit: number | null
+          used_count: number
+          value: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_discount?: number | null
+          min_order?: number
+          restaurant_id: string
+          starts_at?: string | null
+          type: string
+          usage_limit?: number | null
+          used_count?: number
+          value: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_discount?: number | null
+          min_order?: number
+          restaurant_id?: string
+          starts_at?: string | null
+          type?: string
+          usage_limit?: number | null
+          used_count?: number
+          value?: number
         }
         Relationships: []
       }
@@ -429,6 +513,8 @@ export type Database = {
           customer_id: string
           id: string
           order_id: string
+          owner_reply: string | null
+          replied_at: string | null
           restaurant_rating: number | null
           rider_rating: number | null
         }
@@ -438,6 +524,8 @@ export type Database = {
           customer_id: string
           id?: string
           order_id: string
+          owner_reply?: string | null
+          replied_at?: string | null
           restaurant_rating?: number | null
           rider_rating?: number | null
         }
@@ -447,6 +535,8 @@ export type Database = {
           customer_id?: string
           id?: string
           order_id?: string
+          owner_reply?: string | null
+          replied_at?: string | null
           restaurant_rating?: number | null
           rider_rating?: number | null
         }
