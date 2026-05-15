@@ -211,8 +211,8 @@ function MyRestaurantHub() {
   return (
     <main className="max-w-2xl mx-auto pb-4 space-y-4">
       {/* Overview Card */}
-      <Card className="overflow-hidden p-0">
-        <div className="relative h-40 w-full bg-muted">
+      <Card className="p-0">
+        <div className="relative h-40 w-full bg-muted overflow-hidden rounded-t-xl">
           {restaurant.cover_url ? (
             <img src={restaurant.cover_url} alt="cover" className="w-full h-full object-cover" />
           ) : (
@@ -223,8 +223,8 @@ function MyRestaurantHub() {
         </div>
 
         <div className="px-4 pb-4">
-          <div className="flex items-start gap-3 -mt-10">
-            <div className="h-20 w-20 rounded-full border-4 border-card bg-muted overflow-hidden flex items-center justify-center shrink-0">
+          <div className="flex items-start gap-3 -mt-12">
+            <div className="h-20 w-20 rounded-full border-4 border-card bg-muted overflow-hidden flex items-center justify-center shrink-0 shadow-md">
               {restaurant.logo_url ? (
                 <img src={restaurant.logo_url} alt="logo" className="w-full h-full object-cover" />
               ) : (
@@ -243,7 +243,10 @@ function MyRestaurantHub() {
               )}
             </div>
             {restaurant.category && (
-              <p className="text-xs text-muted-foreground mt-0.5">{restaurant.category}</p>
+              <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                <Utensils className="h-3.5 w-3.5 shrink-0" />
+                <span>ประเภทร้าน: <span className="font-medium text-foreground">{restaurant.category}</span></span>
+              </div>
             )}
           </div>
 
