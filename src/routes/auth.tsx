@@ -34,6 +34,30 @@ function AuthPage() {
   const [suEmail, setSuEmail] = useState("");
   const [suPhone, setSuPhone] = useState("");
   const [suPassword, setSuPassword] = useState("");
+  const [suPasswordConfirm, setSuPasswordConfirm] = useState("");
+
+  function translateAuthError(msg: string): string {
+    const m = msg.toLowerCase();
+    if (m.includes("password") && (m.includes("weak") || m.includes("pwned") || m.includes("compromis") || m.includes("breach") || m.includes("found in"))) {
+      return "รหัสผ่านนี้ง่ายเกินไปหรือเคยถูกเปิดเผยในเหตุข้อมูลรั่วไหล กรุณาเลือกรหัสผ่านที่ปลอดภัยกว่านี้";
+    }
+    if (m.includes("password") && m.includes("should be at least")) {
+      return "รหัสผ่านสั้นเกินไป กรุณาใช้อย่างน้อย 6 ตัวอักษร";
+    }
+    if (m.includes("password")) {
+      return "รหัสผ่านไม่ผ่านเงื่อนไขความปลอดภัย กรุณาลองใหม่ด้วยรหัสที่ซับซ้อนขึ้น";
+    }
+    if (m.includes("user already registered") || m.includes("already registered")) {
+      return "อีเมลนี้ถูกใช้สมัครไปแล้ว กรุณาเข้าสู่ระบบหรือใช้อีเมลอื่น";
+    }
+    if (m.includes("invalid") && m.includes("email")) {
+      return "รูปแบบอีเมลไม่ถูกต้อง";
+    }
+    if (m.includes("invalid login")) {
+      return "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
+    }
+    return msg;
+  }
 
   async function handleSignIn(e: FormEvent) {
     e.preventDefault();
@@ -43,17 +67,20 @@ function AuthPage() {
     const email = raw.includes("@") ? raw : `${raw.toLowerCase()}@${ADMIN_EMAIL_DOMAIN}`;
     const { error } = await signIn(email, siPassword);
     setLoading(false);
-    if (error) return toast.error(error);
+    if (error) return toast.error(translateAuthError(error));
     toast.success("เข้าสู่ระบบสำเร็จ");
     navigate({ to: "/home" });
   }
 
   async function handleSignUp(e: FormEvent) {
     e.preventDefault();
+    if (suPassword !== suPasswordConfirm) {
+      return toast.error("รหัสผ่านยืนยันไม่ตรงกัน กรุณากรอกใหม่");
+    }
     setLoading(true);
     const { error } = await signUp(suEmail, suPassword, suName, "customer", suPhone);
     setLoading(false);
-    if (error) return toast.error(error);
+    if (error) return toast.error(translateAuthError(error));
     toast.success("สมัครสมาชิกสำเร็จ! กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชี");
     setTab("signin");
   }
@@ -148,6 +175,20 @@ function AuthPage() {
                       value={suPassword}
                       onChange={(e) => setSuPassword(e.target.value)}
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="su-pw2">ยืนยันรหัสผ่าน</Label>
+                    <Input
+                      id="su-pw2"
+                      type="password"
+                      minLength={6}
+                      required
+                      value={suPasswordConfirm}
+                      onChange={(e) => setSuPasswordConfirm(e.target.value)}
+                    />
+                    {suPasswordConfirm && suPassword !== suPasswordConfirm && (
+                      <p className="text-xs text-destructive">รหัสผ่านยืนยันไม่ตรงกัน</p>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     สมัครแล้วใช้สั่งอาหารได้ทันที — อยากเปิดร้านขายของก็เปิดเพิ่มได้ภายหลังในหน้าโปรไฟล์
