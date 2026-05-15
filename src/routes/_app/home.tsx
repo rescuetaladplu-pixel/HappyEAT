@@ -30,6 +30,8 @@ interface Restaurant {
   description: string | null;
   category: string | null;
   image_url: string | null;
+  cover_url: string | null;
+  logo_url: string | null;
   rating: number;
   delivery_fee: number;
   is_open: boolean;
