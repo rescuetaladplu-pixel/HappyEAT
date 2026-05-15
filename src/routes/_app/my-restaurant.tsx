@@ -32,16 +32,54 @@ export const Route = createFileRoute("/_app/my-restaurant")({
 });
 
 type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
-const DAY_LABELS: Record<DayKey, string> = {
-  mon: "จันทร์", tue: "อังคาร", wed: "พุธ", thu: "พฤหัสบดี",
-  fri: "ศุกร์", sat: "เสาร์", sun: "อาทิตย์",
+const DAY_SHORT: Record<DayKey, string> = {
+  mon: "จ.", tue: "อ.", wed: "พ.", thu: "พฤ.", fri: "ศ.", sat: "ส.", sun: "อา.",
 };
-const JS_DAY_TO_KEY: Record<number, DayKey> = {
-  0: "sun", 1: "mon", 2: "tue", 3: "wed", 4: "thu", 5: "fri", 6: "sat",
-};
+const WEEK_ORDER: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
 interface OpeningHours {
   [k: string]: { open: string; close: string; closed: boolean };
+}
+
+function summarizeOpeningHours(oh: OpeningHours | null | undefined): string[] {
+  if (!oh) return ["ยังไม่ได้ตั้งเวลาทำการ"];
+  const openDays = WEEK_ORDER.filter((d) => oh[d] && !oh[d].closed);
+  if (openDays.length === 0) return ["ยังไม่ได้ตั้งเวลาทำการ"];
+
+  // group by time signature
+  const groups = new Map<string, DayKey[]>();
+  for (const d of openDays) {
+    const key = `${oh[d].open}-${oh[d].close}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(d);
+  }
+
+  // all 7 days same time
+  if (openDays.length === 7 && groups.size === 1) {
+    const [time] = [...groups.keys()];
+    const [open, close] = time.split("-");
+    return [`เปิดทุกวัน ${open} - ${close}`];
+  }
+
+  const formatDays = (days: DayKey[]): string => {
+    // Mon-Fri shortcut
+    const isWeekdays = days.length === 5 && ["mon","tue","wed","thu","fri"].every(d => days.includes(d as DayKey));
+    if (isWeekdays) return "จ.-ศ.";
+    const isWeekend = days.length === 2 && days.includes("sat") && days.includes("sun");
+    if (isWeekend) return "ส.-อา.";
+    // Detect contiguous range in WEEK_ORDER
+    const idx = days.map(d => WEEK_ORDER.indexOf(d)).sort((a,b)=>a-b);
+    const contiguous = idx.every((v,i) => i === 0 || v === idx[i-1] + 1);
+    if (contiguous && days.length >= 3) {
+      return `${DAY_SHORT[WEEK_ORDER[idx[0]]]}-${DAY_SHORT[WEEK_ORDER[idx[idx.length-1]]]}`;
+    }
+    return days.map(d => DAY_SHORT[d]).join(", ");
+  };
+
+  return [...groups.entries()].map(([time, days]) => {
+    const [open, close] = time.split("-");
+    return `${formatDays(days)} ${open} - ${close}`;
+  });
 }
 
 interface Restaurant {
@@ -158,14 +196,7 @@ function MyRestaurantHub() {
     );
   }
 
-  // Today opening hours
-  const todayKey = JS_DAY_TO_KEY[new Date().getDay()];
-  const todayHours = restaurant.opening_hours?.[todayKey];
-  const todayLabel = todayHours
-    ? todayHours.closed
-      ? "ปิดวันนี้"
-      : `วันนี้ ${todayHours.open} - ${todayHours.close}`
-    : "ยังไม่ได้ตั้งเวลาทำการ";
+  const hoursSummary = summarizeOpeningHours(restaurant.opening_hours);
 
   const menuItems = [
     { to: "/my-restaurant/settings", icon: Settings, label: "จัดการข้อมูลร้านค้า", desc: "โปรไฟล์ ที่อยู่ เวลาทำการ" },
@@ -188,14 +219,10 @@ function MyRestaurantHub() {
               ยังไม่มีภาพหน้าปก
             </div>
           )}
-          <div className="absolute top-3 right-3 flex items-center gap-2 bg-card/90 backdrop-blur px-3 py-1.5 rounded-full shadow">
-            <Switch checked={restaurant.is_open} onCheckedChange={toggleOpen} />
-            <span className="text-xs font-medium">{restaurant.is_open ? "เปิด" : "ปิด"}</span>
-          </div>
         </div>
 
         <div className="px-4 pb-4">
-          <div className="flex items-end gap-3 -mt-10">
+          <div className="flex items-start gap-3 -mt-10">
             <div className="h-20 w-20 rounded-full border-4 border-card bg-muted overflow-hidden flex items-center justify-center shrink-0">
               {restaurant.logo_url ? (
                 <img src={restaurant.logo_url} alt="logo" className="w-full h-full object-cover" />
@@ -203,18 +230,53 @@ function MyRestaurantHub() {
                 <Store className="h-8 w-8 text-muted-foreground" />
               )}
             </div>
-            <div className="flex-1 min-w-0 pb-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl font-bold truncate">{restaurant.name}</h1>
-                {restaurant.is_approved ? (
-                  <Badge variant="secondary" className="text-[10px]">อนุมัติแล้ว</Badge>
-                ) : (
-                  <Badge variant="outline" className="text-[10px]">รออนุมัติ</Badge>
-                )}
-              </div>
-              {restaurant.category && (
-                <p className="text-xs text-muted-foreground">{restaurant.category}</p>
+          </div>
+
+          <div className="mt-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl font-bold">{restaurant.name}</h1>
+              {restaurant.is_approved ? (
+                <Badge variant="secondary" className="text-[10px]">อนุมัติแล้ว</Badge>
+              ) : (
+                <Badge variant="outline" className="text-[10px]">รออนุมัติ</Badge>
               )}
+            </div>
+            {restaurant.category && (
+              <p className="text-xs text-muted-foreground mt-0.5">{restaurant.category}</p>
+            )}
+          </div>
+
+          {/* Online status bar */}
+          <div
+            className={`mt-3 flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-colors ${
+              restaurant.is_open
+                ? "bg-green-500/10 border-green-500/30"
+                : "bg-muted border-border"
+            }`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="relative flex h-3 w-3 shrink-0">
+                {restaurant.is_open && (
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-60" />
+                )}
+                <span
+                  className={`relative inline-flex h-3 w-3 rounded-full ${
+                    restaurant.is_open ? "bg-green-500" : "bg-muted-foreground"
+                  }`}
+                />
+              </span>
+              <div className="min-w-0">
+                <p className={`text-sm font-semibold ${restaurant.is_open ? "text-green-700 dark:text-green-400" : "text-muted-foreground"}`}>
+                  {restaurant.is_open ? "ออนไลน์ – พร้อมรับออเดอร์" : "ออฟไลน์ – ปิดรับออเดอร์"}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {restaurant.is_open ? "ลูกค้าสามารถสั่งอาหารจากร้านคุณได้" : "ลูกค้าจะสั่งอาหารจากร้านคุณไม่ได้ชั่วคราว"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs font-medium text-muted-foreground">เปิดร้าน</span>
+              <Switch checked={restaurant.is_open} onCheckedChange={toggleOpen} />
             </div>
           </div>
 
@@ -222,10 +284,14 @@ function MyRestaurantHub() {
             <p className="text-sm text-muted-foreground mt-3">{restaurant.description}</p>
           )}
 
-          <div className="grid grid-cols-2 gap-2 mt-4 text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Clock className="h-4 w-4 shrink-0" />
-              <span className="truncate">{todayLabel}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 text-sm">
+            <div className="flex items-start gap-2 text-muted-foreground sm:col-span-2">
+              <Clock className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                {hoursSummary.map((line, i) => (
+                  <div key={i} className="truncate">{line}</div>
+                ))}
+              </div>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Star className="h-4 w-4 shrink-0 text-yellow-500" />
@@ -242,15 +308,11 @@ function MyRestaurantHub() {
               </div>
             )}
             {restaurant.address && (
-              <div className="flex items-center gap-2 text-muted-foreground col-span-2">
+              <div className="flex items-center gap-2 text-muted-foreground sm:col-span-2">
                 <MapPin className="h-4 w-4 shrink-0" />
                 <span className="truncate">{restaurant.address}</span>
               </div>
             )}
-          </div>
-
-          <div className="text-[11px] text-muted-foreground mt-3">
-            (วันนี้: {DAY_LABELS[todayKey]})
           </div>
         </div>
       </Card>
