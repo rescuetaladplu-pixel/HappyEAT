@@ -1,12 +1,11 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { useAuth, type AppRole } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { UtensilsCrossed } from "lucide-react";
 
@@ -30,12 +29,11 @@ function AuthPage() {
   const [siIdentifier, setSiIdentifier] = useState("");
   const [siPassword, setSiPassword] = useState("");
 
-  // Sign-up fields (no admin option)
+  // Sign-up fields (ทุกคนเริ่มเป็นลูกค้า; เปิดร้านได้ในหน้าโปรไฟล์)
   const [suName, setSuName] = useState("");
   const [suEmail, setSuEmail] = useState("");
   const [suPhone, setSuPhone] = useState("");
   const [suPassword, setSuPassword] = useState("");
-  const [suRole, setSuRole] = useState<Exclude<AppRole, "admin">>("customer");
 
   async function handleSignIn(e: FormEvent) {
     e.preventDefault();
@@ -53,7 +51,7 @@ function AuthPage() {
   async function handleSignUp(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const { error } = await signUp(suEmail, suPassword, suName, suRole, suPhone);
+    const { error } = await signUp(suEmail, suPassword, suName, "customer", suPhone);
     setLoading(false);
     if (error) return toast.error(error);
     toast.success("สมัครสมาชิกสำเร็จ! กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชี");
@@ -151,28 +149,9 @@ function AuthPage() {
                       onChange={(e) => setSuPassword(e.target.value)}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>ฉันต้องการสมัครเป็น</Label>
-                    <RadioGroup
-                      value={suRole}
-                      onValueChange={(v) => setSuRole(v as Exclude<AppRole, "admin">)}
-                      className="grid grid-cols-3 gap-2"
-                    >
-                      <RoleOption
-                        value="customer"
-                        label="ลูกค้า"
-                        desc="สั่งอาหาร"
-                        current={suRole}
-                      />
-                      <RoleOption
-                        value="restaurant"
-                        label="ร้านอาหาร"
-                        desc="ขายอาหาร"
-                        current={suRole}
-                      />
-                      <RoleOption value="rider" label="ไรเดอร์" desc="ส่งอาหาร" current={suRole} />
-                    </RadioGroup>
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    สมัครแล้วใช้สั่งอาหารได้ทันที — อยากเปิดร้านขายของก็เปิดเพิ่มได้ภายหลังในหน้าโปรไฟล์
+                  </p>
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? "กำลังสมัคร..." : "สมัครสมาชิก"}
                   </Button>
@@ -183,31 +162,5 @@ function AuthPage() {
         </Card>
       </div>
     </main>
-  );
-}
-
-function RoleOption({
-  value,
-  label,
-  desc,
-  current,
-}: {
-  value: string;
-  label: string;
-  desc: string;
-  current: string;
-}) {
-  const active = current === value;
-  return (
-    <Label
-      htmlFor={`role-${value}`}
-      className={`cursor-pointer rounded-lg border-2 p-3 transition ${
-        active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
-      }`}
-    >
-      <RadioGroupItem id={`role-${value}`} value={value} className="sr-only" />
-      <div className="font-medium text-foreground">{label}</div>
-      <div className="text-xs text-muted-foreground">{desc}</div>
-    </Label>
   );
 }
