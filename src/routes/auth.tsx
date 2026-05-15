@@ -67,17 +67,20 @@ function AuthPage() {
     const email = raw.includes("@") ? raw : `${raw.toLowerCase()}@${ADMIN_EMAIL_DOMAIN}`;
     const { error } = await signIn(email, siPassword);
     setLoading(false);
-    if (error) return toast.error(error);
+    if (error) return toast.error(translateAuthError(error));
     toast.success("เข้าสู่ระบบสำเร็จ");
     navigate({ to: "/home" });
   }
 
   async function handleSignUp(e: FormEvent) {
     e.preventDefault();
+    if (suPassword !== suPasswordConfirm) {
+      return toast.error("รหัสผ่านยืนยันไม่ตรงกัน กรุณากรอกใหม่");
+    }
     setLoading(true);
     const { error } = await signUp(suEmail, suPassword, suName, "customer", suPhone);
     setLoading(false);
-    if (error) return toast.error(error);
+    if (error) return toast.error(translateAuthError(error));
     toast.success("สมัครสมาชิกสำเร็จ! กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชี");
     setTab("signin");
   }
