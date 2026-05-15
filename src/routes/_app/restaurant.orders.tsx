@@ -8,8 +8,16 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Volume2, VolumeX, Bell } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, Volume2, VolumeX, Bell, Play } from "lucide-react";
 import { toast } from "sonner";
+import {
+  playNotificationSound,
+  SOUND_OPTIONS,
+  type SoundId,
+} from "@/lib/notification-sounds";
 
 export const Route = createFileRoute("/_app/restaurant/orders")({
   component: RestaurantOrdersPage,
@@ -71,21 +79,6 @@ const TABS: { key: string; label: string; statuses: OrderStatus[] }[] = [
   { key: "cancelled", label: "ยกเลิก", statuses: ["cancelled"] },
 ];
 
-function playDing() {
-  try {
-    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
-    o.type = "sine"; o.frequency.value = 880;
-    g.gain.setValueAtTime(0.0001, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
-    o.start(); o.stop(ctx.currentTime + 0.55);
-    setTimeout(() => ctx.close(), 700);
-  } catch { /* noop */ }
-}
-
 function RestaurantOrdersPage() {
   const { user } = useAuth();
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
@@ -94,6 +87,11 @@ function RestaurantOrdersPage() {
   const [soundOn, setSoundOn] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem("rest-sound") !== "off";
+  });
+  const [soundType, setSoundType] = useState<SoundId>(() => {
+    if (typeof window === "undefined") return "ding";
+    const saved = localStorage.getItem("rest-sound-type") as SoundId | null;
+    return saved && SOUND_OPTIONS.some((s) => s.id === saved) ? saved : "ding";
   });
   const knownIdsRef = useRef<Set<string>>(new Set());
   const initRef = useRef(false);
