@@ -67,6 +67,8 @@ function CartPage() {
         customer_id: user.id,
         restaurant_id: restaurantId,
         delivery_address: address,
+        delivery_lat: deliveryLat,
+        delivery_lng: deliveryLng,
         subtotal,
         delivery_fee: deliveryFee,
         total: grandTotal,
