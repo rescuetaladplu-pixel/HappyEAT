@@ -17,17 +17,41 @@ export const Route = createFileRoute("/_app/admin")({
 });
 
 type AdminRow = { user_id: string; created_at: string; username: string | null; full_name: string | null };
+type UserRow = {
+  user_id: string;
+  email: string | null;
+  created_at: string;
+  last_sign_in_at: string | null;
+  email_confirmed: boolean;
+  full_name: string | null;
+  phone: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  roles: string[];
+};
+
+const ROLE_LABEL: Record<string, string> = {
+  customer: "ลูกค้า",
+  restaurant: "เจ้าของร้าน",
+  rider: "ไรเดอร์",
+  admin: "แอดมิน",
+};
 
 function AdminPage() {
   const { role } = useAuth();
   const [stats, setStats] = useState({ orders: 0, restaurants: 0, riders: 0 });
   const [admins, setAdmins] = useState<AdminRow[]>([]);
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [creating, setCreating] = useState(false);
 
   const createFn = useServerFn(createAdminAccount);
   const listFn = useServerFn(listAdmins);
+  const listUsersFn = useServerFn(listAllUsers);
 
   async function loadAdmins() {
     try {
