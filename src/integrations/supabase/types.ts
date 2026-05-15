@@ -17,32 +17,44 @@ export type Database = {
       addresses: {
         Row: {
           address: string
+          contact_name: string | null
           created_at: string
           id: string
           is_default: boolean
           label: string
           latitude: number | null
           longitude: number | null
+          phone_primary: string | null
+          phone_secondary: string | null
+          rider_note: string | null
           user_id: string
         }
         Insert: {
           address: string
+          contact_name?: string | null
           created_at?: string
           id?: string
           is_default?: boolean
           label: string
           latitude?: number | null
           longitude?: number | null
+          phone_primary?: string | null
+          phone_secondary?: string | null
+          rider_note?: string | null
           user_id: string
         }
         Update: {
           address?: string
+          contact_name?: string | null
           created_at?: string
           id?: string
           is_default?: boolean
           label?: string
           latitude?: number | null
           longitude?: number | null
+          phone_primary?: string | null
+          phone_secondary?: string | null
+          rider_note?: string | null
           user_id?: string
         }
         Relationships: []

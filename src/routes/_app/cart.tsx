@@ -22,20 +22,32 @@ function CartPage() {
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [deliveryLat, setDeliveryLat] = useState<number | null>(null);
+  const [deliveryLng, setDeliveryLng] = useState<number | null>(null);
   const deliveryFee = 30;
 
   useEffect(() => {
     if (!user) return;
     supabase
       .from("addresses")
-      .select("address")
+      .select("address, latitude, longitude, contact_name, phone_primary, phone_secondary, rider_note")
       .eq("user_id", user.id)
       .order("is_default", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle()
       .then(({ data }) => {
-        if (data?.address) setAddress((prev) => prev || data.address);
+        if (!data) return;
+        setAddress((prev) => prev || data.address);
+        setDeliveryLat(data.latitude !== null ? Number(data.latitude) : null);
+        setDeliveryLng(data.longitude !== null ? Number(data.longitude) : null);
+        const parts: string[] = [];
+        if (data.contact_name) parts.push(`ผู้รับ: ${data.contact_name}`);
+        if (data.phone_primary) parts.push(`โทร: ${data.phone_primary}`);
+        if (data.phone_secondary) parts.push(`สำรอง: ${data.phone_secondary}`);
+        if (data.rider_note) parts.push(`โน้ต: ${data.rider_note}`);
+        const info = parts.join(" | ");
+        setNotes((prev) => prev || info);
       });
   }, [user]);
 
@@ -53,6 +65,8 @@ function CartPage() {
         customer_id: user.id,
         restaurant_id: restaurantId,
         delivery_address: address,
+        delivery_lat: deliveryLat,
+        delivery_lng: deliveryLng,
         subtotal,
         delivery_fee: deliveryFee,
         total: grandTotal,

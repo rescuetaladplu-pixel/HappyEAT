@@ -15,6 +15,7 @@ import {
   SheetTrigger,
   SheetFooter,
 } from "@/components/ui/sheet";
+import { LocationPicker } from "@/components/restaurant/LocationPicker";
 import { Search, MapPin, Star, UtensilsCrossed, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -39,9 +40,16 @@ interface AddressRow {
   label: string;
   address: string;
   is_default: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  contact_name: string | null;
+  phone_primary: string | null;
+  phone_secondary: string | null;
+  rider_note: string | null;
 }
 
 const CATEGORIES = ["ทั้งหมด", "ตามสั่ง", "ก๋วยเตี๋ยว", "ส้มตำ", "เครื่องดื่ม", "ของหวาน", "ฟาสต์ฟู้ด"];
+const PHONE_RE = /^[0-9+\-\s()]{8,20}$/;
 
 function HomePage() {
   const { user, role } = useAuth();
@@ -55,6 +63,12 @@ function HomePage() {
   const [addrOpen, setAddrOpen] = useState(false);
   const [addrLabel, setAddrLabel] = useState("บ้าน");
   const [addrText, setAddrText] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [phonePrimary, setPhonePrimary] = useState("");
+  const [phoneSecondary, setPhoneSecondary] = useState("");
+  const [riderNote, setRiderNote] = useState("");
+  const [lat, setLat] = useState<number | null>(null);
+  const [lng, setLng] = useState<number | null>(null);
   const [savingAddr, setSavingAddr] = useState(false);
 
   useEffect(() => {
@@ -75,16 +89,23 @@ function HomePage() {
     async function loadAddr() {
       const { data } = await supabase
         .from("addresses")
-        .select("id, label, address, is_default")
+        .select("id, label, address, is_default, latitude, longitude, contact_name, phone_primary, phone_secondary, rider_note")
         .eq("user_id", user!.id)
         .order("is_default", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (data) {
-        setAddr(data as AddressRow);
-        setAddrLabel(data.label);
-        setAddrText(data.address);
+        const r = data as AddressRow;
+        setAddr(r);
+        setAddrLabel(r.label);
+        setAddrText(r.address);
+        setContactName(r.contact_name ?? "");
+        setPhonePrimary(r.phone_primary ?? "");
+        setPhoneSecondary(r.phone_secondary ?? "");
+        setRiderNote(r.rider_note ?? "");
+        setLat(r.latitude !== null ? Number(r.latitude) : null);
+        setLng(r.longitude !== null ? Number(r.longitude) : null);
       }
     }
     loadAddr();
@@ -93,24 +114,26 @@ function HomePage() {
   async function saveAddress() {
     if (!user) return;
     if (!addrText.trim()) return toast.error("กรุณากรอกที่อยู่");
+    if (!phonePrimary.trim()) return toast.error("กรุณากรอกเบอร์ติดต่อหลัก");
+    if (!PHONE_RE.test(phonePrimary.trim())) return toast.error("รูปแบบเบอร์ติดต่อหลักไม่ถูกต้อง");
+    if (phoneSecondary.trim() && !PHONE_RE.test(phoneSecondary.trim()))
+      return toast.error("รูปแบบเบอร์ติดต่อสำรองไม่ถูกต้อง");
     setSavingAddr(true);
     const payload = {
       user_id: user.id,
       label: addrLabel.trim() || "บ้าน",
       address: addrText.trim(),
       is_default: true,
+      latitude: lat,
+      longitude: lng,
+      contact_name: contactName.trim() || null,
+      phone_primary: phonePrimary.trim(),
+      phone_secondary: phoneSecondary.trim() || null,
+      rider_note: riderNote.trim() || null,
     };
-    let res;
-    if (addr) {
-      res = await supabase
-        .from("addresses")
-        .update(payload)
-        .eq("id", addr.id)
-        .select()
-        .single();
-    } else {
-      res = await supabase.from("addresses").insert(payload).select().single();
-    }
+    const res = addr
+      ? await supabase.from("addresses").update(payload).eq("id", addr.id).select().single()
+      : await supabase.from("addresses").insert(payload).select().single();
     setSavingAddr(false);
     if (res.error) return toast.error(res.error.message);
     setAddr(res.data as AddressRow);
@@ -124,7 +147,6 @@ function HomePage() {
     return okCat && okSearch;
   });
 
-  // Non-customer roles see a redirect prompt
   if (role && role !== "customer") {
     const dest =
       role === "restaurant" ? "/restaurant-dashboard" : role === "rider" ? "/rider-dashboard" : "/admin";
@@ -157,7 +179,7 @@ function HomePage() {
               <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
             </button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="rounded-t-2xl">
+          <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto">
             <SheetHeader>
               <SheetTitle>ที่อยู่จัดส่ง</SheetTitle>
             </SheetHeader>
@@ -167,6 +189,7 @@ function HomePage() {
                 <Input
                   id="addr-label"
                   placeholder="เช่น บ้าน, ที่ทำงาน"
+                  maxLength={50}
                   value={addrLabel}
                   onChange={(e) => setAddrLabel(e.target.value)}
                 />
@@ -176,9 +199,79 @@ function HomePage() {
                 <Textarea
                   id="addr-text"
                   placeholder="บ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด"
+                  maxLength={500}
                   value={addrText}
                   onChange={(e) => setAddrText(e.target.value)}
                   rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>ปักหมุดบนแผนที่ (คลิกเพื่อเลือกตำแหน่ง)</Label>
+                <LocationPicker lat={lat} lng={lng} onChange={(la, ln) => { setLat(la); setLng(ln); }} />
+                {lat !== null && lng !== null && (
+                  <p className="text-xs text-muted-foreground">
+                    พิกัด: {lat.toFixed(5)}, {lng.toFixed(5)}
+                  </p>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  onClick={() => {
+                    if (!navigator.geolocation) return toast.error("เบราว์เซอร์ไม่รองรับ GPS");
+                    navigator.geolocation.getCurrentPosition(
+                      (pos) => { setLat(pos.coords.latitude); setLng(pos.coords.longitude); },
+                      () => toast.error("ไม่สามารถดึงตำแหน่งได้"),
+                    );
+                  }}
+                >
+                  <MapPin className="h-4 w-4 mr-2" /> ใช้ตำแหน่งปัจจุบัน
+                </Button>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contact-name">ชื่อผู้รับ</Label>
+                <Input
+                  id="contact-name"
+                  placeholder="ชื่อผู้รับสินค้า"
+                  maxLength={100}
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone-primary">เบอร์ติดต่อหลัก *</Label>
+                <Input
+                  id="phone-primary"
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="08x-xxx-xxxx"
+                  maxLength={20}
+                  value={phonePrimary}
+                  onChange={(e) => setPhonePrimary(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone-secondary">เบอร์ติดต่อสำรอง</Label>
+                <Input
+                  id="phone-secondary"
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="ไม่บังคับ"
+                  maxLength={20}
+                  value={phoneSecondary}
+                  onChange={(e) => setPhoneSecondary(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rider-note">โน้ตถึงไรเดอร์</Label>
+                <Textarea
+                  id="rider-note"
+                  placeholder="เช่น ตึก B ชั้น 3 โทรก่อนถึง"
+                  maxLength={300}
+                  value={riderNote}
+                  onChange={(e) => setRiderNote(e.target.value)}
+                  rows={2}
                 />
               </div>
             </div>
