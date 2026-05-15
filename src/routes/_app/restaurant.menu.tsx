@@ -1172,15 +1172,39 @@ function ItemEditDialog({
               </div>
             )}
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={addVariant}
-            >
-              <Plus className="h-4 w-4 mr-1" /> เพิ่มตัวเลือกขนาด
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={addVariant}
+              >
+                <Plus className="h-4 w-4 mr-1" /> เพิ่มตัวเลือกขนาด
+              </Button>
+              <Select
+                value=""
+                onValueChange={(v) => v && applyVariantTemplate(v)}
+                disabled={variantTemplates.length === 0}
+              >
+                <SelectTrigger className="flex-1 h-9 text-xs">
+                  <SelectValue
+                    placeholder={
+                      variantTemplates.length === 0
+                        ? "ยังไม่มีเทมเพลต"
+                        : "ใช้เทมเพลตที่บันทึกไว้"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {variantTemplates.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name} ({t.options.map((o) => o.name).join(", ")})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             {variants.length === 0 && (
               <p className="text-[11px] text-muted-foreground text-center">
