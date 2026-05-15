@@ -24,7 +24,6 @@ function CartPage() {
   const [submitting, setSubmitting] = useState(false);
   const [deliveryLat, setDeliveryLat] = useState<number | null>(null);
   const [deliveryLng, setDeliveryLng] = useState<number | null>(null);
-  const [contactInfo, setContactInfo] = useState<string>("");
   const deliveryFee = 30;
 
   useEffect(() => {
