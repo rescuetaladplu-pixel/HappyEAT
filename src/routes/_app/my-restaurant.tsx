@@ -232,20 +232,20 @@ function MyRestaurantHub() {
               )}
             </div>
             <div className="min-w-0 flex-1 pt-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl font-bold">{restaurant.name}</h1>
-              {restaurant.is_approved ? (
-                <Badge variant="secondary" className="text-[10px]">อนุมัติแล้ว</Badge>
-              ) : (
-                <Badge variant="outline" className="text-[10px]">รออนุมัติ</Badge>
-              )}
-            </div>
-            {restaurant.category && (
-              <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
-                <Utensils className="h-3.5 w-3.5 shrink-0" />
-                <span>ประเภทร้านอาหาร: <span className="font-medium text-foreground">{restaurant.category}</span></span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl font-bold">{restaurant.name}</h1>
+                {restaurant.is_approved ? (
+                  <Badge variant="secondary" className="text-[10px]">อนุมัติแล้ว</Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px]">รออนุมัติ</Badge>
+                )}
               </div>
-            )}
+              {restaurant.category && (
+                <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                  <Utensils className="h-3.5 w-3.5 shrink-0" />
+                  <span>ประเภทร้านอาหาร: <span className="font-medium text-foreground">{restaurant.category}</span></span>
+                </div>
+              )}
             </div>
           </div>
 
