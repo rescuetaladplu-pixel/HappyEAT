@@ -21,6 +21,7 @@ import { Route as AppHomeRouteImport } from './routes/_app/home'
 import { Route as AppCartRouteImport } from './routes/_app/cart'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
 import { Route as AppRestaurantsRestaurantIdRouteImport } from './routes/_app/restaurants.$restaurantId'
+import { Route as AppRestaurantPromotionsRouteImport } from './routes/_app/restaurant.promotions'
 import { Route as AppRestaurantOrdersRouteImport } from './routes/_app/restaurant.orders'
 import { Route as AppRestaurantMenuRouteImport } from './routes/_app/restaurant.menu'
 import { Route as AppRestaurantAnalyticsRouteImport } from './routes/_app/restaurant.analytics'
@@ -85,6 +86,11 @@ const AppRestaurantsRestaurantIdRoute =
     path: '/restaurants/$restaurantId',
     getParentRoute: () => AppRoute,
   } as any)
+const AppRestaurantPromotionsRoute = AppRestaurantPromotionsRouteImport.update({
+  id: '/restaurant/promotions',
+  path: '/restaurant/promotions',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRestaurantOrdersRoute = AppRestaurantOrdersRouteImport.update({
   id: '/restaurant/orders',
   path: '/restaurant/orders',
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
   '/restaurant/menu': typeof AppRestaurantMenuRoute
   '/restaurant/orders': typeof AppRestaurantOrdersRoute
+  '/restaurant/promotions': typeof AppRestaurantPromotionsRoute
   '/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
 }
 export interface FileRoutesByTo {
@@ -131,6 +138,7 @@ export interface FileRoutesByTo {
   '/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
   '/restaurant/menu': typeof AppRestaurantMenuRoute
   '/restaurant/orders': typeof AppRestaurantOrdersRoute
+  '/restaurant/promotions': typeof AppRestaurantPromotionsRoute
   '/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
 }
 export interface FileRoutesById {
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/_app/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
   '/_app/restaurant/menu': typeof AppRestaurantMenuRoute
   '/_app/restaurant/orders': typeof AppRestaurantOrdersRoute
+  '/_app/restaurant/promotions': typeof AppRestaurantPromotionsRoute
   '/_app/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
 }
 export interface FileRouteTypes {
@@ -167,6 +176,7 @@ export interface FileRouteTypes {
     | '/restaurant/analytics'
     | '/restaurant/menu'
     | '/restaurant/orders'
+    | '/restaurant/promotions'
     | '/restaurants/$restaurantId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/restaurant/analytics'
     | '/restaurant/menu'
     | '/restaurant/orders'
+    | '/restaurant/promotions'
     | '/restaurants/$restaurantId'
   id:
     | '__root__'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/_app/restaurant/analytics'
     | '/_app/restaurant/menu'
     | '/_app/restaurant/orders'
+    | '/_app/restaurant/promotions'
     | '/_app/restaurants/$restaurantId'
   fileRoutesById: FileRoutesById
 }
@@ -295,6 +307,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRestaurantsRestaurantIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/restaurant/promotions': {
+      id: '/_app/restaurant/promotions'
+      path: '/restaurant/promotions'
+      fullPath: '/restaurant/promotions'
+      preLoaderRoute: typeof AppRestaurantPromotionsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/restaurant/orders': {
       id: '/_app/restaurant/orders'
       path: '/restaurant/orders'
@@ -331,6 +350,7 @@ interface AppRouteChildren {
   AppRestaurantAnalyticsRoute: typeof AppRestaurantAnalyticsRoute
   AppRestaurantMenuRoute: typeof AppRestaurantMenuRoute
   AppRestaurantOrdersRoute: typeof AppRestaurantOrdersRoute
+  AppRestaurantPromotionsRoute: typeof AppRestaurantPromotionsRoute
   AppRestaurantsRestaurantIdRoute: typeof AppRestaurantsRestaurantIdRoute
 }
 
@@ -346,6 +366,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppRestaurantAnalyticsRoute: AppRestaurantAnalyticsRoute,
   AppRestaurantMenuRoute: AppRestaurantMenuRoute,
   AppRestaurantOrdersRoute: AppRestaurantOrdersRoute,
+  AppRestaurantPromotionsRoute: AppRestaurantPromotionsRoute,
   AppRestaurantsRestaurantIdRoute: AppRestaurantsRestaurantIdRoute,
 }
 
@@ -359,3 +380,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
