@@ -55,13 +55,17 @@ const CATEGORIES = ["ทั้งหมด", "ตามสั่ง", "ก๋ว
 const PHONE_RE = /^[0-9+\-\s()]{8,20}$/;
 const ADDRESS_SAVE_TIMEOUT_MS = 15000;
 
-async function withAbortTimeout<T>(run: (signal: AbortSignal) => PromiseLike<T>, ms: number) {
-  const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), ms);
+async function withTimeout<T>(promise: PromiseLike<T>, ms: number) {
+  let timeoutId: number | undefined;
   try {
-    return await run(controller.signal);
+    return await Promise.race<T>([
+      Promise.resolve(promise),
+      new Promise<T>((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error("timeout")), ms);
+      }),
+    ]);
   } finally {
-    window.clearTimeout(timeoutId);
+    if (timeoutId !== undefined) window.clearTimeout(timeoutId);
   }
 }
 
@@ -165,11 +169,10 @@ function HomePage() {
       rider_note: riderNote.trim() || null,
     };
     try {
-      const res = await withAbortTimeout(
-        (signal) =>
-          addr
-            ? supabase.from("addresses").update(payload).eq("id", addr.id).select().single().abortSignal(signal)
-            : supabase.from("addresses").insert(payload).select().single().abortSignal(signal),
+      const res = await withTimeout(
+        addr
+          ? supabase.from("addresses").update(payload).eq("id", addr.id).select().single()
+          : supabase.from("addresses").insert(payload).select().single(),
         ADDRESS_SAVE_TIMEOUT_MS,
       );
       if (res.error) return toast.error(res.error.message);
@@ -177,7 +180,7 @@ function HomePage() {
       setAddrOpen(false);
       toast.success("บันทึกที่อยู่แล้ว");
     } catch (error) {
-      const message = error instanceof DOMException && error.name === "AbortError"
+      const message = error instanceof Error && error.message === "timeout"
         ? "บันทึกที่อยู่ไม่สำเร็จ: การเชื่อมต่อใช้เวลานานเกินไป กรุณาลองใหม่"
         : "บันทึกที่อยู่ไม่สำเร็จ กรุณาลองใหม่";
       toast.error(message);
