@@ -177,6 +177,115 @@ function AdminPage() {
           )}
         </div>
       </Card>
+
+      <Card className="p-5 space-y-4">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            <h2 className="font-semibold">ผู้ใช้ทั้งหมด ({users.length})</h2>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadUsers} disabled={usersLoading}>
+            {usersLoading ? "กำลังโหลด..." : "รีเฟรช"}
+          </Button>
+        </div>
+
+        <div className="flex gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="ค้นหาอีเมล / ชื่อ / เบอร์ / username"
+              className="pl-8"
+            />
+          </div>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+          >
+            <option value="all">ทุกบทบาท</option>
+            <option value="customer">ลูกค้า</option>
+            <option value="restaurant">เจ้าของร้าน</option>
+            <option value="rider">ไรเดอร์</option>
+            <option value="admin">แอดมิน</option>
+          </select>
+        </div>
+
+        <div className="overflow-x-auto -mx-5">
+          <table className="w-full text-sm">
+            <thead className="border-b text-xs text-muted-foreground">
+              <tr>
+                <th className="text-left font-medium px-5 py-2">ผู้ใช้</th>
+                <th className="text-left font-medium px-3 py-2">อีเมล</th>
+                <th className="text-left font-medium px-3 py-2">เบอร์โทร</th>
+                <th className="text-left font-medium px-3 py-2">บทบาท</th>
+                <th className="text-left font-medium px-3 py-2">สมัครเมื่อ</th>
+                <th className="text-left font-medium px-5 py-2">เข้าระบบล่าสุด</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users
+                .filter((u) => roleFilter === "all" || u.roles.includes(roleFilter))
+                .filter((u) => {
+                  if (!search.trim()) return true;
+                  const q = search.trim().toLowerCase();
+                  return (
+                    (u.email ?? "").toLowerCase().includes(q) ||
+                    (u.full_name ?? "").toLowerCase().includes(q) ||
+                    (u.phone ?? "").toLowerCase().includes(q) ||
+                    (u.username ?? "").toLowerCase().includes(q)
+                  );
+                })
+                .map((u) => (
+                  <tr key={u.user_id} className="border-b last:border-0 align-top">
+                    <td className="px-5 py-2">
+                      <p className="font-medium">{u.full_name || u.username || "—"}</p>
+                      {u.username && u.full_name && (
+                        <p className="text-xs text-muted-foreground">@{u.username}</p>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <p className="break-all">{u.email ?? "—"}</p>
+                      {!u.email_confirmed && u.email && (
+                        <p className="text-xs text-amber-600">ยังไม่ยืนยัน</p>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">{u.phone || "—"}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap gap-1">
+                        {u.roles.length === 0 ? (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        ) : (
+                          u.roles.map((r) => (
+                            <Badge
+                              key={r}
+                              variant={r === "admin" ? "default" : "secondary"}
+                              className="text-xs"
+                            >
+                              {ROLE_LABEL[r] ?? r}
+                            </Badge>
+                          ))
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(u.created_at).toLocaleDateString("th-TH")}
+                    </td>
+                    <td className="px-5 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                      {u.last_sign_in_at
+                        ? new Date(u.last_sign_in_at).toLocaleDateString("th-TH")
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+          {users.length === 0 && !usersLoading && (
+            <p className="text-sm text-muted-foreground text-center py-6">ยังไม่มีผู้ใช้</p>
+          )}
+        </div>
+      </Card>
     </main>
   );
 }
