@@ -62,6 +62,18 @@ function AdminPage() {
     }
   }
 
+  async function loadUsers() {
+    setUsersLoading(true);
+    try {
+      const rows = await listUsersFn();
+      setUsers(rows as UserRow[]);
+    } catch (e: any) {
+      toast.error(e?.message ?? "โหลดรายชื่อผู้ใช้ไม่สำเร็จ");
+    } finally {
+      setUsersLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (role !== "admin") return;
     (async () => {
@@ -73,6 +85,7 @@ function AdminPage() {
       setStats({ orders: o.count ?? 0, restaurants: r.count ?? 0, riders: ri.count ?? 0 });
     })();
     loadAdmins();
+    loadUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role]);
 
