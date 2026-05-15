@@ -87,7 +87,7 @@ function CartPage() {
     setSubmitting(true);
 
     const subtotal = total;
-    const grandTotal = subtotal + deliveryFee;
+    const grandTotal = subtotal + deliveryFee - discount;
 
     const { data: order, error } = await supabase
       .from("orders")
@@ -99,6 +99,7 @@ function CartPage() {
         delivery_lng: deliveryLng,
         subtotal,
         delivery_fee: deliveryFee,
+        discount,
         total: grandTotal,
         notes,
         payment_method: "cash",
@@ -133,6 +134,19 @@ function CartPage() {
     if (itemsErr) {
       setSubmitting(false);
       return toast.error(itemsErr.message);
+    }
+
+    if (promo) {
+      await supabase.from("order_promotions").insert({
+        order_id: order.id,
+        promotion_id: promo.id,
+        code: promo.code,
+        discount_amount: promo.discount,
+      });
+      // best-effort increment
+      await supabase.rpc as unknown;
+      const { data: cur } = await supabase.from("promotions").select("used_count").eq("id", promo.id).maybeSingle();
+      if (cur) await supabase.from("promotions").update({ used_count: (cur.used_count ?? 0) + 1 }).eq("id", promo.id);
     }
 
     clear();
