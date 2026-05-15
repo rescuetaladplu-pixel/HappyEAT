@@ -88,10 +88,14 @@ function ProfilePage() {
         </Card>
       )}
 
-      {user && (
+      {user ? (
         <Button variant="outline" className="w-full" onClick={handleSignOut}>
           <LogOut className="h-4 w-4 mr-2" /> ออกจากระบบ
         </Button>
+      ) : (
+        <Link to="/auth">
+          <Button className="w-full">เข้าสู่ระบบ / สมัครสมาชิก</Button>
+        </Link>
       )}
     </main>
   );
