@@ -32,13 +32,6 @@ export const Route = createFileRoute("/_app/my-restaurant")({
 });
 
 type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
-const DAY_LABELS: Record<DayKey, string> = {
-  mon: "จันทร์", tue: "อังคาร", wed: "พุธ", thu: "พฤหัสบดี",
-  fri: "ศุกร์", sat: "เสาร์", sun: "อาทิตย์",
-};
-const JS_DAY_TO_KEY: Record<number, DayKey> = {
-  0: "sun", 1: "mon", 2: "tue", 3: "wed", 4: "thu", 5: "fri", 6: "sat",
-};
 const DAY_SHORT: Record<DayKey, string> = {
   mon: "จ.", tue: "อ.", wed: "พ.", thu: "พฤ.", fri: "ศ.", sat: "ส.", sun: "อา.",
 };
