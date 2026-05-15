@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Store, Upload, MapPin, Clock, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { LocationPicker } from "@/components/restaurant/LocationPicker";
+import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
 
 export const Route = createFileRoute("/_app/my-restaurant_/settings")({
   component: MyRestaurantSettingsPage,
