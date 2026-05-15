@@ -31,14 +31,6 @@ function ProfilePage() {
   const [restaurant, setRestaurant] = useState<MyRestaurant | null>(null);
   const hasRestaurant = !!restaurant;
 
-  if (authLoading) {
-    return (
-      <main className="max-w-2xl mx-auto p-4 flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </main>
-    );
-  }
-
   useEffect(() => {
     if (!user) {
       setRestaurant(null);
@@ -49,8 +41,19 @@ function ProfilePage() {
       .select("id, is_open")
       .eq("owner_id", user.id)
       .maybeSingle()
-      .then(({ data }) => setRestaurant((data as MyRestaurant | null) ?? null));
+      .then(
+        ({ data }) => setRestaurant((data as MyRestaurant | null) ?? null),
+        () => { /* ignore */ },
+      );
   }, [user]);
+
+  if (authLoading) {
+    return (
+      <main className="max-w-2xl mx-auto p-4 flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </main>
+    );
+  }
 
   async function toggleOpen(open: boolean) {
     if (!restaurant) return;

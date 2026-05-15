@@ -37,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
+      setLoading(false);
       if (newSession?.user) {
         // Defer role fetch to avoid deadlock with auth state callback
         setTimeout(() => fetchRole(newSession.user.id), 0);
@@ -45,15 +46,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Then check existing session
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      if (data.session?.user) fetchRole(data.session.user.id);
-      setLoading(false);
-    });
+    // Then check existing session — always release loading even if it hangs
+    const safetyTimer = setTimeout(() => setLoading(false), 4000);
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
+        if (data.session?.user) fetchRole(data.session.user.id);
+      })
+      .catch(() => { /* ignore */ })
+      .finally(() => {
+        clearTimeout(safetyTimer);
+        setLoading(false);
+      });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(safetyTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   async function fetchRole(userId: string) {
