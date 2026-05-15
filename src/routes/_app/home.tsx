@@ -390,6 +390,18 @@ function HomePage() {
       <section className="px-4 pb-6 space-y-3">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)
+        ) : loadError ? (
+          <div className="text-center py-12 text-muted-foreground space-y-3">
+            <UtensilsCrossed className="h-12 w-12 mx-auto opacity-30" />
+            <p>{loadError}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setLoading(true); loadRestaurants(); }}
+            >
+              ลองใหม่
+            </Button>
+          </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <UtensilsCrossed className="h-12 w-12 mx-auto mb-2 opacity-30" />
