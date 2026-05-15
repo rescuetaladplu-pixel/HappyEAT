@@ -71,14 +71,14 @@ function ProfilePage() {
         </div>
       </Card>
 
-      {(role === "restaurant" || role === "admin") && (
+      {(role === "restaurant" || role === "admin" || hasRestaurant) && (
         <Link to="/my-restaurant">
           <Card className="p-5 flex items-center gap-4 hover:bg-accent transition-colors cursor-pointer">
             <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
               <Store className="h-6 w-6" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold">ร้านอาหารของฉัน</p>
+              <p className="font-semibold">ร้านค้าของฉัน</p>
               <p className="text-sm text-muted-foreground">จัดการโปรไฟล์ร้าน เมนู และออเดอร์</p>
             </div>
             <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -86,7 +86,7 @@ function ProfilePage() {
         </Link>
       )}
 
-      {role === "customer" && user && (
+      {role === "customer" && user && !hasRestaurant && (
         <Card className="p-5 space-y-3">
           <div className="flex items-center gap-3">
             <Store className="h-6 w-6 text-primary" />
