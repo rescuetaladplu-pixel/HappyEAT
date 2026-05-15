@@ -675,6 +675,62 @@ export type Database = {
         }
         Relationships: []
       }
+      variant_group_template_options: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          price_delta: number
+          sort_order: number
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          price_delta?: number
+          sort_order?: number
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          price_delta?: number
+          sort_order?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "variant_group_template_options_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "variant_group_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      variant_group_templates: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          restaurant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          restaurant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          restaurant_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
