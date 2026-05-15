@@ -876,6 +876,7 @@ function AddonsDialog({
       .from("menu_addon_groups")
       .select("*")
       .eq("menu_item_id", menuItem.id)
+      .neq("pricing_mode", "variant")
       .order("sort_order");
     const groupList = (g ?? []) as AddonGroup[];
     setGroups(groupList);
