@@ -123,14 +123,19 @@ function HomePage() {
   useEffect(() => {
     if (!user) return;
     async function loadAddr() {
-      const { data } = await supabase
-        .from("addresses")
-        .select("id, label, address, is_default, latitude, longitude, contact_name, phone_primary, phone_secondary, rider_note")
-        .eq("user_id", user!.id)
-        .order("is_default", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      try {
+        const res = await withTimeout(
+          supabase
+            .from("addresses")
+            .select("id, label, address, is_default, latitude, longitude, contact_name, phone_primary, phone_secondary, rider_note")
+            .eq("user_id", user!.id)
+            .order("is_default", { ascending: false })
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          10000,
+        );
+        const data = res.data;
       if (data) {
         const r = data as AddressRow;
         setAddr(r);
