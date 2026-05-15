@@ -299,18 +299,24 @@ function ItemPickerDialog({
     });
   }
 
-  const addonsTotal = useMemo(() => {
-    let s = 0;
+  const { unitPrice, addonsTotal } = useMemo(() => {
+    let variantPrice: number | null = null;
+    let extras = 0;
     for (const g of groups) {
       for (const oid of selected[g.id] ?? []) {
         const opt = (optionsMap[g.id] ?? []).find((o) => o.id === oid);
-        if (opt) s += Number(opt.price_delta);
+        if (!opt) continue;
+        if (g.pricing_mode === "variant") {
+          variantPrice = Number(opt.price_delta);
+        } else {
+          extras += Number(opt.price_delta);
+        }
       }
     }
-    return s;
-  }, [groups, selected, optionsMap]);
-
-  const unitPrice = Number(item.price) + addonsTotal;
+    const base = variantPrice ?? Number(item.price);
+    return { unitPrice: base + extras, addonsTotal: extras };
+  }, [groups, selected, optionsMap, item.price]);
+  void addonsTotal;
 
   function handleAdd() {
     // validate required
