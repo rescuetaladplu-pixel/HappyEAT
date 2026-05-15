@@ -421,12 +421,16 @@ function ItemPickerDialog({
                             <RadioGroupItem value={opt.id} id={opt.id} />
                             <span className="text-sm">{opt.name}</span>
                           </div>
-                          {Number(opt.price_delta) !== 0 && (
+                          {g.pricing_mode === "variant" ? (
+                            <span className="text-sm text-muted-foreground">
+                              ฿{Number(opt.price_delta).toFixed(0)}
+                            </span>
+                          ) : Number(opt.price_delta) !== 0 ? (
                             <span className="text-sm text-muted-foreground">
                               {Number(opt.price_delta) > 0 ? "+" : ""}
                               ฿{Number(opt.price_delta).toFixed(0)}
                             </span>
-                          )}
+                          ) : null}
                         </label>
                       ))}
                     </RadioGroup>
