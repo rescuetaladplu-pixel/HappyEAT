@@ -488,6 +488,12 @@ function ItemEditDialog({
   type VariantRow = { id?: string; name: string; price: string; tempKey: string };
   const [variants, setVariants] = useState<VariantRow[]>([]);
   const [variantGroupId, setVariantGroupId] = useState<string | null>(null);
+  type VariantTemplate = {
+    id: string;
+    name: string;
+    options: { name: string; price_delta: number; sort_order: number }[];
+  };
+  const [variantTemplates, setVariantTemplates] = useState<VariantTemplate[]>([]);
 
   useEffect(() => {
     if (!item.id) return;
