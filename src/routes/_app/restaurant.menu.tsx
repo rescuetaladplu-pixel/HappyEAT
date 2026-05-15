@@ -479,6 +479,7 @@ function ItemEditDialog({
   const isNew = !item.id;
   const [name, setName] = useState(item.name);
   const [description, setDescription] = useState(item.description ?? "");
+  const [allergenInfo, setAllergenInfo] = useState(item.allergen_info ?? "");
   const [price, setPrice] = useState(String(item.price ?? ""));
   const [imageUrl, setImageUrl] = useState<string | null>(item.image_url);
   const [categoryId, setCategoryId] = useState<string | null>(item.category_id);
