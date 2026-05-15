@@ -22,6 +22,20 @@ function ProfilePage() {
   const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
   const [upgrading, setUpgrading] = useState(false);
+  const [hasRestaurant, setHasRestaurant] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      setHasRestaurant(false);
+      return;
+    }
+    supabase
+      .from("restaurants")
+      .select("id")
+      .eq("owner_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setHasRestaurant(!!data));
+  }, [user]);
 
   async function handleSignOut() {
     await signOut();
