@@ -4,8 +4,14 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { LogOut, User, Store, ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+
+interface MyRestaurant {
+  id: string;
+  is_open: boolean;
+}
 
 export const Route = createFileRoute("/_app/profile")({
   component: ProfilePage,

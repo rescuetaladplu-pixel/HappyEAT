@@ -1,52 +1,23 @@
-## เป้าหมาย
+## เพิ่มสวิตช์เปิด/ปิดร้านบนการ์ด "ร้านค้าของฉัน" ในหน้าโปรไฟล์
 
-ทำหน้า **ฉัน > ร้านค้าของฉัน** (`/my-restaurant`) ให้เป็น "หน้าหลักของเจ้าของร้าน" — แสดงข้อมูลสรุปร้านด้านบน + เมนูทางลัดเข้าแต่ละเรื่องด้านล่าง แทนที่จะเป็นหน้าแก้ไขข้อมูลแบบ Tabs เหมือนปัจจุบัน
+ปรับการ์ด "ร้านค้าของฉัน" ในหน้า `/profile` ให้มีสวิตช์เปิด-ปิดร้านในตัว เพื่อให้เจ้าของร้านสลับสถานะออนไลน์ได้ทันทีโดยไม่ต้องเข้าไปหน้า `/my-restaurant`
 
-## โครงสร้างหน้าใหม่ (`/my-restaurant`)
+### สิ่งที่จะเปลี่ยน
 
-**1. การ์ดสรุปร้าน (Overview)**
-- ภาพหน้าปก (`cover_url`) เป็น banner ด้านบน
-- รูปโปรไฟล์วงกลม (`logo_url`) ทับมุมล่างซ้ายของ cover
-- ชื่อร้าน + หมวดหมู่ + badge สถานะ (อนุมัติแล้ว / รออนุมัติ)
-- คำอธิบายร้าน (description)
-- ที่อยู่ + เบอร์โทร
-- เวลาเปิด-ปิดวันนี้ (อ่านจาก `opening_hours` ตามวันปัจจุบัน เช่น "วันนี้ 09:00 - 21:00" หรือ "ปิดวันนี้")
-- Switch เปิด/ปิดร้าน (toggle `is_open`) อยู่มุมขวาบน
-- ค่าจัดส่งเริ่มต้น + คะแนนรีวิว
+ไฟล์เดียว: `src/routes/_app/profile.tsx`
 
-**2. เมนูทางลัด (Grid 2 คอลัมน์)**
+1. ตอนโหลดข้อมูลร้าน เปลี่ยนจาก `select("id")` เป็นดึง `id, is_open` มาเก็บใน state (`restaurant`) แทน boolean `hasRestaurant`
+2. เพิ่มฟังก์ชัน `toggleOpen(open)` เรียก `supabase.from("restaurants").update({ is_open }).eq("id", restaurant.id)` พร้อม optimistic update และ toast แจ้งผล
+3. ปรับเลย์เอาต์การ์ด "ร้านค้าของฉัน":
+   - ส่วนซ้าย/บน: ไอคอน + ชื่อ "ร้านค้าของฉัน" + คำอธิบายเดิม (ยังเป็นลิงก์ไป `/my-restaurant`)
+   - ส่วนล่าง (แยกด้วยเส้น `border-t`): แถบสถานะร้าน
+     - จุดกลม `h-2 w-2 rounded-full` สีเขียว (`bg-green-500`) เมื่อเปิด / สีเทา (`bg-muted-foreground`) เมื่อปิด พร้อม ping animation ตอนออนไลน์
+     - ข้อความ "สถานะร้าน: ออนไลน์ – พร้อมรับออเดอร์" หรือ "สถานะร้าน: ออฟไลน์ – ปิดรับออเดอร์"
+     - `Switch` ทางขวา ผูกกับ `restaurant.is_open` → `toggleOpen`
+   - ใช้ `e.stopPropagation()` + `e.preventDefault()` บนตัว Switch container เพื่อไม่ให้คลิกสวิตช์แล้วเด้งไป `/my-restaurant`
 
-แต่ละเมนูเป็นการ์ดมีไอคอน + ชื่อ + คำอธิบายสั้น:
+### หมายเหตุ
 
-| เมนู | ลิงก์ | ไอคอน |
-|---|---|---|
-| จัดการข้อมูลร้านค้า | `/my-restaurant/settings` (ใหม่) | Store |
-| จัดการเมนูอาหาร | `/restaurant/menu` | ChefHat |
-| ออเดอร์คำสั่งซื้อ | `/restaurant/orders` | Bell |
-| ข้อมูลยอดขาย | `/restaurant/analytics` | TrendingUp |
-| โปรโมชั่น | `/restaurant/promotions` | Tag |
-| รีวิวลูกค้า | `/restaurant/reviews` | MessageSquare |
-
-## ย้ายฟอร์มแก้ไขข้อมูลร้านออกไปเป็นหน้าใหม่
-
-สร้าง `src/routes/_app/my-restaurant.settings.tsx` รับฟอร์มเดิมที่อยู่ใน `/my-restaurant` (Tabs: โปรไฟล์ / ที่อยู่ / เวลาทำการ) — โค้ดยกมาทั้งหมดจากไฟล์ปัจจุบัน
-
-## ไฟล์ที่ต้องเปลี่ยน
-
-- `src/routes/_app/my-restaurant.tsx` — เขียนใหม่ให้เป็น hub (overview + menu grid). ลบ Tabs และฟอร์มแก้ไขออก แต่คงโค้ดส่วน "สร้างร้านครั้งแรก" ไว้เมื่อยังไม่มีร้าน
-- `src/routes/_app/my-restaurant.settings.tsx` (ใหม่) — ย้าย Tabs โปรไฟล์/ที่อยู่/เวลา มาไว้ที่นี่ พร้อมปุ่ม "← กลับ" ไป `/my-restaurant`
-- `src/routes/_app.tsx` — เปลี่ยน bottom nav ของ role `restaurant` จาก `/restaurant-dashboard` เป็น `/my-restaurant` เพื่อให้ tab "ร้านของฉัน" เข้าหน้า hub ใหม่ตรงกัน
-- `src/routes/_app/restaurant-dashboard.tsx` — คงไว้ใช้งานได้ แต่จะไม่ใช่ทางเข้าหลัก (ผู้ใช้สามารถเข้าได้ผ่าน URL ตรง) หรือทำเป็น redirect ไป `/my-restaurant` ก็ได้ (เลือกทำ redirect เพื่อความสะอาด)
-
-## หมายเหตุการออกแบบ
-
-- ใช้ design tokens จาก `src/styles.css` (bg-card, text-muted-foreground, border-border) — ไม่ hardcode สี
-- Layout `max-w-2xl mx-auto` เหมือนหน้าอื่น
-- การ์ดเมนูใช้ shadcn `Card` + ไอคอน lucide ขนาด h-6, hover:bg-accent
-- Overview card cover ใช้ aspect-[16/9] หรือ h-40, logo h-20 w-20 rounded-full border-4 border-card -mt-10
-
-## สิ่งที่ไม่แตะ
-
-- Schema database / RLS — ไม่ต้องเปลี่ยน
-- Logic ของ /restaurant/menu, /restaurant/orders, /restaurant/analytics ฯลฯ — ไม่แตะ
-- หน้า home/cart/customer-facing — ไม่เกี่ยว
+- เงื่อนไขการแสดงการ์ดยังคงเดิม (`role === "restaurant" || role === "admin" || hasRestaurant`)
+- ไม่แตะไฟล์อื่น ไม่แตะ schema ไม่แตะ RLS — ใช้ policy update เดิมของ `restaurants` (เจ้าของแก้ของตัวเองได้)
+- ใช้ semantic tokens จาก design system; สีเขียวสถานะออนไลน์ใช้ `bg-green-500` (มาตรฐานสำหรับ status indicator) แต่ข้อความและพื้นหลังอื่นใช้ token ปกติ
