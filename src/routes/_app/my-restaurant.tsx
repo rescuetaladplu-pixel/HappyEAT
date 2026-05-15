@@ -211,8 +211,8 @@ function MyRestaurantHub() {
   return (
     <main className="max-w-2xl mx-auto pb-4 space-y-4">
       {/* Overview Card */}
-      <Card className="p-0">
-        <div className="relative h-40 w-full bg-muted overflow-hidden rounded-t-xl">
+      <Card className="p-0 overflow-hidden">
+        <div className="h-40 w-full bg-muted">
           {restaurant.cover_url ? (
             <img src={restaurant.cover_url} alt="cover" className="w-full h-full object-cover" />
           ) : (
@@ -222,8 +222,8 @@ function MyRestaurantHub() {
           )}
         </div>
 
-        <div className="px-4 pb-4">
-          <div className="flex items-start gap-3 -mt-12">
+        <div className="px-4 pb-4 pt-4">
+          <div className="flex items-start gap-3">
             <div className="h-20 w-20 rounded-full border-4 border-card bg-muted overflow-hidden flex items-center justify-center shrink-0 shadow-md">
               {restaurant.logo_url ? (
                 <img src={restaurant.logo_url} alt="logo" className="w-full h-full object-cover" />
@@ -231,23 +231,22 @@ function MyRestaurantHub() {
                 <Store className="h-8 w-8 text-muted-foreground" />
               )}
             </div>
-          </div>
-
-          <div className="mt-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl font-bold">{restaurant.name}</h1>
-              {restaurant.is_approved ? (
-                <Badge variant="secondary" className="text-[10px]">อนุมัติแล้ว</Badge>
-              ) : (
-                <Badge variant="outline" className="text-[10px]">รออนุมัติ</Badge>
+            <div className="min-w-0 flex-1 pt-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl font-bold">{restaurant.name}</h1>
+                {restaurant.is_approved ? (
+                  <Badge variant="secondary" className="text-[10px]">อนุมัติแล้ว</Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px]">รออนุมัติ</Badge>
+                )}
+              </div>
+              {restaurant.category && (
+                <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                  <Utensils className="h-3.5 w-3.5 shrink-0" />
+                  <span>ประเภทร้านอาหาร: <span className="font-medium text-foreground">{restaurant.category}</span></span>
+                </div>
               )}
             </div>
-            {restaurant.category && (
-              <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
-                <Utensils className="h-3.5 w-3.5 shrink-0" />
-                <span>ประเภทร้าน: <span className="font-medium text-foreground">{restaurant.category}</span></span>
-              </div>
-            )}
           </div>
 
           {/* Online status bar */}
