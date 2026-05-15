@@ -130,16 +130,6 @@ function MenuManagementPage() {
     );
   }
 
-  if (role !== "restaurant" && role !== "admin") {
-    return (
-      <main className="max-w-2xl mx-auto p-4">
-        <Card className="p-6 text-center">
-          <p className="text-muted-foreground">หน้านี้สำหรับเจ้าของร้านเท่านั้น</p>
-        </Card>
-      </main>
-    );
-  }
-
   if (!restaurant) {
     return (
       <main className="max-w-2xl mx-auto p-4">
