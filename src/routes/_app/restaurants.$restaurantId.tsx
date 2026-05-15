@@ -17,7 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Star, UtensilsCrossed, Minus } from "lucide-react";
+import { ArrowLeft, Plus, Star, UtensilsCrossed, Minus, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/restaurants/$restaurantId")({
