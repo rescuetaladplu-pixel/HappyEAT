@@ -1,16 +1,21 @@
-## เพิ่มเมนู "ร้านค้าของฉัน" บนหน้าโปรไฟล์
+## แก้หน้า "ร้านค้าของฉัน" ขึ้น "สำหรับเจ้าของร้านเท่านั้น"
 
-ปัจจุบันการ์ด "ร้านอาหารของฉัน" แสดงเฉพาะเมื่อ role เป็น `restaurant` หรือ `admin` เท่านั้น ผู้ใช้ที่ล็อกอินอยู่ตอนนี้ (tester) เป็น `customer` จึงไม่เห็น
+### สาเหตุ
+`src/routes/_app/my-restaurant.tsx` กั้นด้วย `role !== "restaurant" && role !== "admin"` เท่านั้น แต่ผู้ใช้ tester เป็น `customer` ที่มีร้านอยู่แล้ว (จากการ์ดบนโปรไฟล์ที่ตรวจ `hasRestaurant`) จึงถูกบล็อก
 
 ### สิ่งที่จะทำ
-แก้ไข `src/routes/_app/profile.tsx`:
+แก้ `src/routes/_app/my-restaurant.tsx`:
 
-1. เพิ่ม state `hasRestaurant` และ query ตาราง `restaurants` ด้วย `owner_id = user.id` ตอน mount เพื่อตรวจว่าผู้ใช้มีร้านอยู่แล้วหรือไม่ (ครอบคลุมกรณี role ถูกลบแต่ร้านยังอยู่)
+1. หลัง `load()` query ร้านด้วย `owner_id = user.id` อยู่แล้ว — ใช้ผลนั้นเป็นเกณฑ์เพิ่มเติม
+2. เปลี่ยนเงื่อนไขบล็อก จาก
+   ```
+   if (role !== "restaurant" && role !== "admin")
+   ```
+   เป็น
+   ```
+   if (role !== "restaurant" && role !== "admin" && !restaurant)
+   ```
+   เพื่อให้ผู้ใช้ที่ "มีร้านอยู่แล้ว" เข้าจัดการร้านของตัวเองได้ (RLS policy `Owners update own restaurant` อนุญาตอยู่แล้วโดยอิง `owner_id`)
+3. ส่วน "สร้างร้านอาหาร" (กรณี `!restaurant`) ยังคงสงวนไว้ให้เฉพาะ role `restaurant`/`admin` เพื่อให้ตรงกับ RLS `Owners insert restaurants` ที่ต้องมี role `restaurant` ตอน insert
 
-2. ปรับเงื่อนไขการแสดงการ์ด "ร้านอาหารของฉัน":
-   - แสดงเมื่อ `role === "restaurant"` หรือ `role === "admin"` หรือ `hasRestaurant === true`
-   - ลิงก์ไปที่ `/my-restaurant` เหมือนเดิม
-
-3. การ์ด "สมัครเป็นเจ้าของร้าน" ให้ซ่อนเมื่อ `hasRestaurant === true` เพื่อไม่ให้ปุ่มสมัครซ้ำกับเมนูเข้าจัดการร้าน
-
-ไม่แตะ logic อื่น ไม่แตะ DB
+ไม่แตะ DB / RLS / logic อื่น
