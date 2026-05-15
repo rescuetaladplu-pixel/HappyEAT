@@ -73,7 +73,7 @@ function HomePage() {
   const { user, role, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("ทั้งหมด");
@@ -92,6 +92,7 @@ function HomePage() {
   const [savingAddr, setSavingAddr] = useState(false);
 
   const loadRestaurants = useCallback(async () => {
+    setLoading(true);
     try {
       setLoadError(null);
       const res = await withTimeout(
@@ -405,7 +406,7 @@ function HomePage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <UtensilsCrossed className="h-12 w-12 mx-auto mb-2 opacity-30" />
-            <p>ยังไม่มีร้านในขณะนี้</p>
+            <p>{restaurants.length === 0 ? "ยังไม่มีร้านค้าออนไลน์ในขณะนี้" : "ไม่พบร้านที่ตรงกับคำค้นหา"}</p>
             <p className="text-xs mt-1">ลองเปลี่ยนหมวดหมู่หรือคำค้นหา</p>
           </div>
         ) : (
