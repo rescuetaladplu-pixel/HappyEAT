@@ -1,27 +1,50 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
+export interface SelectedAddon {
+  groupName: string;
+  optionName: string;
+  priceDelta: number;
+}
+
 export interface CartItem {
+  lineId: string; // unique per (menuItemId + addons combo)
   menuItemId: string;
   restaurantId: string;
   name: string;
-  price: number;
+  basePrice: number;
+  unitPrice: number; // basePrice + sum(addon.priceDelta)
   quantity: number;
   imageUrl?: string | null;
+  addons: SelectedAddon[];
+  note?: string | null;
 }
 
 interface CartContextValue {
   items: CartItem[];
   restaurantId: string | null;
-  add: (item: Omit<CartItem, "quantity">) => void;
-  remove: (menuItemId: string) => void;
-  setQty: (menuItemId: string, qty: number) => void;
+  add: (item: Omit<CartItem, "quantity" | "lineId" | "unitPrice"> & { quantity?: number }) => void;
+  remove: (lineId: string) => void;
+  setQty: (lineId: string, qty: number) => void;
   clear: () => void;
   total: number;
   count: number;
 }
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
-const STORAGE_KEY = "fooddash_cart_v1";
+const STORAGE_KEY = "fooddash_cart_v2";
+
+function makeLineId(menuItemId: string, addons: SelectedAddon[], note?: string | null) {
+  const key =
+    menuItemId +
+    "|" +
+    addons
+      .map((a) => `${a.groupName}:${a.optionName}`)
+      .sort()
+      .join(",") +
+    "|" +
+    (note ?? "");
+  return key;
+}
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -31,7 +54,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setItems(JSON.parse(raw));
-    } catch {}
+    } catch {
+      // ignore
+    }
   }, []);
 
   useEffect(() => {
@@ -41,40 +66,58 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const restaurantId = items[0]?.restaurantId ?? null;
 
-  function add(item: Omit<CartItem, "quantity">) {
+  function add(input: Omit<CartItem, "quantity" | "lineId" | "unitPrice"> & { quantity?: number }) {
+    const addons = input.addons ?? [];
+    const unitPrice =
+      input.basePrice + addons.reduce((s, a) => s + Number(a.priceDelta || 0), 0);
+    const lineId = makeLineId(input.menuItemId, addons, input.note);
+    const qty = input.quantity ?? 1;
+
     setItems((prev) => {
       // If from a different restaurant, replace cart
-      if (prev.length > 0 && prev[0].restaurantId !== item.restaurantId) {
-        return [{ ...item, quantity: 1 }];
+      if (prev.length > 0 && prev[0].restaurantId !== input.restaurantId) {
+        return [
+          {
+            ...input,
+            addons,
+            unitPrice,
+            lineId,
+            quantity: qty,
+          },
+        ];
       }
-      const existing = prev.find((p) => p.menuItemId === item.menuItemId);
+      const existing = prev.find((p) => p.lineId === lineId);
       if (existing) {
         return prev.map((p) =>
-          p.menuItemId === item.menuItemId ? { ...p, quantity: p.quantity + 1 } : p
+          p.lineId === lineId ? { ...p, quantity: p.quantity + qty } : p,
         );
       }
-      return [...prev, { ...item, quantity: 1 }];
+      return [...prev, { ...input, addons, unitPrice, lineId, quantity: qty }];
     });
   }
 
-  function remove(menuItemId: string) {
-    setItems((prev) => prev.filter((p) => p.menuItemId !== menuItemId));
+  function remove(lineId: string) {
+    setItems((prev) => prev.filter((p) => p.lineId !== lineId));
   }
 
-  function setQty(menuItemId: string, qty: number) {
-    if (qty <= 0) return remove(menuItemId);
-    setItems((prev) => prev.map((p) => (p.menuItemId === menuItemId ? { ...p, quantity: qty } : p)));
+  function setQty(lineId: string, qty: number) {
+    if (qty <= 0) return remove(lineId);
+    setItems((prev) =>
+      prev.map((p) => (p.lineId === lineId ? { ...p, quantity: qty } : p)),
+    );
   }
 
   function clear() {
     setItems([]);
   }
 
-  const total = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const total = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
   const count = items.reduce((s, i) => s + i.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ items, restaurantId, add, remove, setQty, clear, total, count }}>
+    <CartContext.Provider
+      value={{ items, restaurantId, add, remove, setQty, clear, total, count }}
+    >
       {children}
     </CartContext.Provider>
   );
