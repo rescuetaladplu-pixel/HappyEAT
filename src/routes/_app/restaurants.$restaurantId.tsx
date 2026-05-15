@@ -57,6 +57,7 @@ interface AddonGroup {
   min_select: number;
   max_select: number;
   sort_order: number;
+  pricing_mode: "addon" | "variant";
 }
 interface AddonOption {
   id: string;
