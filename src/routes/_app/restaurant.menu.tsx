@@ -851,7 +851,7 @@ function AddonsDialog({
                         onBlur={(e) =>
                           updateOption(opt, { price_delta: Number(e.target.value) || 0 })
                         }
-                        placeholder="+ราคา"
+                        placeholder={g.pricing_mode === "variant" ? "ราคา" : "+ราคา"}
                         className="w-24"
                       />
                       <Switch
