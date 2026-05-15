@@ -48,13 +48,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Then check existing session — always release loading even if it hangs
     const safetyTimer = setTimeout(() => setLoading(false), 4000);
-    supabase.auth.getSession()
+    supabase.auth
+      .getSession()
       .then(({ data }) => {
         setSession(data.session);
         setUser(data.session?.user ?? null);
         if (data.session?.user) fetchRole(data.session.user.id);
       })
-      .catch(() => { /* ignore */ })
+      .catch(() => {
+        /* ignore */
+      })
       .finally(() => {
         clearTimeout(safetyTimer);
         setLoading(false);
@@ -67,20 +70,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function fetchRole(userId: string) {
-    const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
 
-    if (error) {
+      if (error) {
+        setRole("customer");
+        return;
+      }
+
+      const roles = (data ?? []).map((row) => row.role as AppRole);
+      setRole(ROLE_PRIORITY.find((candidate) => roles.includes(candidate)) ?? "customer");
+    } catch {
       setRole("customer");
-      return;
     }
-
-    const roles = (data ?? []).map((row) => row.role as AppRole);
-    setRole(ROLE_PRIORITY.find((candidate) => roles.includes(candidate)) ?? "customer");
   }
 
   async function signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (!error) {
+        const nextSession = data.session;
+        const nextUser = data.user ?? nextSession?.user ?? null;
+        setSession(nextSession ?? null);
+        setUser(nextUser);
+        if (nextUser) void fetchRole(nextUser.id);
+      }
+      return { error: error?.message ?? null };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "เข้าสู่ระบบไม่สำเร็จ" };
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function signUp(
@@ -103,6 +127,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     await supabase.auth.signOut();
+    setSession(null);
+    setUser(null);
+    setRole(null);
+    setLoading(false);
   }
 
   return (
