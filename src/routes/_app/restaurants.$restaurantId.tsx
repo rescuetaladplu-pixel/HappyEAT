@@ -75,6 +75,7 @@ function RestaurantDetail() {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
+  const [variantMin, setVariantMin] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [picking, setPicking] = useState<MenuItem | null>(null);
 
