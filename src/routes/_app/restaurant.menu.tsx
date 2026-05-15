@@ -436,9 +436,6 @@ function ItemList({
                     </span>
                   </div>
                   <div className="flex gap-1">
-                    <Button size="sm" variant="outline" onClick={() => onAddons(it)}>
-                      ตัวเลือกเสริม
-                    </Button>
                     <Button size="icon" variant="ghost" onClick={() => onEdit(it)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
