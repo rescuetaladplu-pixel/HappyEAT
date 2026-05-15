@@ -136,17 +136,20 @@ function HomePage() {
           10000,
         );
         const data = res.data;
-      if (data) {
-        const r = data as AddressRow;
-        setAddr(r);
-        setAddrLabel(r.label);
-        setAddrText(r.address);
-        setContactName(r.contact_name ?? "");
-        setPhonePrimary(r.phone_primary ?? "");
-        setPhoneSecondary(r.phone_secondary ?? "");
-        setRiderNote(r.rider_note ?? "");
-        setLat(r.latitude !== null ? Number(r.latitude) : null);
-        setLng(r.longitude !== null ? Number(r.longitude) : null);
+        if (data) {
+          const r = data as AddressRow;
+          setAddr(r);
+          setAddrLabel(r.label);
+          setAddrText(r.address);
+          setContactName(r.contact_name ?? "");
+          setPhonePrimary(r.phone_primary ?? "");
+          setPhoneSecondary(r.phone_secondary ?? "");
+          setRiderNote(r.rider_note ?? "");
+          setLat(r.latitude !== null ? Number(r.latitude) : null);
+          setLng(r.longitude !== null ? Number(r.longitude) : null);
+        }
+      } catch {
+        // ignore — ไม่ต้องบล็อกหน้าแรกถ้าโหลดที่อยู่ไม่สำเร็จ
       }
     }
     loadAddr();
