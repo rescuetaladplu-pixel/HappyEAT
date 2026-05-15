@@ -1077,6 +1077,19 @@ function ItemEditDialog({
             />
           </div>
 
+          <div className="space-y-2">
+            <Label>ข้อมูลสำหรับผู้แพ้อาหาร</Label>
+            <Textarea
+              value={allergenInfo}
+              onChange={(e) => setAllergenInfo(e.target.value)}
+              rows={2}
+              placeholder="เช่น มีถั่ว, นม, ไข่, กลูเตน, อาหารทะเล"
+            />
+            <p className="text-xs text-muted-foreground">
+              ระบุวัตถุดิบที่อาจก่อให้เกิดอาการแพ้ ข้อมูลนี้จะแสดงให้ลูกค้าเห็นชัดเจน
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>ราคา (บาท) *</Label>
