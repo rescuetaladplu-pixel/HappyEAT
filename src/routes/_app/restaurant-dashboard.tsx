@@ -174,6 +174,34 @@ function RestaurantDashboard() {
         </div>
       </Card>
 
+      <div className="grid grid-cols-2 gap-2">
+        <Button asChild variant="outline" className="h-auto py-3 flex-col gap-1">
+          <Link to="/restaurant/orders">
+            <Bell className="h-5 w-5" /><span className="text-xs">ออเดอร์ Real-time</span>
+          </Link>
+        </Button>
+        <Button asChild variant="outline" className="h-auto py-3 flex-col gap-1">
+          <Link to="/restaurant/menu">
+            <ChefHat className="h-5 w-5" /><span className="text-xs">จัดการเมนู</span>
+          </Link>
+        </Button>
+        <Button asChild variant="outline" className="h-auto py-3 flex-col gap-1">
+          <Link to="/restaurant/analytics">
+            <TrendingUp className="h-5 w-5" /><span className="text-xs">สรุปยอดขาย</span>
+          </Link>
+        </Button>
+        <Button asChild variant="outline" className="h-auto py-3 flex-col gap-1">
+          <Link to="/restaurant/promotions">
+            <Tag className="h-5 w-5" /><span className="text-xs">โปรโมชั่น</span>
+          </Link>
+        </Button>
+        <Button asChild variant="outline" className="h-auto py-3 flex-col gap-1 col-span-2">
+          <Link to="/restaurant/reviews">
+            <MessageSquare className="h-5 w-5" /><span className="text-xs">รีวิวลูกค้า</span>
+          </Link>
+        </Button>
+      </div>
+
       <Card className="p-5">
         <h2 className="font-semibold mb-3">ออเดอร์ที่เข้ามา</h2>
         {orders.length === 0 ? (
