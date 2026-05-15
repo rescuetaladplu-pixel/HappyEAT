@@ -1289,6 +1289,7 @@ function ItemEditDialog({
             )}
           </div>
 
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
             <div>
               <p className="text-sm font-medium">พร้อมขายวันนี้</p>
               <p className="text-xs text-muted-foreground">
