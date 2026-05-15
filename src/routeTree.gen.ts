@@ -21,6 +21,7 @@ import { Route as AppHomeRouteImport } from './routes/_app/home'
 import { Route as AppCartRouteImport } from './routes/_app/cart'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
 import { Route as AppRestaurantsRestaurantIdRouteImport } from './routes/_app/restaurants.$restaurantId'
+import { Route as AppRestaurantReviewsRouteImport } from './routes/_app/restaurant.reviews'
 import { Route as AppRestaurantPromotionsRouteImport } from './routes/_app/restaurant.promotions'
 import { Route as AppRestaurantOrdersRouteImport } from './routes/_app/restaurant.orders'
 import { Route as AppRestaurantMenuRouteImport } from './routes/_app/restaurant.menu'
@@ -86,6 +87,11 @@ const AppRestaurantsRestaurantIdRoute =
     path: '/restaurants/$restaurantId',
     getParentRoute: () => AppRoute,
   } as any)
+const AppRestaurantReviewsRoute = AppRestaurantReviewsRouteImport.update({
+  id: '/restaurant/reviews',
+  path: '/restaurant/reviews',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRestaurantPromotionsRoute = AppRestaurantPromotionsRouteImport.update({
   id: '/restaurant/promotions',
   path: '/restaurant/promotions',
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/restaurant/menu': typeof AppRestaurantMenuRoute
   '/restaurant/orders': typeof AppRestaurantOrdersRoute
   '/restaurant/promotions': typeof AppRestaurantPromotionsRoute
+  '/restaurant/reviews': typeof AppRestaurantReviewsRoute
   '/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
 }
 export interface FileRoutesByTo {
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/restaurant/menu': typeof AppRestaurantMenuRoute
   '/restaurant/orders': typeof AppRestaurantOrdersRoute
   '/restaurant/promotions': typeof AppRestaurantPromotionsRoute
+  '/restaurant/reviews': typeof AppRestaurantReviewsRoute
   '/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
 }
 export interface FileRoutesById {
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/_app/restaurant/menu': typeof AppRestaurantMenuRoute
   '/_app/restaurant/orders': typeof AppRestaurantOrdersRoute
   '/_app/restaurant/promotions': typeof AppRestaurantPromotionsRoute
+  '/_app/restaurant/reviews': typeof AppRestaurantReviewsRoute
   '/_app/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
 }
 export interface FileRouteTypes {
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/restaurant/menu'
     | '/restaurant/orders'
     | '/restaurant/promotions'
+    | '/restaurant/reviews'
     | '/restaurants/$restaurantId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/restaurant/menu'
     | '/restaurant/orders'
     | '/restaurant/promotions'
+    | '/restaurant/reviews'
     | '/restaurants/$restaurantId'
   id:
     | '__root__'
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | '/_app/restaurant/menu'
     | '/_app/restaurant/orders'
     | '/_app/restaurant/promotions'
+    | '/_app/restaurant/reviews'
     | '/_app/restaurants/$restaurantId'
   fileRoutesById: FileRoutesById
 }
@@ -307,6 +319,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRestaurantsRestaurantIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/restaurant/reviews': {
+      id: '/_app/restaurant/reviews'
+      path: '/restaurant/reviews'
+      fullPath: '/restaurant/reviews'
+      preLoaderRoute: typeof AppRestaurantReviewsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/restaurant/promotions': {
       id: '/_app/restaurant/promotions'
       path: '/restaurant/promotions'
@@ -351,6 +370,7 @@ interface AppRouteChildren {
   AppRestaurantMenuRoute: typeof AppRestaurantMenuRoute
   AppRestaurantOrdersRoute: typeof AppRestaurantOrdersRoute
   AppRestaurantPromotionsRoute: typeof AppRestaurantPromotionsRoute
+  AppRestaurantReviewsRoute: typeof AppRestaurantReviewsRoute
   AppRestaurantsRestaurantIdRoute: typeof AppRestaurantsRestaurantIdRoute
 }
 
@@ -367,6 +387,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppRestaurantMenuRoute: AppRestaurantMenuRoute,
   AppRestaurantOrdersRoute: AppRestaurantOrdersRoute,
   AppRestaurantPromotionsRoute: AppRestaurantPromotionsRoute,
+  AppRestaurantReviewsRoute: AppRestaurantReviewsRoute,
   AppRestaurantsRestaurantIdRoute: AppRestaurantsRestaurantIdRoute,
 }
 
@@ -380,3 +401,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
