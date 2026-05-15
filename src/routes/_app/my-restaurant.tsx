@@ -24,6 +24,7 @@ import {
   Star,
   Truck,
   ChevronRight,
+  Utensils,
 } from "lucide-react";
 import { toast } from "sonner";
 
