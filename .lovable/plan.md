@@ -1,23 +1,43 @@
-## เพิ่มสวิตช์เปิด/ปิดร้านบนการ์ด "ร้านค้าของฉัน" ในหน้าโปรไฟล์
+# แก้ปัญหา: กดเมนูในร้านค้าของฉันแล้วเข้าไม่ได้
 
-ปรับการ์ด "ร้านค้าของฉัน" ในหน้า `/profile` ให้มีสวิตช์เปิด-ปิดร้านในตัว เพื่อให้เจ้าของร้านสลับสถานะออนไลน์ได้ทันทีโดยไม่ต้องเข้าไปหน้า `/my-restaurant`
+## สาเหตุ
 
-### สิ่งที่จะเปลี่ยน
+ในหน้า `restaurant.menu.tsx` (และหน้าอื่นๆ ที่คล้ายกัน) มีการเช็ก `role !== "restaurant" && role !== "admin"` ก่อนแสดงเนื้อหา แต่:
 
-ไฟล์เดียว: `src/routes/_app/profile.tsx`
+1. `role` ใน `useAuth` ถูกดึงมาแบบ **async** (มี `setTimeout` แยกใน `auth.tsx` หลัง session โหลด)
+2. หน้าเหล่านี้เช็กแค่ `loading` ภายใน (จากการ query restaurants) ไม่ได้รอ `auth.loading` หรือรอ `role` โหลดเสร็จ
+3. ผลคือ: ตอน mount ครั้งแรก `role` ยังเป็น `null` → ตกเข้าเงื่อนไข "ไม่ใช่เจ้าของร้าน" → ขึ้นข้อความบล็อกทันที ทั้งที่ user เป็นเจ้าของร้านจริง
 
-1. ตอนโหลดข้อมูลร้าน เปลี่ยนจาก `select("id")` เป็นดึง `id, is_open` มาเก็บใน state (`restaurant`) แทน boolean `hasRestaurant`
-2. เพิ่มฟังก์ชัน `toggleOpen(open)` เรียก `supabase.from("restaurants").update({ is_open }).eq("id", restaurant.id)` พร้อม optimistic update และ toast แจ้งผล
-3. ปรับเลย์เอาต์การ์ด "ร้านค้าของฉัน":
-   - ส่วนซ้าย/บน: ไอคอน + ชื่อ "ร้านค้าของฉัน" + คำอธิบายเดิม (ยังเป็นลิงก์ไป `/my-restaurant`)
-   - ส่วนล่าง (แยกด้วยเส้น `border-t`): แถบสถานะร้าน
-     - จุดกลม `h-2 w-2 rounded-full` สีเขียว (`bg-green-500`) เมื่อเปิด / สีเทา (`bg-muted-foreground`) เมื่อปิด พร้อม ping animation ตอนออนไลน์
-     - ข้อความ "สถานะร้าน: ออนไลน์ – พร้อมรับออเดอร์" หรือ "สถานะร้าน: ออฟไลน์ – ปิดรับออเดอร์"
-     - `Switch` ทางขวา ผูกกับ `restaurant.is_open` → `toggleOpen`
-   - ใช้ `e.stopPropagation()` + `e.preventDefault()` บนตัว Switch container เพื่อไม่ให้คลิกสวิตช์แล้วเด้งไป `/my-restaurant`
+อีกจุดที่เกี่ยวข้อง: หน้า `analytics`, `orders`, `promotions`, `reviews` ใช้แค่ `restaurantId` (จาก `owner_id = user.id`) ไม่ได้เช็ก role อยู่แล้ว แต่ก็มีปัญหา race เหมือนกัน — ถ้า user ยังไม่โหลดเสร็จ จะ query ไม่ได้ และโชว์หน้าว่าง/loading ค้าง
 
-### หมายเหตุ
+## แผนการแก้
 
-- เงื่อนไขการแสดงการ์ดยังคงเดิม (`role === "restaurant" || role === "admin" || hasRestaurant`)
-- ไม่แตะไฟล์อื่น ไม่แตะ schema ไม่แตะ RLS — ใช้ policy update เดิมของ `restaurants` (เจ้าของแก้ของตัวเองได้)
-- ใช้ semantic tokens จาก design system; สีเขียวสถานะออนไลน์ใช้ `bg-green-500` (มาตรฐานสำหรับ status indicator) แต่ข้อความและพื้นหลังอื่นใช้ token ปกติ
+### 1. `src/routes/_app/restaurant.menu.tsx`
+- เปลี่ยน guard ให้รอทั้ง `auth.loading` และให้รอจนกว่า `role` จะมีค่า ก่อนค่อยตัดสินว่า "ไม่ใช่เจ้าของร้าน"
+- เปลี่ยนเงื่อนไขเป็น: ถ้า user เป็นเจ้าของร้าน (มี restaurant แถวที่ `owner_id = user.id`) ให้ผ่านได้ทันที โดยไม่ต้องเช็ก role ก็ได้ — เพราะ RLS ป้องกันไว้อยู่แล้ว และเจ้าของร้านที่ role ยังไม่ sync จะไม่ถูกบล็อก
+
+### 2. หน้าจัดการอื่นๆ ที่ลิงก์มาจาก hub
+ตรวจและทำ pattern เดียวกัน:
+- `restaurant.analytics.tsx`
+- `restaurant.orders.tsx`
+- `restaurant.promotions.tsx`
+- `restaurant.reviews.tsx`
+- `my-restaurant.settings.tsx`
+
+ใช้ logic เดียวกัน:
+```
+if (auth.loading || pageLoading) → spinner
+else if (!restaurant) → "ยังไม่พบร้านของคุณ" + ปุ่มกลับ
+else → แสดงเนื้อหา
+```
+
+ไม่ใช้การเช็ก `role` เป็น guard หลักอีกต่อไป (ใช้การมี restaurant ของตัวเองเป็นเกณฑ์แทน ซึ่งตรงกับสิ่งที่ผู้ใช้ต้องการจริง)
+
+### 3. หมายเหตุเรื่อง 401 `permission denied for function has_role`
+จาก network log พบ error นี้ตอนเรียก `restaurants` ในหน้า home ซึ่งเป็นคนละปัญหา (เกี่ยวกับ grant permission ของ DB function `has_role` ให้ role `anon`/`authenticated`) — ถ้าต้องการให้แก้ด้วย จะเสนอเป็น migration แยก
+
+## รายละเอียดทางเทคนิค
+
+ใน auth context (`src/lib/auth.tsx`) `loading` จะเป็น `false` หลัง `getSession()` เสร็จ แต่ `fetchRole()` ถูก dispatch ด้วย `setTimeout(..., 0)` ทำให้ `role` ยังเป็น `null` ชั่วครู่หลัง `loading=false` — guard ในหน้าย่อยเลยตัดสินผิดพลาดในเสี้ยววินาทีนั้น และเพราะไม่มี re-evaluate จึงค้างอยู่ที่ "หน้านี้สำหรับเจ้าของร้านเท่านั้น" จนกว่าจะ refresh
+
+วิธีแก้ที่ปลอดภัยที่สุดคือเลิกใช้ role เป็น gate ในหน้าจัดการที่ผูกกับ `restaurants.owner_id` อยู่แล้ว แล้วใช้ "มี restaurant ที่ฉันเป็นเจ้าของหรือไม่" เป็น gate แทน
