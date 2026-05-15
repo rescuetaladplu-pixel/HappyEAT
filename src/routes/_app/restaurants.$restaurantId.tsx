@@ -439,6 +439,15 @@ function ItemPickerDialog({
         {item.description && (
           <p className="text-sm text-muted-foreground">{item.description}</p>
         )}
+        {item.allergen_info && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 dark:border-amber-700/60 dark:bg-amber-950/40 p-3 flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="text-sm text-amber-900 dark:text-amber-200">
+              <div className="font-medium">ข้อมูลสำหรับผู้แพ้อาหาร</div>
+              <div>{item.allergen_info}</div>
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <p className="text-sm text-muted-foreground">กำลังโหลดตัวเลือก...</p>
