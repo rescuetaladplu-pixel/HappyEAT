@@ -176,6 +176,20 @@ function AuthPage() {
                       onChange={(e) => setSuPassword(e.target.value)}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="su-pw2">ยืนยันรหัสผ่าน</Label>
+                    <Input
+                      id="su-pw2"
+                      type="password"
+                      minLength={6}
+                      required
+                      value={suPasswordConfirm}
+                      onChange={(e) => setSuPasswordConfirm(e.target.value)}
+                    />
+                    {suPasswordConfirm && suPassword !== suPasswordConfirm && (
+                      <p className="text-xs text-destructive">รหัสผ่านยืนยันไม่ตรงกัน</p>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     สมัครแล้วใช้สั่งอาหารได้ทันที — อยากเปิดร้านขายของก็เปิดเพิ่มได้ภายหลังในหน้าโปรไฟล์
                   </p>
