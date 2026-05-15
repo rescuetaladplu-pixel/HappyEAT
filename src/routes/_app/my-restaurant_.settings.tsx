@@ -13,7 +13,7 @@ import { Store, Upload, MapPin, Clock, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { LocationPicker } from "@/components/restaurant/LocationPicker";
 
-export const Route = createFileRoute("/_app/my-restaurant/settings")({
+export const Route = createFileRoute("/_app/my-restaurant_/settings")({
   component: MyRestaurantSettingsPage,
 });
 

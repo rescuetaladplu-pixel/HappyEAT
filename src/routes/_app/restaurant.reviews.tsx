@@ -83,14 +83,14 @@ function RestaurantReviewsPage() {
     return (
       <main className="max-w-2xl mx-auto p-6 text-center space-y-3">
         <p>ยังไม่มีร้าน</p>
-        <Button asChild><Link to="/restaurant-dashboard">ไปตั้งค่าร้าน</Link></Button>
+        <Button asChild><Link to="/my-restaurant">ไปตั้งค่าร้าน</Link></Button>
       </main>
     );
   }
 
   return (
     <main className="max-w-3xl mx-auto p-4 pb-24 space-y-4">
-      <Button asChild variant="ghost" size="sm"><Link to="/restaurant-dashboard"><ArrowLeft className="h-4 w-4 mr-1" />หน้าร้าน</Link></Button>
+      <Button asChild variant="ghost" size="sm"><Link to="/my-restaurant"><ArrowLeft className="h-4 w-4 mr-1" />หน้าร้าน</Link></Button>
 
       <div className="flex items-center gap-2">
         <MessageSquare className="h-5 w-5 text-primary" />

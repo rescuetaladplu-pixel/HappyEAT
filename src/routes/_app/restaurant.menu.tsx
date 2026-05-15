@@ -147,7 +147,7 @@ function MenuManagementPage() {
     <main className="max-w-3xl mx-auto p-4 pb-24 space-y-4">
       <div className="flex items-center gap-2">
         <Button asChild variant="ghost" size="icon">
-          <Link to="/restaurant-dashboard">
+          <Link to="/my-restaurant">
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>
