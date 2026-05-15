@@ -203,14 +203,7 @@ function MyRestaurantHub() {
     );
   }
 
-  // Today opening hours
-  const todayKey = JS_DAY_TO_KEY[new Date().getDay()];
-  const todayHours = restaurant.opening_hours?.[todayKey];
-  const todayLabel = todayHours
-    ? todayHours.closed
-      ? "ปิดวันนี้"
-      : `วันนี้ ${todayHours.open} - ${todayHours.close}`
-    : "ยังไม่ได้ตั้งเวลาทำการ";
+  const hoursSummary = summarizeOpeningHours(restaurant.opening_hours);
 
   const menuItems = [
     { to: "/my-restaurant/settings", icon: Settings, label: "จัดการข้อมูลร้านค้า", desc: "โปรไฟล์ ที่อยู่ เวลาทำการ" },
