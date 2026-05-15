@@ -61,6 +61,7 @@ interface MenuItem {
   restaurant_id: string;
   name: string;
   description: string | null;
+  allergen_info: string | null;
   price: number;
   image_url: string | null;
   is_available: boolean;
@@ -178,6 +179,7 @@ function MenuManagementPage() {
                 restaurant_id: restaurant.id,
                 name: "",
                 description: "",
+                allergen_info: "",
                 price: 0,
                 image_url: null,
                 is_available: true,
@@ -477,6 +479,7 @@ function ItemEditDialog({
   const isNew = !item.id;
   const [name, setName] = useState(item.name);
   const [description, setDescription] = useState(item.description ?? "");
+  const [allergenInfo, setAllergenInfo] = useState(item.allergen_info ?? "");
   const [price, setPrice] = useState(String(item.price ?? ""));
   const [imageUrl, setImageUrl] = useState<string | null>(item.image_url);
   const [categoryId, setCategoryId] = useState<string | null>(item.category_id);
@@ -995,6 +998,7 @@ function ItemEditDialog({
       restaurant_id: restaurantId,
       name: name.trim(),
       description: description.trim() || null,
+      allergen_info: allergenInfo.trim() || null,
       price: priceNum,
       image_url: imageUrl,
       category_id: categoryId,
@@ -1071,6 +1075,19 @@ function ItemEditDialog({
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>ข้อมูลสำหรับผู้แพ้อาหาร</Label>
+            <Textarea
+              value={allergenInfo}
+              onChange={(e) => setAllergenInfo(e.target.value)}
+              rows={2}
+              placeholder="เช่น มีถั่ว, นม, ไข่, กลูเตน, อาหารทะเล"
+            />
+            <p className="text-xs text-muted-foreground">
+              ระบุวัตถุดิบที่อาจก่อให้เกิดอาการแพ้ ข้อมูลนี้จะแสดงให้ลูกค้าเห็นชัดเจน
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

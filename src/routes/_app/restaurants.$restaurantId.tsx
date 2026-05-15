@@ -17,7 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Star, UtensilsCrossed, Minus } from "lucide-react";
+import { ArrowLeft, Plus, Star, UtensilsCrossed, Minus, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/restaurants/$restaurantId")({
@@ -44,6 +44,7 @@ interface MenuItem {
   id: string;
   name: string;
   description: string | null;
+  allergen_info: string | null;
   price: number;
   image_url: string | null;
   is_available: boolean;
@@ -236,6 +237,12 @@ function RestaurantDetail() {
                   </div>
                   {item.description && (
                     <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+                  )}
+                  {item.allergen_info && (
+                    <div className="mt-1 flex items-start gap-1 text-xs text-amber-700 dark:text-amber-400">
+                      <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                      <span className="line-clamp-1">แพ้: {item.allergen_info}</span>
+                    </div>
                   )}
                   {variantMin[item.id] !== undefined ? (
                     <p className="text-primary font-semibold mt-1">
@@ -431,6 +438,15 @@ function ItemPickerDialog({
         )}
         {item.description && (
           <p className="text-sm text-muted-foreground">{item.description}</p>
+        )}
+        {item.allergen_info && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 dark:border-amber-700/60 dark:bg-amber-950/40 p-3 flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="text-sm text-amber-900 dark:text-amber-200">
+              <div className="font-medium">ข้อมูลสำหรับผู้แพ้อาหาร</div>
+              <div>{item.allergen_info}</div>
+            </div>
+          </div>
         )}
 
         {loading ? (
