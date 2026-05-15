@@ -143,21 +143,23 @@ function HomePage() {
   }
 
   async function saveAddress() {
-    if (authLoading) return toast.message("กำลังตรวจสอบบัญชี กรุณารอสักครู่");
-    if (!user) {
-      toast.error("กรุณาเข้าสู่ระบบก่อนบันทึกที่อยู่");
-      setAddrOpen(false);
-      navigate({ to: "/auth" });
-      return;
-    }
     if (!addrText.trim()) return toast.error("กรุณากรอกที่อยู่");
     if (!phonePrimary.trim()) return toast.error("กรุณากรอกเบอร์ติดต่อหลัก");
     if (!PHONE_RE.test(phonePrimary.trim())) return toast.error("รูปแบบเบอร์ติดต่อหลักไม่ถูกต้อง");
     if (phoneSecondary.trim() && !PHONE_RE.test(phoneSecondary.trim()))
       return toast.error("รูปแบบเบอร์ติดต่อสำรองไม่ถูกต้อง");
     setSavingAddr(true);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const activeUser = sessionData.session?.user ?? user;
+    if (!activeUser) {
+      setSavingAddr(false);
+      toast.error("กรุณาเข้าสู่ระบบก่อนบันทึกที่อยู่");
+      setAddrOpen(false);
+      navigate({ to: "/auth" });
+      return;
+    }
     const payload = {
-      user_id: user.id,
+      user_id: activeUser.id,
       label: addrLabel.trim() || "บ้าน",
       address: addrText.trim(),
       is_default: true,
