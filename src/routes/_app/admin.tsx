@@ -321,10 +321,38 @@ function AdminPage() {
                     <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
                       {new Date(u.created_at).toLocaleDateString("th-TH")}
                     </td>
-                    <td className="px-5 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                    <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
                       {u.last_sign_in_at
                         ? new Date(u.last_sign_in_at).toLocaleDateString("th-TH")
                         : "—"}
+                    </td>
+                    <td className="px-5 py-2 whitespace-nowrap">
+                      <div className="flex gap-1.5">
+                        {!u.email_confirmed && u.email && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleConfirmEmail(u)}
+                            disabled={confirmingId === u.user_id}
+                            title="ยืนยันอีเมลให้ผู้ใช้"
+                          >
+                            <MailCheck className="h-3.5 w-3.5 mr-1" />
+                            {confirmingId === u.user_id ? "..." : "ยืนยัน"}
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setPwTarget(u);
+                            setNewPw("");
+                          }}
+                          title="ตั้งรหัสผ่านใหม่"
+                        >
+                          <KeyRound className="h-3.5 w-3.5 mr-1" />
+                          รหัสผ่าน
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
