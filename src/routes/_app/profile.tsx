@@ -164,29 +164,46 @@ function ProfilePage() {
             <ChevronRight className="h-5 w-5 text-muted-foreground" />
           </Link>
 
-          {restaurant && (
-            <div className="border-t px-5 py-3 flex items-center gap-3 bg-muted/30">
-              <span className="relative flex h-2.5 w-2.5 shrink-0">
-                {restaurant.is_open && (
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75" />
-                )}
-                <span
-                  className={`relative inline-flex h-2.5 w-2.5 rounded-full ${
-                    restaurant.is_open ? "bg-green-500" : "bg-muted-foreground"
-                  }`}
-                />
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium leading-tight">
-                  {restaurant.is_open ? "สถานะร้าน: ออนไลน์" : "สถานะร้าน: ออฟไลน์"}
-                </p>
-                <p className="text-xs text-muted-foreground leading-tight">
-                  {restaurant.is_open ? "พร้อมรับออเดอร์" : "ปิดรับออเดอร์ชั่วคราว"}
-                </p>
+          {restaurant && (() => {
+            const withinHours = isOpenNow(restaurant.opening_hours);
+            const extendUntil = restaurant.is_open_until ? new Date(restaurant.is_open_until) : null;
+            const extendActive = !!(extendUntil && extendUntil > new Date());
+            const reallyOpen = restaurant.is_open && (withinHours || extendActive);
+            const nextLabel = nextOpenLabel(restaurant.opening_hours);
+            const title = !restaurant.is_open
+              ? "สถานะร้าน: ออฟไลน์"
+              : extendActive && !withinHours
+                ? `ออนไลน์นอกเวลา – ปิดอัตโนมัติ ${formatCloseLabel(extendUntil!)}`
+                : !withinHours
+                  ? `นอกเวลาทำการ${nextLabel ? ` – ${nextLabel}` : ""}`
+                  : "สถานะร้าน: ออนไลน์";
+            const subtitle = !restaurant.is_open
+              ? "ปิดรับออเดอร์ชั่วคราว"
+              : extendActive && !withinHours
+                ? "ระบบจะปิดอัตโนมัติเมื่อถึงเวลาปิด"
+                : !withinHours
+                  ? "ร้านจะรับออเดอร์อัตโนมัติเมื่อถึงเวลาทำการ"
+                  : "พร้อมรับออเดอร์";
+            return (
+              <div className="border-t px-5 py-3 flex items-center gap-3 bg-muted/30">
+                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                  {reallyOpen && (
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75" />
+                  )}
+                  <span
+                    className={`relative inline-flex h-2.5 w-2.5 rounded-full ${
+                      reallyOpen ? "bg-green-500" : "bg-muted-foreground"
+                    }`}
+                  />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium leading-tight">{title}</p>
+                  <p className="text-xs text-muted-foreground leading-tight">{subtitle}</p>
+                </div>
+                <Switch checked={restaurant.is_open} onCheckedChange={toggleOpen} />
               </div>
-              <Switch checked={restaurant.is_open} onCheckedChange={toggleOpen} />
-            </div>
-          )}
+            );
+          })()}
         </Card>
       )}
 
