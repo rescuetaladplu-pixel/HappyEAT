@@ -38,7 +38,7 @@ export const createAdminAccount = createServerFn({ method: "POST" })
       email,
       password: data.password,
       email_confirm: true,
-      user_metadata: { full_name: data.username, role: "admin", username: data.username },
+      user_metadata: { first_name: data.username, last_name: "", role: "admin", username: data.username },
     });
     if (createErr) throw new Error(createErr.message);
     const newId = created.user!.id;
