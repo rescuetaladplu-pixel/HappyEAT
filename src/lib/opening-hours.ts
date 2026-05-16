@@ -128,3 +128,87 @@ export function nextOpenLabel(oh: OpeningHours | null | undefined): string | nul
   }
   return null;
 }
+
+/**
+ * หา Date ของเวลา "ปิดร้าน" ครั้งถัดไปจากเวลาปัจจุบัน (โซน Asia/Bangkok)
+ * - ถ้าตอนนี้อยู่ในช่วงเปิด → คืน close ของช่วงนั้น
+ * - ถ้าตอนนี้นอกเวลา → คืน close ของช่วงเปิดถัดไป
+ * - คืน null ถ้าหา 7 วันแล้วยังไม่เจอ
+ */
+export function nextCloseAt(oh: OpeningHours | null | undefined): Date | null {
+  if (!oh) return null;
+  const { day, minutes } = nowInBangkok();
+
+  // หาจากวันนี้ไป 8 วัน (เผื่อข้ามคืน)
+  for (let i = 0; i <= 7; i++) {
+    const dIdx = (day + i) % 7;
+    const k = DAY_MAP[dIdx];
+    const d = oh[k];
+    if (!d || d.closed) continue;
+    const o = toMinutes(d.open);
+    const c = toMinutes(d.close);
+    if (o === null || c === null) continue;
+
+    // close ของวันนี้ — อาจอยู่วันถัดไปถ้าข้ามคืน
+    const closeDayOffset = c <= o ? i + 1 : i;
+    const closeMinutes = c;
+
+    // ถ้าเป็นวันนี้ (i=0) ต้องเช็คว่ายังไม่เลย close
+    if (i === 0) {
+      const closeAbs = closeDayOffset * 1440 + closeMinutes;
+      if (minutes >= closeAbs) continue; // close แล้ว ดูวันถัดไป
+    }
+    return bangkokDateFromOffset(closeDayOffset - i, closeMinutes, i);
+  }
+  return null;
+}
+
+// แปลง (offset วัน, นาทีของวัน) → Date object โดยอ้างอิงเวลาไทย
+function bangkokDateFromOffset(_unused: number, closeMinutes: number, dayFromToday: number): Date {
+  // ใช้วิธี construct date ใน local แล้ว adjust ตาม offset ไทย
+  // หา now ใน Bangkok แล้วบวก (dayFromToday) วัน, set HH:mm = closeMinutes
+  const now = new Date();
+  // Bangkok = UTC+7
+  const bkkNow = new Date(now.getTime() + (7 * 60 - (-now.getTimezoneOffset())) * 0); // wall-clock approach below
+  void bkkNow;
+  // วิธีง่ายกว่า: ใช้ Intl เพื่อหา Y/M/D ใน Bangkok ของวันนี้, แล้วบวก dayFromToday
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(now);
+  const y = parseInt(parts.find((p) => p.type === "year")!.value, 10);
+  const m = parseInt(parts.find((p) => p.type === "month")!.value, 10);
+  const d = parseInt(parts.find((p) => p.type === "day")!.value, 10);
+  const hh = Math.floor(closeMinutes / 60);
+  const mm = closeMinutes % 60;
+  // สร้าง Date จาก ISO ที่บอก offset +07:00 → ได้ Date ที่ถูกต้องในทุก timezone
+  const target = new Date(d + dayFromToday);
+  void target;
+  const base = new Date(Date.UTC(y, m - 1, d));
+  base.setUTCDate(base.getUTCDate() + dayFromToday);
+  const yy = base.getUTCFullYear();
+  const mo = String(base.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(base.getUTCDate()).padStart(2, "0");
+  const iso = `${yy}-${mo}-${dd}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00+07:00`;
+  return new Date(iso);
+}
+
+/**
+ * Format Date → label ภาษาไทย เช่น "พรุ่งนี้ 21:00" หรือ "วันพุธ 21:00"
+ */
+export function formatCloseLabel(d: Date): string {
+  const nowBkk = nowInBangkok();
+  const targetParts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Bangkok",
+    weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(d);
+  const wk = targetParts.find((p) => p.type === "weekday")?.value ?? "Sun";
+  const hh = targetParts.find((p) => p.type === "hour")?.value ?? "00";
+  const mm = targetParts.find((p) => p.type === "minute")?.value ?? "00";
+  const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const targetDay = dayMap[wk] ?? 0;
+  const diff = (targetDay - nowBkk.day + 7) % 7;
+  const dayLabel = diff === 0 ? "วันนี้" : diff === 1 ? "พรุ่งนี้" : `วัน${DAY_LABEL_TH[DAY_MAP[targetDay]]}`;
+  return `${dayLabel} ${hh}:${mm}`;
+}
+
