@@ -89,7 +89,7 @@ function AuthPage() {
       return toast.error("รหัสผ่านยืนยันไม่ตรงกัน กรุณากรอกใหม่");
     }
     setLoading(true);
-    const { error } = await signUp(suEmail, suPassword, suName, "customer", suPhone);
+    const { error } = await signUp(suEmail, suPassword, suFirstName, suLastName, "customer", suPhone);
     setLoading(false);
     if (error) return toast.error(translateAuthError(error));
     toast.success("สมัครสมาชิกสำเร็จ! กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชี");
