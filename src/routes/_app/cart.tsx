@@ -117,6 +117,7 @@ function CartPage() {
   async function handleCheckout() {
     if (!user || !restaurantId || items.length === 0) return;
     if (!address.trim()) return toast.error("กรุณากรอกที่อยู่จัดส่ง");
+    if (!restaurantHasPromptpay) return toast.error("ร้านนี้ยังไม่ได้ตั้งค่า PromptPay จึงรับออเดอร์ไม่ได้");
     setSubmitting(true);
 
     const subtotal = total;
