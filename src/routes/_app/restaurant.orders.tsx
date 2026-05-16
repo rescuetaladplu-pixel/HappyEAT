@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Volume2, VolumeX, Bell, Play } from "lucide-react";
 import { toast } from "sonner";
+import { EnablePushButton } from "@/components/EnablePushButton";
 import {
   playNotificationSound,
   SOUND_OPTIONS,
@@ -289,8 +290,10 @@ function RestaurantOrdersPage() {
           </Button>
         </div>
       )}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <Button asChild variant="ghost" size="sm"><Link to="/my-restaurant"><ArrowLeft className="h-4 w-4 mr-1" />หน้าร้าน</Link></Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <EnablePushButton restaurantId={restaurantId} />
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -373,6 +376,7 @@ function RestaurantOrdersPage() {
             </div>
           </PopoverContent>
         </Popover>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
