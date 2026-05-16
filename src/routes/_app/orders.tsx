@@ -52,7 +52,7 @@ function OrdersPage() {
     if (!user) return;
     const { data, error } = await supabase
       .from("orders")
-      .select("id, status, total, subtotal, created_at, customer_id, rider_id, restaurant_id, payment_method, payment_slip_url, rejection_reason, restaurants(name, owner_id, promptpay_id, promptpay_holder_name)")
+      .select("id, status, total, subtotal, created_at, customer_id, rider_id, restaurant_id, payment_method, payment_slip_url, rejection_reason, delivery_otp, restaurants(name, owner_id, promptpay_id, promptpay_holder_name)")
       .order("created_at", { ascending: false })
       .limit(50);
     if (error) toast.error(error.message);
