@@ -265,7 +265,7 @@ function AdminPage() {
             <div key={a.user_id} className="flex justify-between text-sm border-b last:border-0 py-2">
               <div>
                 <p className="font-medium">{a.username ?? "(ไม่มี username)"}</p>
-                <p className="text-xs text-muted-foreground">{a.full_name}</p>
+                <p className="text-xs text-muted-foreground">{displayName(a)}</p>
               </div>
               <p className="text-xs text-muted-foreground">
                 {new Date(a.created_at).toLocaleDateString("th-TH")}
