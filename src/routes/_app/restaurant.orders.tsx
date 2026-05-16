@@ -447,6 +447,7 @@ function RestaurantOrdersPage() {
                       </div>
                     </div>
 
+                    <QrFlowActions order={o} onChanged={() => restaurantId && load(restaurantId)} />
                     <div className="flex gap-2">
                       {NEXT[o.status] && (
                         <Button className="flex-1" onClick={() => setStatus(o, NEXT[o.status]!)}>
