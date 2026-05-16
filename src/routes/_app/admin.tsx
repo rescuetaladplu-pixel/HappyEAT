@@ -126,12 +126,34 @@ function AdminPage() {
   useEffect(() => {
     if (role !== "admin") return;
     (async () => {
-      const [o, r, ri] = await Promise.all([
+      const [orders, restaurants, customerRoles, pendingOrders, riderRoles, ridersAll] = await Promise.all([
         supabase.from("orders").select("id", { count: "exact", head: true }),
         supabase.from("restaurants").select("id", { count: "exact", head: true }),
-        supabase.from("riders").select("id", { count: "exact", head: true }),
+        supabase.from("user_roles").select("user_id", { count: "exact", head: true }).eq("role", "customer"),
+        supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("user_roles").select("user_id", { count: "exact", head: true }).eq("role", "rider"),
+        supabase.from("riders").select("id, is_online, is_approved"),
       ]);
-      setStats({ orders: o.count ?? 0, restaurants: r.count ?? 0, riders: ri.count ?? 0 });
+      const riderRows = ridersAll.data ?? [];
+      const online = riderRows.filter((r: any) => r.is_online).length;
+      const pendingApproval = riderRows.filter((r: any) => !r.is_approved).length;
+      const { count: activeDeliveries } = await supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .not("rider_id", "is", null)
+        .in("status", ["rider_assigned", "picked_up", "on_the_way"]);
+      setEatStats({
+        orders: orders.count ?? 0,
+        restaurants: restaurants.count ?? 0,
+        customers: customerRoles.count ?? 0,
+        pendingOrders: pendingOrders.count ?? 0,
+      });
+      setRiderStats({
+        total: riderRoles.count ?? 0,
+        online,
+        pendingApproval,
+        activeDeliveries: activeDeliveries ?? 0,
+      });
     })();
     loadAdmins();
     loadUsers();
