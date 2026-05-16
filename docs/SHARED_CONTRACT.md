@@ -140,6 +140,7 @@ delivered             ← ไรเดอร์รับค่าส่งจา
 
 | วันที่ | ฝั่งที่เปลี่ยน | สรุป | ใครต้อง action |
 |---|---|---|---|
+| 2026-05-16 | happyeat | แก้ trigger `handle_new_user`: สมัคร role=`rider` หรือ `restaurant` จะไม่ถูกแถม role `customer` อีกต่อไป → แยกบัญชีกันชัดเจน (rider acct ใช้ฝั่ง eat ไม่ได้, ต้องสมัครใหม่) | rider app: signup ใหม่จะไม่มี customer role ติดมา — ถ้าโค้ดฝั่ง rider เคย assume ว่ามี customer role ต้องแก้ |
 | 2026-05-16 | happyeat | สร้าง shared contract นี้, ตัด payment_method=`cash` ออก, ใช้ `promptpay_qr` อย่างเดียว | rider app: ลบ logic เงินสดค่าอาหาร (ถ้ามี); ค่าส่งยังเก็บเงินสด/QR ไรเดอร์ปลายทางได้ |
 
 ---
