@@ -163,15 +163,9 @@ export function nextCloseAt(oh: OpeningHours | null | undefined): Date | null {
   return null;
 }
 
-// แปลง (offset วัน, นาทีของวัน) → Date object โดยอ้างอิงเวลาไทย
-function bangkokDateFromOffset(_unused: number, closeMinutes: number, dayFromToday: number): Date {
-  // ใช้วิธี construct date ใน local แล้ว adjust ตาม offset ไทย
-  // หา now ใน Bangkok แล้วบวก (dayFromToday) วัน, set HH:mm = closeMinutes
+// สร้าง Date object จาก (จำนวนวันนับจากวันนี้ตามเวลาไทย, นาทีของวัน)
+function bangkokDateFromOffset(_dummy: number, closeMinutes: number, dayFromToday: number): Date {
   const now = new Date();
-  // Bangkok = UTC+7
-  const bkkNow = new Date(now.getTime() + (7 * 60 - (-now.getTimezoneOffset())) * 0); // wall-clock approach below
-  void bkkNow;
-  // วิธีง่ายกว่า: ใช้ Intl เพื่อหา Y/M/D ใน Bangkok ของวันนี้, แล้วบวก dayFromToday
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Bangkok",
     year: "numeric", month: "2-digit", day: "2-digit",
@@ -179,18 +173,14 @@ function bangkokDateFromOffset(_unused: number, closeMinutes: number, dayFromTod
   const y = parseInt(parts.find((p) => p.type === "year")!.value, 10);
   const m = parseInt(parts.find((p) => p.type === "month")!.value, 10);
   const d = parseInt(parts.find((p) => p.type === "day")!.value, 10);
-  const hh = Math.floor(closeMinutes / 60);
-  const mm = closeMinutes % 60;
-  // สร้าง Date จาก ISO ที่บอก offset +07:00 → ได้ Date ที่ถูกต้องในทุก timezone
-  const target = new Date(d + dayFromToday);
-  void target;
   const base = new Date(Date.UTC(y, m - 1, d));
   base.setUTCDate(base.getUTCDate() + dayFromToday);
   const yy = base.getUTCFullYear();
   const mo = String(base.getUTCMonth() + 1).padStart(2, "0");
   const dd = String(base.getUTCDate()).padStart(2, "0");
-  const iso = `${yy}-${mo}-${dd}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00+07:00`;
-  return new Date(iso);
+  const hh = String(Math.floor(closeMinutes / 60)).padStart(2, "0");
+  const mm = String(closeMinutes % 60).padStart(2, "0");
+  return new Date(`${yy}-${mo}-${dd}T${hh}:${mm}:00+07:00`);
 }
 
 /**
