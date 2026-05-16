@@ -211,7 +211,8 @@ function RestaurantDetail() {
           <span>ค่าส่ง ฿{Number(restaurant.delivery_fee).toFixed(0)}</span>
           {(() => {
             const withinHours = isOpenNow(restaurant.opening_hours);
-            const reallyOpen = restaurant.is_open && withinHours;
+            const extendActive = !!(restaurant.is_open_until && new Date(restaurant.is_open_until) > new Date());
+            const reallyOpen = restaurant.is_open && (withinHours || extendActive);
             if (reallyOpen) return null;
             const label = !restaurant.is_open
               ? "ปิดอยู่"
