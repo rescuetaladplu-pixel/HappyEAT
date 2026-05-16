@@ -111,7 +111,6 @@ function CartPage() {
       .then(({ data }) => {
         const has = !!data?.promptpay_id;
         setRestaurantHasPromptpay(has);
-        if (!has) setPaymentMethod("cash");
       });
   }, [restaurantId]);
 
