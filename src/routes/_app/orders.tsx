@@ -29,6 +29,7 @@ interface Order {
   payment_method: string;
   payment_slip_url: string | null;
   rejection_reason: string | null;
+  delivery_otp: string | null;
   restaurants: {
     name: string;
     owner_id: string;
@@ -51,7 +52,7 @@ function OrdersPage() {
     if (!user) return;
     const { data, error } = await supabase
       .from("orders")
-      .select("id, status, total, subtotal, created_at, customer_id, rider_id, restaurant_id, payment_method, payment_slip_url, rejection_reason, restaurants(name, owner_id, promptpay_id, promptpay_holder_name)")
+      .select("id, status, total, subtotal, created_at, customer_id, rider_id, restaurant_id, payment_method, payment_slip_url, rejection_reason, delivery_otp, restaurants(name, owner_id, promptpay_id, promptpay_holder_name)")
       .order("created_at", { ascending: false })
       .limit(50);
     if (error) toast.error(error.message);
@@ -156,6 +157,12 @@ function OrdersPage() {
                 <p className="text-xs text-destructive bg-destructive/10 rounded p-2">
                   ❌ สลิปถูกปฏิเสธ: {o.rejection_reason}
                 </p>
+              )}
+              {o.delivery_otp && o.customer_id === user?.id && ["ready", "picked_up", "delivering"].includes(o.status) && (
+                <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground mb-1">รหัสยืนยันการรับสินค้า (บอกไรเดอร์ตอนรับของ)</p>
+                  <p className="text-3xl font-bold tracking-[0.5em] text-primary">{o.delivery_otp}</p>
+                </div>
               )}
               {canReview && (
                 <Button size="sm" variant="outline" className="w-full" onClick={() => openReview(o)}>
