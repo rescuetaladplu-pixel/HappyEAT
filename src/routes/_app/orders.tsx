@@ -158,6 +158,12 @@ function OrdersPage() {
                   ❌ สลิปถูกปฏิเสธ: {o.rejection_reason}
                 </p>
               )}
+              {o.delivery_otp && o.customer_id === user?.id && ["ready", "picked_up", "delivering"].includes(o.status) && (
+                <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground mb-1">รหัสยืนยันการรับสินค้า (บอกไรเดอร์ตอนรับของ)</p>
+                  <p className="text-3xl font-bold tracking-[0.5em] text-primary">{o.delivery_otp}</p>
+                </div>
+              )}
               {canReview && (
                 <Button size="sm" variant="outline" className="w-full" onClick={() => openReview(o)}>
                   <Star className="h-4 w-4 mr-1" /> ให้คะแนน
