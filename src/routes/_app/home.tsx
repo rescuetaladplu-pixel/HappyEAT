@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useRefetchOnFocus } from "@/hooks/use-refetch-on-focus";
+import { isOpenNow, nextOpenLabel } from "@/lib/opening-hours";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ interface Restaurant {
   rating: number;
   delivery_fee: number;
   is_open: boolean;
+  opening_hours: import("@/lib/opening-hours").OpeningHours | null;
 }
 
 interface AddressRow {
@@ -113,7 +115,7 @@ function HomePage() {
         supabase
           .from("restaurants")
           .select(
-            "id, name, description, category, image_url, cover_url, logo_url, rating, delivery_fee, is_open",
+            "id, name, description, category, image_url, cover_url, logo_url, rating, delivery_fee, is_open, opening_hours",
           )
           .eq("is_approved", true)
           .order("rating", { ascending: false }),
@@ -633,7 +635,15 @@ function HomePage() {
             <p className="text-xs mt-1">ลองเปลี่ยนหมวดหมู่หรือคำค้นหา</p>
           </div>
         ) : (
-          filtered.map((r) => (
+          filtered.map((r) => {
+            const withinHours = isOpenNow(r.opening_hours);
+            const reallyOpen = r.is_open && withinHours;
+            const closedLabel = !r.is_open
+              ? "ปิดอยู่"
+              : !withinHours
+                ? (nextOpenLabel(r.opening_hours) ?? "นอกเวลาทำการ")
+                : null;
+            return (
             <Link key={r.id} to="/restaurants/$restaurantId" params={{ restaurantId: r.id }}>
               <Card className="overflow-hidden p-0 hover:shadow-md transition">
                 <div className="h-40 bg-gradient-to-br from-accent to-secondary relative">
@@ -649,9 +659,9 @@ function HomePage() {
                       <UtensilsCrossed className="h-12 w-12" />
                     </div>
                   )}
-                  {!r.is_open && (
+                  {!reallyOpen && (
                     <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
-                      <span className="font-semibold text-foreground">ปิดอยู่</span>
+                      <span className="font-semibold text-foreground">{closedLabel}</span>
                     </div>
                   )}
                 </div>
@@ -689,7 +699,8 @@ function HomePage() {
                 </div>
               </Card>
             </Link>
-          ))
+            );
+          })
         )}
       </section>
     </main>

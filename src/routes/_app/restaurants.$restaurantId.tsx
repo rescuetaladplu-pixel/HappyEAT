@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Plus, Star, UtensilsCrossed, Minus, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { isOpenNow, nextOpenLabel, type OpeningHours } from "@/lib/opening-hours";
 
 export const Route = createFileRoute("/_app/restaurants/$restaurantId")({
   component: RestaurantDetail,
@@ -35,6 +36,7 @@ interface Restaurant {
   delivery_fee: number;
   is_open: boolean;
   address: string | null;
+  opening_hours: OpeningHours | null;
 }
 interface Category {
   id: string;
@@ -206,12 +208,20 @@ function RestaurantDetail() {
           </span>
           <span>•</span>
           <span>ค่าส่ง ฿{Number(restaurant.delivery_fee).toFixed(0)}</span>
-          {!restaurant.is_open && (
-            <>
-              <span>•</span>
-              <Badge variant="secondary">ปิดอยู่</Badge>
-            </>
-          )}
+          {(() => {
+            const withinHours = isOpenNow(restaurant.opening_hours);
+            const reallyOpen = restaurant.is_open && withinHours;
+            if (reallyOpen) return null;
+            const label = !restaurant.is_open
+              ? "ปิดอยู่"
+              : (nextOpenLabel(restaurant.opening_hours) ?? "นอกเวลาทำการ");
+            return (
+              <>
+                <span>•</span>
+                <Badge variant="secondary">{label}</Badge>
+              </>
+            );
+          })()}
         </div>
       </div>
 
@@ -259,7 +269,7 @@ function RestaurantDetail() {
                 <Button
                   size="icon"
                   onClick={() => setPicking(item)}
-                  disabled={!item.is_available || !restaurant.is_open}
+                  disabled={!item.is_available || !restaurant.is_open || !isOpenNow(restaurant.opening_hours)}
                   className="rounded-full"
                 >
                   <Plus className="h-4 w-4" />
