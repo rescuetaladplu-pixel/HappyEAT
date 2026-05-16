@@ -188,11 +188,29 @@ function AdminPage() {
   return (
     <main className="max-w-4xl mx-auto p-4 space-y-4">
       <h1 className="text-2xl font-bold">แดชบอร์ดแอดมิน</h1>
-      <div className="grid grid-cols-3 gap-3">
-        <Stat label="ออเดอร์" value={stats.orders} />
-        <Stat label="ร้านค้า" value={stats.restaurants} />
-        <Stat label="ไรเดอร์" value={stats.riders} />
-      </div>
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+          <span className="text-base">🍔</span> ฝั่ง Eat (ลูกค้า + ร้านค้า)
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Stat label="ออเดอร์รวม" value={eatStats.orders} />
+          <Stat label="ร้านค้า" value={eatStats.restaurants} />
+          <Stat label="ลูกค้า" value={eatStats.customers} />
+          <Stat label="รออนุมัติร้าน" value={eatStats.pendingOrders} />
+        </div>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+          <span className="text-base">🛵</span> ฝั่ง Rider
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Stat label="ไรเดอร์ทั้งหมด" value={riderStats.total} />
+          <Stat label="ออนไลน์ตอนนี้" value={riderStats.online} />
+          <Stat label="รออนุมัติ" value={riderStats.pendingApproval} />
+          <Stat label="กำลังส่ง" value={riderStats.activeDeliveries} />
+        </div>
+      </section>
 
       <Card className="p-5 space-y-4">
         <div className="flex items-center gap-2">
