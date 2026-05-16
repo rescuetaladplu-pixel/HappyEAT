@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, QrCode, Banknote } from "lucide-react";
 import { toast } from "sonner";
 import { sendOrderPush } from "@/lib/fcm.functions";
 
@@ -36,6 +36,8 @@ function CartPage() {
   const [promoCode, setPromoCode] = useState("");
   const [promo, setPromo] = useState<{ id: string; code: string; discount: number } | null>(null);
   const [checking, setChecking] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "promptpay_qr">("promptpay_qr");
+  const [restaurantHasPromptpay, setRestaurantHasPromptpay] = useState<boolean | null>(null);
   const deliveryFee = 30;
   const discount = promo?.discount ?? 0;
 
