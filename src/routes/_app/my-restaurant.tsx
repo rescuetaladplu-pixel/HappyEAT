@@ -286,18 +286,24 @@ function MyRestaurantHub() {
           {/* Online status bar */}
           {(() => {
             const withinHours = isOpenNow(restaurant.opening_hours);
-            const reallyOpen = restaurant.is_open && withinHours;
+            const extendUntil = restaurant.is_open_until ? new Date(restaurant.is_open_until) : null;
+            const extendActive = !!(extendUntil && extendUntil > new Date());
+            const reallyOpen = restaurant.is_open && (withinHours || extendActive);
             const nextLabel = nextOpenLabel(restaurant.opening_hours);
             const title = !restaurant.is_open
               ? "ออฟไลน์ – ปิดรับออเดอร์"
-              : !withinHours
-                ? `นอกเวลาทำการ${nextLabel ? ` – ${nextLabel}` : ""}`
-                : "ออนไลน์ – พร้อมรับออเดอร์";
+              : extendActive && !withinHours
+                ? `ออนไลน์นอกเวลา – ปิดอัตโนมัติ ${formatCloseLabel(extendUntil!)}`
+                : !withinHours
+                  ? `นอกเวลาทำการ${nextLabel ? ` – ${nextLabel}` : ""}`
+                  : "ออนไลน์ – พร้อมรับออเดอร์";
             const subtitle = !restaurant.is_open
               ? "ลูกค้าจะสั่งอาหารจากร้านคุณไม่ได้ชั่วคราว"
-              : !withinHours
-                ? "ร้านจะรับออเดอร์อัตโนมัติเมื่อถึงเวลาทำการ"
-                : "ลูกค้าสามารถสั่งอาหารจากร้านคุณได้";
+              : extendActive && !withinHours
+                ? "คุณเปิดร้านนอกเวลาทำการ — ระบบจะปิดอัตโนมัติเมื่อถึงเวลาปิด"
+                : !withinHours
+                  ? "ร้านจะรับออเดอร์อัตโนมัติเมื่อถึงเวลาทำการ"
+                  : "ลูกค้าสามารถสั่งอาหารจากร้านคุณได้";
             return (
               <div
                 className={`mt-3 flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-colors ${
