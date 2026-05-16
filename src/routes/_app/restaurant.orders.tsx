@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Volume2, VolumeX, Bell, Play } from "lucide-react";
 import { toast } from "sonner";
+import { EnablePushButton } from "@/components/EnablePushButton";
 import {
   playNotificationSound,
   SOUND_OPTIONS,
