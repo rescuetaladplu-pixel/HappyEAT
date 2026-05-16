@@ -210,10 +210,33 @@ function RestaurantOrdersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // Stop the alert loop on unmount
+  useEffect(() => {
+    return () => stopAlertLoop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function toggleSound(on: boolean) {
     setSoundOn(on);
+    soundOnRef.current = on;
     localStorage.setItem("rest-sound", on ? "on" : "off");
-    if (on) playNotificationSound(soundType, volume);
+    if (!on) {
+      stopAlertLoop();
+    } else {
+      // If there are still pending orders, resume looping
+      const hasPending = orders.some((o) => o.status === "pending");
+      if (hasPending) {
+        mutedUntilActionRef.current = false;
+        startAlertLoop();
+      } else {
+        playNotificationSound(soundType, volume);
+      }
+    }
+  }
+
+  function muteUntilNextOrder() {
+    mutedUntilActionRef.current = true;
+    stopAlertLoop();
   }
 
   function selectSound(id: SoundId) {
