@@ -82,7 +82,7 @@ async function withTimeout<T>(promise: PromiseLike<T>, ms: number) {
 }
 
 function HomePage() {
-  const { user, role, loading: authLoading } = useAuth();
+  const { user, role, roles, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(false);
