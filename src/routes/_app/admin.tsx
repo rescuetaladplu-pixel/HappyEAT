@@ -52,7 +52,8 @@ const ROLE_LABEL: Record<string, string> = {
 
 function AdminPage() {
   const { role } = useAuth();
-  const [stats, setStats] = useState({ orders: 0, restaurants: 0, riders: 0 });
+  const [eatStats, setEatStats] = useState({ orders: 0, restaurants: 0, customers: 0, pendingOrders: 0 });
+  const [riderStats, setRiderStats] = useState({ total: 0, online: 0, pendingApproval: 0, activeDeliveries: 0 });
   const [admins, setAdmins] = useState<AdminRow[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
