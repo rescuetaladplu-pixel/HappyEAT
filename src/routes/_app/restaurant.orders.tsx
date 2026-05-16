@@ -91,9 +91,9 @@ function RestaurantOrdersPage() {
     return localStorage.getItem("rest-sound") !== "off";
   });
   const [soundType, setSoundType] = useState<SoundId>(() => {
-    if (typeof window === "undefined") return "kitchen";
+    if (typeof window === "undefined") return "siren";
     const saved = localStorage.getItem("rest-sound-type") as SoundId | null;
-    return saved && SOUND_OPTIONS.some((s) => s.id === saved) ? saved : "kitchen";
+    return saved && SOUND_OPTIONS.some((s) => s.id === saved) ? saved : "siren";
   });
   const [volume, setVolume] = useState<VolumeLevel>(() => {
     if (typeof window === "undefined") return "loud";
@@ -102,6 +102,37 @@ function RestaurantOrdersPage() {
   });
   const knownIdsRef = useRef<Set<string>>(new Set());
   const initRef = useRef(false);
+  const alertIntervalRef = useRef<number | null>(null);
+  const mutedUntilActionRef = useRef(false);
+  const [alerting, setAlerting] = useState(false);
+  // Keep latest values for the interval callback without re-creating it
+  const soundOnRef = useRef(soundOn);
+  const soundTypeRef = useRef(soundType);
+  const volumeRef = useRef(volume);
+  useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
+  useEffect(() => { soundTypeRef.current = soundType; }, [soundType]);
+  useEffect(() => { volumeRef.current = volume; }, [volume]);
+
+  function stopAlertLoop() {
+    if (alertIntervalRef.current !== null) {
+      window.clearInterval(alertIntervalRef.current);
+      alertIntervalRef.current = null;
+    }
+    setAlerting(false);
+  }
+  function startAlertLoop() {
+    if (alertIntervalRef.current !== null) return;
+    if (!soundOnRef.current) return;
+    playNotificationSound(soundTypeRef.current, volumeRef.current);
+    alertIntervalRef.current = window.setInterval(() => {
+      if (!soundOnRef.current) {
+        stopAlertLoop();
+        return;
+      }
+      playNotificationSound(soundTypeRef.current, volumeRef.current);
+    }, 4000);
+    setAlerting(true);
+  }
 
   async function load(rid: string) {
     const { data, error } = await supabase
@@ -116,17 +147,35 @@ function RestaurantOrdersPage() {
     }
     const list = (data ?? []) as unknown as Order[];
 
+    const pendingCount = list.filter((o) => o.status === "pending").length;
+
     if (initRef.current) {
       const newPending = list.filter(
         (o) => o.status === "pending" && !knownIdsRef.current.has(o.id),
       );
       if (newPending.length > 0) {
-        if (soundOn) playNotificationSound(soundType, volume);
         toast.success(`มีออเดอร์ใหม่ ${newPending.length} รายการ!`);
+        // New order arrives → un-mute and (re)start the loop
+        mutedUntilActionRef.current = false;
+        if (soundOnRef.current) startAlertLoop();
       }
     }
     knownIdsRef.current = new Set(list.map((o) => o.id));
     initRef.current = true;
+
+    // Auto stop when no pending orders are left
+    if (pendingCount === 0) {
+      stopAlertLoop();
+      mutedUntilActionRef.current = false;
+    } else if (
+      !mutedUntilActionRef.current &&
+      soundOnRef.current &&
+      alertIntervalRef.current === null
+    ) {
+      // Pending exists (e.g. on first load / refresh) → start looping
+      startAlertLoop();
+    }
+
     setOrders(list);
     setLoading(false);
   }
@@ -161,10 +210,33 @@ function RestaurantOrdersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // Stop the alert loop on unmount
+  useEffect(() => {
+    return () => stopAlertLoop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function toggleSound(on: boolean) {
     setSoundOn(on);
+    soundOnRef.current = on;
     localStorage.setItem("rest-sound", on ? "on" : "off");
-    if (on) playNotificationSound(soundType, volume);
+    if (!on) {
+      stopAlertLoop();
+    } else {
+      // If there are still pending orders, resume looping
+      const hasPending = orders.some((o) => o.status === "pending");
+      if (hasPending) {
+        mutedUntilActionRef.current = false;
+        startAlertLoop();
+      } else {
+        playNotificationSound(soundType, volume);
+      }
+    }
+  }
+
+  function muteUntilNextOrder() {
+    mutedUntilActionRef.current = true;
+    stopAlertLoop();
   }
 
   function selectSound(id: SoundId) {
@@ -206,6 +278,17 @@ function RestaurantOrdersPage() {
 
   return (
     <main className="max-w-3xl mx-auto p-4 pb-24 space-y-4">
+      {alerting && (
+        <div className="sticky top-2 z-30 flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 shadow-md animate-pulse">
+          <div className="flex items-center gap-2 text-sm font-medium text-primary">
+            <Bell className="h-4 w-4" />
+            กำลังเล่นเสียงแจ้งเตือนวนซ้ำ — มีออเดอร์ใหม่รอรับ
+          </div>
+          <Button size="sm" variant="outline" onClick={muteUntilNextOrder}>
+            หยุดเสียงชั่วคราว
+          </Button>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <Button asChild variant="ghost" size="sm"><Link to="/my-restaurant"><ArrowLeft className="h-4 w-4 mr-1" />หน้าร้าน</Link></Button>
         <Popover>
