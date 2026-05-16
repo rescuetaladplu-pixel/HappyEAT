@@ -182,11 +182,7 @@ function CartPage() {
     }
 
     clear();
-    toast.success(
-      paymentMethod === "promptpay_qr"
-        ? "ส่งคำขอแล้ว! รอร้านยืนยันความพร้อม"
-        : "สั่งสำเร็จ! กำลังรอร้านยืนยัน",
-    );
+    toast.success("ส่งคำขอแล้ว! รอร้านยืนยันความพร้อม");
 
     // Fire-and-forget push to the restaurant owner.
     // We don't await — order is already saved; push is best-effort.
