@@ -78,18 +78,40 @@ function ProfilePage() {
 
   async function toggleOpen(open: boolean) {
     if (!restaurant) return;
-    const prev = restaurant.is_open;
-    setRestaurant({ ...restaurant, is_open: open });
-    const { error } = await supabase
-      .from("restaurants")
-      .update({ is_open: open })
-      .eq("id", restaurant.id);
-    if (error) {
-      setRestaurant({ ...restaurant, is_open: prev });
-      toast.error(error.message);
+    const prev = { is_open: restaurant.is_open, is_open_until: restaurant.is_open_until };
+    if (!open) {
+      setRestaurant({ ...restaurant, is_open: false, is_open_until: null });
+      const { error } = await supabase
+        .from("restaurants")
+        .update({ is_open: false, is_open_until: null })
+        .eq("id", restaurant.id);
+      if (error) {
+        setRestaurant({ ...restaurant, ...prev });
+        return toast.error(error.message);
+      }
+      toast.success("ปิดร้านชั่วคราว");
       return;
     }
-    toast.success(open ? "เปิดร้านแล้ว — พร้อมรับออเดอร์" : "ปิดร้านชั่วคราว");
+    const closeAt = nextCloseAt(restaurant.opening_hours);
+    const closeIso = closeAt ? closeAt.toISOString() : null;
+    setRestaurant({ ...restaurant, is_open: true, is_open_until: closeIso });
+    const { error } = await supabase
+      .from("restaurants")
+      .update({ is_open: true, is_open_until: closeIso })
+      .eq("id", restaurant.id);
+    if (error) {
+      setRestaurant({ ...restaurant, ...prev });
+      return toast.error(error.message);
+    }
+    const withinHours = isOpenNow(restaurant.opening_hours);
+    if (!withinHours && closeAt) {
+      toast.success("เปิดร้านนอกเวลาทำการ", {
+        description: `ร้านจะออนไลน์ยาวจนถึงเวลาปิดอัตโนมัติ: ${formatCloseLabel(closeAt)}`,
+        duration: 6000,
+      });
+    } else {
+      toast.success("เปิดร้านแล้ว — พร้อมรับออเดอร์");
+    }
   }
 
   async function handleSignOut() {
