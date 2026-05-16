@@ -208,12 +208,20 @@ function RestaurantDetail() {
           </span>
           <span>•</span>
           <span>ค่าส่ง ฿{Number(restaurant.delivery_fee).toFixed(0)}</span>
-          {!restaurant.is_open && (
-            <>
-              <span>•</span>
-              <Badge variant="secondary">ปิดอยู่</Badge>
-            </>
-          )}
+          {(() => {
+            const withinHours = isOpenNow(restaurant.opening_hours);
+            const reallyOpen = restaurant.is_open && withinHours;
+            if (reallyOpen) return null;
+            const label = !restaurant.is_open
+              ? "ปิดอยู่"
+              : (nextOpenLabel(restaurant.opening_hours) ?? "นอกเวลาทำการ");
+            return (
+              <>
+                <span>•</span>
+                <Badge variant="secondary">{label}</Badge>
+              </>
+            );
+          })()}
         </div>
       </div>
 
