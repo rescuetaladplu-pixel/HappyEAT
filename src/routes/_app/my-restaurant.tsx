@@ -27,6 +27,7 @@ import {
   Volume2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { isOpenNow, nextOpenLabel } from "@/lib/opening-hours";
 
 export const Route = createFileRoute("/_app/my-restaurant")({
   component: MyRestaurantHub,
