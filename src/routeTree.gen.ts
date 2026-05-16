@@ -28,6 +28,8 @@ import { Route as AppRestaurantNotificationSettingsRouteImport } from './routes/
 import { Route as AppRestaurantMenuRouteImport } from './routes/_app/restaurant.menu'
 import { Route as AppRestaurantAnalyticsRouteImport } from './routes/_app/restaurant.analytics'
 import { Route as AppMyRestaurantSettingsRouteImport } from './routes/_app/my-restaurant_.settings'
+import { Route as AppAdminRiderRouteImport } from './routes/_app/admin.rider'
+import { Route as AppAdminEatRouteImport } from './routes/_app/admin.eat'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -125,11 +127,21 @@ const AppMyRestaurantSettingsRoute = AppMyRestaurantSettingsRouteImport.update({
   path: '/my-restaurant/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminRiderRoute = AppAdminRiderRouteImport.update({
+  id: '/rider',
+  path: '/rider',
+  getParentRoute: () => AppAdminRoute,
+} as any)
+const AppAdminEatRoute = AppAdminEatRouteImport.update({
+  id: '/eat',
+  path: '/eat',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/admin': typeof AppAdminRoute
+  '/admin': typeof AppAdminRouteWithChildren
   '/cart': typeof AppCartRoute
   '/home': typeof AppHomeRoute
   '/my-restaurant': typeof AppMyRestaurantRoute
@@ -137,6 +149,8 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AppProfileRoute
   '/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/rider-dashboard': typeof AppRiderDashboardRoute
+  '/admin/eat': typeof AppAdminEatRoute
+  '/admin/rider': typeof AppAdminRiderRoute
   '/my-restaurant/settings': typeof AppMyRestaurantSettingsRoute
   '/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
   '/restaurant/menu': typeof AppRestaurantMenuRoute
@@ -149,7 +163,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/admin': typeof AppAdminRoute
+  '/admin': typeof AppAdminRouteWithChildren
   '/cart': typeof AppCartRoute
   '/home': typeof AppHomeRoute
   '/my-restaurant': typeof AppMyRestaurantRoute
@@ -157,6 +171,8 @@ export interface FileRoutesByTo {
   '/profile': typeof AppProfileRoute
   '/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/rider-dashboard': typeof AppRiderDashboardRoute
+  '/admin/eat': typeof AppAdminEatRoute
+  '/admin/rider': typeof AppAdminRiderRoute
   '/my-restaurant/settings': typeof AppMyRestaurantSettingsRoute
   '/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
   '/restaurant/menu': typeof AppRestaurantMenuRoute
@@ -171,7 +187,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
-  '/_app/admin': typeof AppAdminRoute
+  '/_app/admin': typeof AppAdminRouteWithChildren
   '/_app/cart': typeof AppCartRoute
   '/_app/home': typeof AppHomeRoute
   '/_app/my-restaurant': typeof AppMyRestaurantRoute
@@ -179,6 +195,8 @@ export interface FileRoutesById {
   '/_app/profile': typeof AppProfileRoute
   '/_app/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/_app/rider-dashboard': typeof AppRiderDashboardRoute
+  '/_app/admin/eat': typeof AppAdminEatRoute
+  '/_app/admin/rider': typeof AppAdminRiderRoute
   '/_app/my-restaurant_/settings': typeof AppMyRestaurantSettingsRoute
   '/_app/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
   '/_app/restaurant/menu': typeof AppRestaurantMenuRoute
@@ -201,6 +219,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/restaurant-dashboard'
     | '/rider-dashboard'
+    | '/admin/eat'
+    | '/admin/rider'
     | '/my-restaurant/settings'
     | '/restaurant/analytics'
     | '/restaurant/menu'
@@ -221,6 +241,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/restaurant-dashboard'
     | '/rider-dashboard'
+    | '/admin/eat'
+    | '/admin/rider'
     | '/my-restaurant/settings'
     | '/restaurant/analytics'
     | '/restaurant/menu'
@@ -242,6 +264,8 @@ export interface FileRouteTypes {
     | '/_app/profile'
     | '/_app/restaurant-dashboard'
     | '/_app/rider-dashboard'
+    | '/_app/admin/eat'
+    | '/_app/admin/rider'
     | '/_app/my-restaurant_/settings'
     | '/_app/restaurant/analytics'
     | '/_app/restaurant/menu'
@@ -393,11 +417,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMyRestaurantSettingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/rider': {
+      id: '/_app/admin/rider'
+      path: '/rider'
+      fullPath: '/admin/rider'
+      preLoaderRoute: typeof AppAdminRiderRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
+    '/_app/admin/eat': {
+      id: '/_app/admin/eat'
+      path: '/eat'
+      fullPath: '/admin/eat'
+      preLoaderRoute: typeof AppAdminEatRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
   }
 }
 
+interface AppAdminRouteChildren {
+  AppAdminEatRoute: typeof AppAdminEatRoute
+  AppAdminRiderRoute: typeof AppAdminRiderRoute
+}
+
+const AppAdminRouteChildren: AppAdminRouteChildren = {
+  AppAdminEatRoute: AppAdminEatRoute,
+  AppAdminRiderRoute: AppAdminRiderRoute,
+}
+
+const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
+  AppAdminRouteChildren,
+)
+
 interface AppRouteChildren {
-  AppAdminRoute: typeof AppAdminRoute
+  AppAdminRoute: typeof AppAdminRouteWithChildren
   AppCartRoute: typeof AppCartRoute
   AppHomeRoute: typeof AppHomeRoute
   AppMyRestaurantRoute: typeof AppMyRestaurantRoute
@@ -416,7 +468,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppAdminRoute: AppAdminRoute,
+  AppAdminRoute: AppAdminRouteWithChildren,
   AppCartRoute: AppCartRoute,
   AppHomeRoute: AppHomeRoute,
   AppMyRestaurantRoute: AppMyRestaurantRoute,
