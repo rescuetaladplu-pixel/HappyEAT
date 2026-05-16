@@ -119,6 +119,71 @@ export const sendOrderPush = createServerFn({ method: "POST" })
   });
 
 // ─────────────────────────────────────────────
+// Send a generic push to a specific user
+// (Used for order status transitions: customer ⇄ restaurant)
+// ─────────────────────────────────────────────
+export const sendStatusPush = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        targetUserId: z.string().uuid(),
+        title: z.string().min(1).max(200),
+        body: z.string().min(1).max(500),
+        url: z.string().max(500).optional(),
+        tag: z.string().max(200).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { data: tokens } = await supabaseAdmin
+      .from("fcm_tokens")
+      .select("token")
+      .eq("user_id", data.targetUserId);
+    if (!tokens || tokens.length === 0) return { sent: 0 };
+
+    const accessToken = await getGoogleAccessToken();
+    const projectId = getServiceAccount().project_id;
+    const link = data.url ?? "/orders";
+
+    let sent = 0;
+    const stale: string[] = [];
+    await Promise.all(
+      tokens.map(async (t) => {
+        const res = await fetch(
+          `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              message: {
+                token: t.token,
+                notification: { title: data.title, body: data.body },
+                data: { url: link, tag: data.tag ?? link },
+                webpush: { fcm_options: { link } },
+              },
+            }),
+          },
+        );
+        if (res.ok) sent++;
+        else {
+          const errBody = await res.text();
+          if (res.status === 404 || res.status === 400 || errBody.includes("UNREGISTERED")) {
+            stale.push(t.token);
+          }
+        }
+      }),
+    );
+    if (stale.length > 0) {
+      await supabaseAdmin.from("fcm_tokens").delete().in("token", stale);
+    }
+    return { sent };
+  });
+
+// ─────────────────────────────────────────────
 // Google OAuth2 access token from service account
 // (JWT → exchange for short-lived bearer)
 // ─────────────────────────────────────────────
