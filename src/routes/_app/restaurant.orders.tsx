@@ -231,8 +231,6 @@ function RestaurantOrdersPage() {
                 <Switch checked={soundOn} onCheckedChange={toggleSound} />
               </div>
               <div className="space-y-2">
-                <p className="text-sm font-medium">เลือกเสียง</p>
-              <div className="space-y-2">
                 <p className="text-sm font-medium">ระดับความดัง</p>
                 <div className="grid grid-cols-3 gap-1">
                   {VOLUME_OPTIONS.map((v) => (
