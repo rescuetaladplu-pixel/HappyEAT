@@ -411,6 +411,7 @@ export type Database = {
           delivery_fee: number
           delivery_lat: number | null
           delivery_lng: number | null
+          delivery_otp: string | null
           discount: number
           id: string
           notes: string | null
@@ -434,6 +435,7 @@ export type Database = {
           delivery_fee?: number
           delivery_lat?: number | null
           delivery_lng?: number | null
+          delivery_otp?: string | null
           discount?: number
           id?: string
           notes?: string | null
@@ -457,6 +459,7 @@ export type Database = {
           delivery_fee?: number
           delivery_lat?: number | null
           delivery_lng?: number | null
+          delivery_otp?: string | null
           discount?: number
           id?: string
           notes?: string | null
