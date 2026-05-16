@@ -7,10 +7,17 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { LogOut, User, Store, ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { isOpenNow, nextOpenLabel, nextCloseAt, formatCloseLabel } from "@/lib/opening-hours";
+
+interface OpeningHours {
+  [k: string]: { open: string; close: string; closed: boolean };
+}
 
 interface MyRestaurant {
   id: string;
   is_open: boolean;
+  is_open_until: string | null;
+  opening_hours: OpeningHours;
 }
 
 export const Route = createFileRoute("/_app/profile")({
@@ -38,11 +45,25 @@ function ProfilePage() {
     }
     supabase
       .from("restaurants")
-      .select("id, is_open")
+      .select("id, is_open, is_open_until, opening_hours")
       .eq("owner_id", user.id)
       .maybeSingle()
       .then(
-        ({ data }) => setRestaurant((data as MyRestaurant | null) ?? null),
+        async ({ data }) => {
+          const r = (data as MyRestaurant | null) ?? null;
+          if (r && r.is_open && !isOpenNow(r.opening_hours)) {
+            const extendActive = r.is_open_until && new Date(r.is_open_until) > new Date();
+            if (!extendActive) {
+              await supabase
+                .from("restaurants")
+                .update({ is_open: false, is_open_until: null })
+                .eq("id", r.id);
+              r.is_open = false;
+              r.is_open_until = null;
+            }
+          }
+          setRestaurant(r);
+        },
         () => { /* ignore */ },
       );
   }, [user]);
@@ -57,18 +78,40 @@ function ProfilePage() {
 
   async function toggleOpen(open: boolean) {
     if (!restaurant) return;
-    const prev = restaurant.is_open;
-    setRestaurant({ ...restaurant, is_open: open });
-    const { error } = await supabase
-      .from("restaurants")
-      .update({ is_open: open })
-      .eq("id", restaurant.id);
-    if (error) {
-      setRestaurant({ ...restaurant, is_open: prev });
-      toast.error(error.message);
+    const prev = { is_open: restaurant.is_open, is_open_until: restaurant.is_open_until };
+    if (!open) {
+      setRestaurant({ ...restaurant, is_open: false, is_open_until: null });
+      const { error } = await supabase
+        .from("restaurants")
+        .update({ is_open: false, is_open_until: null })
+        .eq("id", restaurant.id);
+      if (error) {
+        setRestaurant({ ...restaurant, ...prev });
+        return toast.error(error.message);
+      }
+      toast.success("ปิดร้านชั่วคราว");
       return;
     }
-    toast.success(open ? "เปิดร้านแล้ว — พร้อมรับออเดอร์" : "ปิดร้านชั่วคราว");
+    const closeAt = nextCloseAt(restaurant.opening_hours);
+    const closeIso = closeAt ? closeAt.toISOString() : null;
+    setRestaurant({ ...restaurant, is_open: true, is_open_until: closeIso });
+    const { error } = await supabase
+      .from("restaurants")
+      .update({ is_open: true, is_open_until: closeIso })
+      .eq("id", restaurant.id);
+    if (error) {
+      setRestaurant({ ...restaurant, ...prev });
+      return toast.error(error.message);
+    }
+    const withinHours = isOpenNow(restaurant.opening_hours);
+    if (!withinHours && closeAt) {
+      toast.success("เปิดร้านนอกเวลาทำการ", {
+        description: `ร้านจะออนไลน์ยาวจนถึงเวลาปิดอัตโนมัติ: ${formatCloseLabel(closeAt)}`,
+        duration: 6000,
+      });
+    } else {
+      toast.success("เปิดร้านแล้ว — พร้อมรับออเดอร์");
+    }
   }
 
   async function handleSignOut() {
@@ -121,29 +164,46 @@ function ProfilePage() {
             <ChevronRight className="h-5 w-5 text-muted-foreground" />
           </Link>
 
-          {restaurant && (
-            <div className="border-t px-5 py-3 flex items-center gap-3 bg-muted/30">
-              <span className="relative flex h-2.5 w-2.5 shrink-0">
-                {restaurant.is_open && (
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75" />
-                )}
-                <span
-                  className={`relative inline-flex h-2.5 w-2.5 rounded-full ${
-                    restaurant.is_open ? "bg-green-500" : "bg-muted-foreground"
-                  }`}
-                />
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium leading-tight">
-                  {restaurant.is_open ? "สถานะร้าน: ออนไลน์" : "สถานะร้าน: ออฟไลน์"}
-                </p>
-                <p className="text-xs text-muted-foreground leading-tight">
-                  {restaurant.is_open ? "พร้อมรับออเดอร์" : "ปิดรับออเดอร์ชั่วคราว"}
-                </p>
+          {restaurant && (() => {
+            const withinHours = isOpenNow(restaurant.opening_hours);
+            const extendUntil = restaurant.is_open_until ? new Date(restaurant.is_open_until) : null;
+            const extendActive = !!(extendUntil && extendUntil > new Date());
+            const reallyOpen = restaurant.is_open && (withinHours || extendActive);
+            const nextLabel = nextOpenLabel(restaurant.opening_hours);
+            const title = !restaurant.is_open
+              ? "สถานะร้าน: ออฟไลน์"
+              : extendActive && !withinHours
+                ? `ออนไลน์นอกเวลา – ปิดอัตโนมัติ ${formatCloseLabel(extendUntil!)}`
+                : !withinHours
+                  ? `นอกเวลาทำการ${nextLabel ? ` – ${nextLabel}` : ""}`
+                  : "สถานะร้าน: ออนไลน์";
+            const subtitle = !restaurant.is_open
+              ? "ปิดรับออเดอร์ชั่วคราว"
+              : extendActive && !withinHours
+                ? "ระบบจะปิดอัตโนมัติเมื่อถึงเวลาปิด"
+                : !withinHours
+                  ? "ร้านจะรับออเดอร์อัตโนมัติเมื่อถึงเวลาทำการ"
+                  : "พร้อมรับออเดอร์";
+            return (
+              <div className="border-t px-5 py-3 flex items-center gap-3 bg-muted/30">
+                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                  {reallyOpen && (
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75" />
+                  )}
+                  <span
+                    className={`relative inline-flex h-2.5 w-2.5 rounded-full ${
+                      reallyOpen ? "bg-green-500" : "bg-muted-foreground"
+                    }`}
+                  />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium leading-tight">{title}</p>
+                  <p className="text-xs text-muted-foreground leading-tight">{subtitle}</p>
+                </div>
+                <Switch checked={restaurant.is_open} onCheckedChange={toggleOpen} />
               </div>
-              <Switch checked={restaurant.is_open} onCheckedChange={toggleOpen} />
-            </div>
-          )}
+            );
+          })()}
         </Card>
       )}
 
