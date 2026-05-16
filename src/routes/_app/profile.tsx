@@ -45,11 +45,25 @@ function ProfilePage() {
     }
     supabase
       .from("restaurants")
-      .select("id, is_open")
+      .select("id, is_open, is_open_until, opening_hours")
       .eq("owner_id", user.id)
       .maybeSingle()
       .then(
-        ({ data }) => setRestaurant((data as MyRestaurant | null) ?? null),
+        async ({ data }) => {
+          const r = (data as MyRestaurant | null) ?? null;
+          if (r && r.is_open && !isOpenNow(r.opening_hours)) {
+            const extendActive = r.is_open_until && new Date(r.is_open_until) > new Date();
+            if (!extendActive) {
+              await supabase
+                .from("restaurants")
+                .update({ is_open: false, is_open_until: null })
+                .eq("id", r.id);
+              r.is_open = false;
+              r.is_open_until = null;
+            }
+          }
+          setRestaurant(r);
+        },
         () => { /* ignore */ },
       );
   }, [user]);
