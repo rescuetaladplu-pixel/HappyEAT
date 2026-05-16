@@ -11,7 +11,7 @@ import { Shield, UserPlus, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { createAdminAccount, listAdmins } from "@/lib/admin.functions";
 
-export const Route = createFileRoute("/_app/admin")({
+export const Route = createFileRoute("/_app/admin/")({
   component: AdminLanding,
 });
 
