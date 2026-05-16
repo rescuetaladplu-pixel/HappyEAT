@@ -300,46 +300,22 @@ function CartPage() {
         <div>
           <h2 className="font-semibold">วิธีชำระเงิน</h2>
           <p className="text-xs text-muted-foreground">
-            ค่าอาหารชำระตามวิธีที่เลือก ค่าส่งจ่ายไรเดอร์ตอนรับของ
+            ชำระค่าอาหารผ่าน PromptPay QR ก่อนร้านเริ่มทำ ค่าส่งจ่ายไรเดอร์ตอนรับของ
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-2">
-          <button
-            type="button"
-            disabled={restaurantHasPromptpay === false}
-            onClick={() => setPaymentMethod("promptpay_qr")}
-            className={`text-left p-3 rounded-lg border transition flex items-center gap-3 ${
-              paymentMethod === "promptpay_qr"
-                ? "border-primary bg-primary/5 ring-1 ring-primary"
-                : "border-border hover:bg-secondary/50"
-            } ${restaurantHasPromptpay === false ? "opacity-50 cursor-not-allowed" : ""}`}
-          >
-            <QrCode className="h-5 w-5 text-primary shrink-0" />
-            <div className="flex-1">
-              <p className="font-medium text-sm">PromptPay QR (ค่าอาหาร)</p>
-              <p className="text-xs text-muted-foreground">
-                ร้านยืนยันความพร้อม → ลูกค้าสแกนจ่าย → ร้านตรวจสลิป → เริ่มทำอาหาร
+        <div className="p-3 rounded-lg border border-primary bg-primary/5 flex items-center gap-3">
+          <QrCode className="h-5 w-5 text-primary shrink-0" />
+          <div className="flex-1">
+            <p className="font-medium text-sm">PromptPay QR (ค่าอาหาร)</p>
+            <p className="text-xs text-muted-foreground">
+              ร้านยืนยันความพร้อม → ลูกค้าสแกนจ่าย → ร้านตรวจสลิป → เริ่มทำอาหาร
+            </p>
+            {restaurantHasPromptpay === false && (
+              <p className="text-xs text-destructive mt-1">
+                ร้านยังไม่ได้ตั้งค่า PromptPay จึงรับออเดอร์ไม่ได้ในขณะนี้
               </p>
-              {restaurantHasPromptpay === false && (
-                <p className="text-xs text-destructive mt-1">ร้านยังไม่ได้ตั้งค่า PromptPay</p>
-              )}
-            </div>
-          </button>
-          <button
-            type="button"
-            onClick={() => setPaymentMethod("cash")}
-            className={`text-left p-3 rounded-lg border transition flex items-center gap-3 ${
-              paymentMethod === "cash"
-                ? "border-primary bg-primary/5 ring-1 ring-primary"
-                : "border-border hover:bg-secondary/50"
-            }`}
-          >
-            <Banknote className="h-5 w-5 text-primary shrink-0" />
-            <div className="flex-1">
-              <p className="font-medium text-sm">เงินสดปลายทาง</p>
-              <p className="text-xs text-muted-foreground">จ่ายค่าอาหาร + ค่าส่งให้ไรเดอร์ตอนรับ</p>
-            </div>
-          </button>
+            )}
+          </div>
         </div>
       </Card>
 
