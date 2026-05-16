@@ -36,6 +36,7 @@ interface Restaurant {
   delivery_fee: number;
   is_open: boolean;
   address: string | null;
+  opening_hours: OpeningHours | null;
 }
 interface Category {
   id: string;
