@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Store, Trash2, ChefHat, Bell, TrendingUp, Tag, MessageSquare } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { isOpenNow, nextCloseAt, formatCloseLabel, type OpeningHours } from "@/lib/opening-hours";
 
 export const Route = createFileRoute("/_app/restaurant-dashboard")({
   component: RestaurantDashboard,
