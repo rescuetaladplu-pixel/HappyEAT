@@ -7,10 +7,17 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { LogOut, User, Store, ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { isOpenNow, nextOpenLabel, nextCloseAt, formatCloseLabel } from "@/lib/opening-hours";
+
+interface OpeningHours {
+  [k: string]: { open: string; close: string; closed: boolean };
+}
 
 interface MyRestaurant {
   id: string;
   is_open: boolean;
+  is_open_until: string | null;
+  opening_hours: OpeningHours;
 }
 
 export const Route = createFileRoute("/_app/profile")({
