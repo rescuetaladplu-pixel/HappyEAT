@@ -212,13 +212,46 @@ function CartPage() {
       </div>
 
       <Card className="p-4 space-y-3">
-        <h2 className="font-semibold">ที่อยู่จัดส่ง</h2>
-        <div className="space-y-2">
-          <Label htmlFor="addr">ที่อยู่ *</Label>
-          <Input id="addr" placeholder="บ้านเลขที่ ถนน เขต/อำเภอ จังหวัด" value={address} onChange={(e) => setAddress(e.target.value)} />
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold">ที่อยู่จัดส่ง</h2>
+          <Link to="/home" className="text-xs text-primary underline">จัดการที่อยู่</Link>
         </div>
+        {savedAddrs.length > 0 ? (
+          <div className="space-y-2">
+            {savedAddrs.map((a) => {
+              const active = selectedAddrId === a.id;
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => applySavedAddr(a)}
+                  className={`w-full text-left p-3 rounded-lg border transition ${
+                    active ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:bg-secondary/50"
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <div className={`mt-0.5 h-4 w-4 rounded-full border-2 shrink-0 ${active ? "border-primary bg-primary" : "border-muted-foreground"}`}>
+                      {active && <div className="h-full w-full rounded-full bg-primary-foreground scale-[0.4]" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{a.label}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{a.address}</p>
+                      {a.phone_primary && (
+                        <p className="text-xs text-muted-foreground mt-0.5">โทร: {a.phone_primary}</p>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            ยังไม่มีที่อยู่บันทึกไว้ — <Link to="/home" className="text-primary underline">เพิ่มที่อยู่จัดส่ง</Link>
+          </p>
+        )}
         <div className="space-y-2">
-          <Label htmlFor="notes">หมายเหตุถึงร้าน</Label>
+          <Label htmlFor="notes">หมายเหตุถึงร้าน / ไรเดอร์</Label>
           <Textarea id="notes" placeholder="เช่น ไม่ใส่ผัก เผ็ดน้อย" value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
       </Card>
