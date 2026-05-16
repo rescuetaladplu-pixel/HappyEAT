@@ -351,7 +351,7 @@ function HomePage() {
                   <MapPin className="h-3 w-3" /> ส่งไปยัง
                 </p>
                 <p className="text-sm font-semibold truncate">
-                  {addr ? `${addr.label} · ${addr.address}` : "เพิ่มที่อยู่จัดส่ง"}
+                  {currentAddr ? `${currentAddr.label} · ${currentAddr.address}` : "เพิ่มที่อยู่จัดส่ง"}
                 </p>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
