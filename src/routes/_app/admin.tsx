@@ -333,7 +333,7 @@ function AdminPage() {
                   const q = search.trim().toLowerCase();
                   return (
                     (u.email ?? "").toLowerCase().includes(q) ||
-                    (u.full_name ?? "").toLowerCase().includes(q) ||
+                    displayName(u).toLowerCase().includes(q) ||
                     (u.phone ?? "").toLowerCase().includes(q) ||
                     (u.username ?? "").toLowerCase().includes(q)
                   );
@@ -341,8 +341,8 @@ function AdminPage() {
                 .map((u) => (
                   <tr key={u.user_id} className="border-b last:border-0 align-top">
                     <td className="px-5 py-2">
-                      <p className="font-medium">{u.full_name || u.username || "—"}</p>
-                      {u.username && u.full_name && (
+                      <p className="font-medium">{displayName(u) || u.username || "—"}</p>
+                      {u.username && displayName(u) && (
                         <p className="text-xs text-muted-foreground">@{u.username}</p>
                       )}
                     </td>
