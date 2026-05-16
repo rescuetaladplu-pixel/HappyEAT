@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
+import { sendOrderPush } from "@/lib/fcm.functions";
 
 export const Route = createFileRoute("/_app/cart")({
   component: CartPage,
