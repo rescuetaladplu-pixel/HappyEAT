@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Store, Upload, MapPin, Clock, Loader2, ArrowLeft } from "lucide-react";
+import { Store, Upload, MapPin, Clock, Loader2, ArrowLeft, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { LocationPicker } from "@/components/restaurant/LocationPicker";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
@@ -46,6 +46,8 @@ interface Restaurant {
   cover_url: string | null;
   is_open: boolean;
   opening_hours: OpeningHours;
+  promptpay_id: string | null;
+  promptpay_holder_name: string | null;
 }
 
 const DEFAULT_HOURS: OpeningHours = Object.fromEntries(
@@ -68,6 +70,8 @@ function MyRestaurantSettingsPage() {
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [hours, setHours] = useState<OpeningHours>(DEFAULT_HOURS);
+  const [promptpayId, setPromptpayId] = useState("");
+  const [promptpayHolderName, setPromptpayHolderName] = useState("");
 
   const logoRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
@@ -92,6 +96,8 @@ function MyRestaurantSettingsPage() {
       setLat(r.latitude !== null ? Number(r.latitude) : null);
       setLng(r.longitude !== null ? Number(r.longitude) : null);
       setHours({ ...DEFAULT_HOURS, ...(r.opening_hours ?? {}) });
+      setPromptpayId(r.promptpay_id ?? "");
+      setPromptpayHolderName(r.promptpay_holder_name ?? "");
     }
     setLoading(false);
   }
