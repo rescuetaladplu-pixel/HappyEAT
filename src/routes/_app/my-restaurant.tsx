@@ -25,9 +25,13 @@ import {
   ChevronRight,
   Utensils,
   Volume2,
+  Plus,
+  Check,
+  ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { isOpenNow, nextOpenLabel, nextCloseAt, formatCloseLabel } from "@/lib/opening-hours";
+import { useOwnedRestaurants, setActiveRestaurantId } from "@/lib/active-restaurant";
 
 export const Route = createFileRoute("/_app/my-restaurant")({
   component: MyRestaurantHub,
@@ -48,7 +52,6 @@ function summarizeOpeningHours(oh: OpeningHours | null | undefined): string[] {
   const openDays = WEEK_ORDER.filter((d) => oh[d] && !oh[d].closed);
   if (openDays.length === 0) return ["ยังไม่ได้ตั้งเวลาทำการ"];
 
-  // group by time signature
   const groups = new Map<string, DayKey[]>();
   for (const d of openDays) {
     const key = `${oh[d].open}-${oh[d].close}`;
@@ -56,7 +59,6 @@ function summarizeOpeningHours(oh: OpeningHours | null | undefined): string[] {
     groups.get(key)!.push(d);
   }
 
-  // all 7 days same time
   if (openDays.length === 7 && groups.size === 1) {
     const [time] = [...groups.keys()];
     const [open, close] = time.split("-");
@@ -64,12 +66,10 @@ function summarizeOpeningHours(oh: OpeningHours | null | undefined): string[] {
   }
 
   const formatDays = (days: DayKey[]): string => {
-    // Mon-Fri shortcut
     const isWeekdays = days.length === 5 && ["mon","tue","wed","thu","fri"].every(d => days.includes(d as DayKey));
     if (isWeekdays) return "จ.-ศ.";
     const isWeekend = days.length === 2 && days.includes("sat") && days.includes("sun");
     if (isWeekend) return "ส.-อา.";
-    // Detect contiguous range in WEEK_ORDER
     const idx = days.map(d => WEEK_ORDER.indexOf(d)).sort((a,b)=>a-b);
     const contiguous = idx.every((v,i) => i === 0 || v === idx[i-1] + 1);
     if (contiguous && days.length >= 3) {
@@ -102,27 +102,31 @@ interface Restaurant {
 }
 
 function MyRestaurantHub() {
-  const { user, role } = useAuth();
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, role, roles } = useAuth();
+  const { restaurants: owned, activeId, loading: ownedLoading, selectRestaurant, reload } = useOwnedRestaurants();
 
-  // Create form (first-time)
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // Picker view toggle (default true if multiple restaurants)
+  const [showPicker, setShowPicker] = useState(false);
+
+  // Create form
+  const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
 
-  async function load() {
-    if (!user) return;
+  async function loadDetail(id: string) {
+    setLoadingDetail(true);
     const { data } = await supabase
       .from("restaurants")
       .select("*")
-      .eq("owner_id", user.id)
+      .eq("id", id)
       .maybeSingle();
     const r = (data as unknown as Restaurant | null) ?? null;
-
-    // Auto-off: ถ้า is_open=true แต่นอกเวลาทำการ และไม่มี manual extension ที่ยังไม่หมดอายุ → ปิดอัตโนมัติ
     if (r && r.is_open && !isOpenNow(r.opening_hours)) {
       const extendActive = r.is_open_until && new Date(r.is_open_until) > new Date();
       if (!extendActive) {
@@ -132,24 +136,33 @@ function MyRestaurantHub() {
       }
     }
     setRestaurant(r);
-    setLoading(false);
+    setLoadingDetail(false);
   }
 
   useEffect(() => {
-    load();
+    if (activeId) loadDetail(activeId);
+    else setRestaurant(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [activeId]);
 
   async function createRestaurant() {
     if (!user || !name) return toast.error("กรุณากรอกชื่อร้าน");
     setSaving(true);
-    const { error } = await supabase.from("restaurants").insert({
-      owner_id: user.id, name, description, category, phone, is_approved: true,
-    });
+    const { data, error } = await supabase
+      .from("restaurants")
+      .insert({ owner_id: user.id, name, description, category, phone, is_approved: true })
+      .select("id")
+      .maybeSingle();
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("สร้างร้านสำเร็จ");
-    load();
+    if (data?.id) {
+      setActiveRestaurantId(data.id);
+      selectRestaurant(data.id);
+    }
+    setCreating(false);
+    setName(""); setDescription(""); setCategory(""); setPhone("");
+    reload();
   }
 
   async function toggleOpen(open: boolean) {
@@ -160,13 +173,9 @@ function MyRestaurantHub() {
       toast.success("ปิดร้านชั่วคราว");
       return;
     }
-    // เปิดร้าน — คำนวณเวลาปิดถัดไป
     const closeAt = nextCloseAt(restaurant.opening_hours);
     const closeIso = closeAt ? closeAt.toISOString() : null;
-    await supabase
-      .from("restaurants")
-      .update({ is_open: true, is_open_until: closeIso })
-      .eq("id", restaurant.id);
+    await supabase.from("restaurants").update({ is_open: true, is_open_until: closeIso }).eq("id", restaurant.id);
     setRestaurant({ ...restaurant, is_open: true, is_open_until: closeIso });
     const withinHours = isOpenNow(restaurant.opening_hours);
     if (!withinHours && closeAt) {
@@ -179,7 +188,8 @@ function MyRestaurantHub() {
     }
   }
 
-  if (loading) {
+  // ============ Loading ============
+  if (ownedLoading) {
     return (
       <main className="p-6 flex justify-center">
         <Loader2 className="h-6 w-6 animate-spin" />
@@ -187,7 +197,9 @@ function MyRestaurantHub() {
     );
   }
 
-  if (role !== "restaurant" && role !== "admin" && !restaurant) {
+  // ============ Permission ============
+  const canOwn = role === "admin" || roles.includes("restaurant") || roles.includes("admin");
+  if (!canOwn && owned.length === 0) {
     return (
       <main className="max-w-2xl mx-auto p-4">
         <Card className="p-6 text-center space-y-3">
@@ -200,10 +212,18 @@ function MyRestaurantHub() {
     );
   }
 
-  if (!restaurant) {
+  // ============ Create form (no restaurants yet, or user chose +new) ============
+  if (owned.length === 0 || creating) {
     return (
       <main className="max-w-2xl mx-auto p-4 space-y-4">
-        <h1 className="text-2xl font-bold">สร้างร้านอาหาร</h1>
+        <div className="flex items-center gap-2">
+          {creating && owned.length > 0 && (
+            <Button variant="ghost" size="icon" onClick={() => setCreating(false)}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
+          <h1 className="text-2xl font-bold">{owned.length === 0 ? "สร้างร้านอาหาร" : "เพิ่มร้านใหม่"}</h1>
+        </div>
         <Card className="p-5 space-y-3">
           <div className="space-y-2">
             <Label>ชื่อร้าน *</Label>
@@ -230,6 +250,65 @@ function MyRestaurantHub() {
     );
   }
 
+  // ============ Picker view ============
+  if (showPicker) {
+    return (
+      <main className="max-w-2xl mx-auto p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => setShowPicker(false)}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-xl font-bold">เลือกร้านที่จะจัดการ</h1>
+        </div>
+        <div className="space-y-2">
+          {owned.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => {
+                selectRestaurant(r.id);
+                setShowPicker(false);
+              }}
+              className={`w-full text-left flex items-center gap-3 p-3 rounded-xl border transition-colors ${
+                r.id === activeId ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-accent"
+              }`}
+            >
+              <div className="h-12 w-12 rounded-lg bg-muted overflow-hidden flex items-center justify-center shrink-0">
+                {r.logo_url ? (
+                  <img src={r.logo_url} alt={r.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Store className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold truncate">{r.name}</p>
+                  {!r.is_approved && <Badge variant="outline" className="text-[10px]">รออนุมัติ</Badge>}
+                </div>
+                <p className="text-xs text-muted-foreground truncate">
+                  {r.category ?? "-"} · {r.is_open ? "เปิดอยู่" : "ปิด"}
+                </p>
+              </div>
+              {r.id === activeId && <Check className="h-4 w-4 text-primary shrink-0" />}
+            </button>
+          ))}
+        </div>
+        <Button variant="outline" className="w-full" onClick={() => { setShowPicker(false); setCreating(true); }}>
+          <Plus className="h-4 w-4 mr-2" /> เพิ่มร้านใหม่
+        </Button>
+      </main>
+    );
+  }
+
+  // ============ Active restaurant hub ============
+  if (loadingDetail || !restaurant) {
+    return (
+      <main className="p-6 flex justify-center">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </main>
+    );
+  }
+
   const hoursSummary = summarizeOpeningHours(restaurant.opening_hours);
 
   const menuItems = [
@@ -244,8 +323,33 @@ function MyRestaurantHub() {
 
   return (
     <main className="max-w-2xl mx-auto pb-4 space-y-4">
+      {/* Restaurant switcher */}
+      <div className="px-4 pt-3">
+        <button
+          type="button"
+          onClick={() => setShowPicker(true)}
+          className="w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:bg-accent transition-colors"
+        >
+          <div className="h-10 w-10 rounded-lg bg-muted overflow-hidden flex items-center justify-center shrink-0">
+            {restaurant.logo_url ? (
+              <img src={restaurant.logo_url} alt={restaurant.name} className="w-full h-full object-cover" />
+            ) : (
+              <Store className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0 text-left">
+            <p className="text-[11px] text-muted-foreground">ร้านที่กำลังจัดการ</p>
+            <p className="font-semibold text-sm truncate">{restaurant.name}</p>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+            {owned.length > 1 ? `${owned.length} ร้าน` : ""}
+            <ChevronRight className="h-4 w-4" />
+          </div>
+        </button>
+      </div>
+
       {/* Overview Card */}
-      <Card className="p-0 overflow-hidden">
+      <Card className="p-0 overflow-hidden mx-4">
         <div className="h-40 w-full bg-muted">
           {restaurant.cover_url ? (
             <img src={restaurant.cover_url} alt="cover" className="w-full h-full object-cover" />
@@ -283,7 +387,6 @@ function MyRestaurantHub() {
             </div>
           </div>
 
-          {/* Online status bar */}
           {(() => {
             const withinHours = isOpenNow(restaurant.opening_hours);
             const extendUntil = restaurant.is_open_until ? new Date(restaurant.is_open_until) : null;
@@ -307,9 +410,7 @@ function MyRestaurantHub() {
             return (
               <div
                 className={`mt-3 flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-colors ${
-                  reallyOpen
-                    ? "bg-green-500/10 border-green-500/30"
-                    : "bg-muted border-border"
+                  reallyOpen ? "bg-green-500/10 border-green-500/30" : "bg-muted border-border"
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -317,19 +418,13 @@ function MyRestaurantHub() {
                     {reallyOpen && (
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-60" />
                     )}
-                    <span
-                      className={`relative inline-flex h-3 w-3 rounded-full ${
-                        reallyOpen ? "bg-green-500" : "bg-muted-foreground"
-                      }`}
-                    />
+                    <span className={`relative inline-flex h-3 w-3 rounded-full ${reallyOpen ? "bg-green-500" : "bg-muted-foreground"}`} />
                   </span>
                   <div className="min-w-0">
                     <p className={`text-sm font-semibold ${reallyOpen ? "text-green-700 dark:text-green-400" : "text-muted-foreground"}`}>
                       {title}
                     </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {subtitle}
-                    </p>
+                    <p className="text-[11px] text-muted-foreground">{subtitle}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">

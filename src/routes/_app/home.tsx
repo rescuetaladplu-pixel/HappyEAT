@@ -82,7 +82,7 @@ async function withTimeout<T>(promise: PromiseLike<T>, ms: number) {
 }
 
 function HomePage() {
-  const { user, role, loading: authLoading } = useAuth();
+  const { user, role, roles, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(false);
@@ -322,7 +322,9 @@ function HomePage() {
     return okCat && okSearch;
   });
 
-  if (role && role !== "customer") {
+  // Block หน้าลูกค้าเฉพาะกรณีที่ user ไม่มี role customer เลย (เช่น admin/rider ล้วน)
+  // ผู้ใช้ที่มีหลาย role (เช่น customer + restaurant) ยังคงเข้าหน้าลูกค้าได้ปกติ
+  if (role && role !== "customer" && !roles.includes("customer")) {
     const dest =
       role === "restaurant"
         ? "/restaurant-dashboard"

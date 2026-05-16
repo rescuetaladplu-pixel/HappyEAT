@@ -10,6 +10,7 @@ interface AuthContextValue {
   user: User | null;
   session: Session | null;
   role: AppRole | null;
+  roles: AppRole[];
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (
@@ -29,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
+  const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -78,13 +80,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq("user_id", userId);
 
       if (error) {
+        setRoles(["customer"]);
         setRole("customer");
         return;
       }
 
-      const roles = (data ?? []).map((row) => row.role as AppRole);
-      setRole(ROLE_PRIORITY.find((candidate) => roles.includes(candidate)) ?? "customer");
+      const list = (data ?? []).map((row) => row.role as AppRole);
+      setRoles(list.length > 0 ? list : ["customer"]);
+      setRole(ROLE_PRIORITY.find((candidate) => list.includes(candidate)) ?? "customer");
     } catch {
+      setRoles(["customer"]);
       setRole("customer");
     }
   }
@@ -137,11 +142,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setUser(null);
     setRole(null);
+    setRoles([]);
     setLoading(false);
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, role, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, role, roles, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
