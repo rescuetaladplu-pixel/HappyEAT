@@ -24,8 +24,10 @@ interface Restaurant {
   description: string | null;
   category: string | null;
   is_open: boolean;
+  is_open_until: string | null;
   is_approved: boolean;
   delivery_fee: number;
+  opening_hours: OpeningHours;
 }
 interface MenuItem {
   id: string;
