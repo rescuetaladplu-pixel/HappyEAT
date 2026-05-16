@@ -269,7 +269,7 @@ function RestaurantDetail() {
                 <Button
                   size="icon"
                   onClick={() => setPicking(item)}
-                  disabled={!item.is_available || !restaurant.is_open}
+                  disabled={!item.is_available || !restaurant.is_open || !isOpenNow(restaurant.opening_hours)}
                   className="rounded-full"
                 >
                   <Plus className="h-4 w-4" />
