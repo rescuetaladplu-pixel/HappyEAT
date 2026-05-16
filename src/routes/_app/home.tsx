@@ -37,6 +37,7 @@ interface Restaurant {
   rating: number;
   delivery_fee: number;
   is_open: boolean;
+  opening_hours: import("@/lib/opening-hours").OpeningHours | null;
 }
 
 interface AddressRow {
