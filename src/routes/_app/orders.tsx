@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ClipboardList, Star } from "lucide-react";
 import { toast } from "sonner";
+import { STATUS_LABELS, STATUS_VARIANTS, type OrderStatus } from "@/lib/order-status";
+import { PaymentPanel } from "@/components/PaymentPanel";
 
 export const Route = createFileRoute("/_app/orders")({
   component: OrdersPage,
@@ -17,29 +19,23 @@ export const Route = createFileRoute("/_app/orders")({
 
 interface Order {
   id: string;
-  status: string;
+  status: OrderStatus;
   total: number;
+  subtotal: number;
   created_at: string;
   customer_id: string;
   rider_id: string | null;
-  restaurants: { name: string } | null;
+  restaurant_id: string;
+  payment_method: string;
+  payment_slip_url: string | null;
+  rejection_reason: string | null;
+  restaurants: {
+    name: string;
+    owner_id: string;
+    promptpay_id: string | null;
+    promptpay_holder_name: string | null;
+  } | null;
 }
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: "รอร้านยืนยัน",
-  accepted: "ร้านรับออเดอร์",
-  preparing: "กำลังทำอาหาร",
-  ready: "พร้อมส่ง",
-  picked_up: "ไรเดอร์รับงาน",
-  delivering: "กำลังส่ง",
-  delivered: "ส่งสำเร็จ",
-  cancelled: "ยกเลิก",
-};
-
-const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  pending: "secondary", accepted: "default", preparing: "default", ready: "default",
-  picked_up: "default", delivering: "default", delivered: "outline", cancelled: "destructive",
-};
 
 function OrdersPage() {
   const { user, role } = useAuth();
@@ -55,7 +51,7 @@ function OrdersPage() {
     if (!user) return;
     const { data, error } = await supabase
       .from("orders")
-      .select("id, status, total, created_at, customer_id, rider_id, restaurants(name)")
+      .select("id, status, total, subtotal, created_at, customer_id, rider_id, restaurant_id, payment_method, payment_slip_url, rejection_reason, restaurants(name, owner_id, promptpay_id, promptpay_holder_name)")
       .order("created_at", { ascending: false })
       .limit(50);
     if (error) toast.error(error.message);
