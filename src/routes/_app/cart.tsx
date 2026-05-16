@@ -98,6 +98,24 @@ function CartPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // Check if the cart's restaurant has PromptPay configured
+  useEffect(() => {
+    if (!restaurantId) {
+      setRestaurantHasPromptpay(null);
+      return;
+    }
+    supabase
+      .from("restaurants")
+      .select("promptpay_id")
+      .eq("id", restaurantId)
+      .maybeSingle()
+      .then(({ data }) => {
+        const has = !!data?.promptpay_id;
+        setRestaurantHasPromptpay(has);
+        if (!has) setPaymentMethod("cash");
+      });
+  }, [restaurantId]);
+
   async function handleCheckout() {
     if (!user || !restaurantId || items.length === 0) return;
     if (!address.trim()) return toast.error("กรุณากรอกที่อยู่จัดส่ง");
@@ -119,8 +137,8 @@ function CartPage() {
         discount,
         total: grandTotal,
         notes,
-        payment_method: "cash",
-        status: "pending",
+        payment_method: paymentMethod,
+        status: paymentMethod === "promptpay_qr" ? "awaiting_restaurant" : "pending",
       })
       .select()
       .single();
@@ -165,7 +183,11 @@ function CartPage() {
     }
 
     clear();
-    toast.success("สั่งสำเร็จ! กำลังรอร้านยืนยัน");
+    toast.success(
+      paymentMethod === "promptpay_qr"
+        ? "ส่งคำขอแล้ว! รอร้านยืนยันความพร้อม"
+        : "สั่งสำเร็จ! กำลังรอร้านยืนยัน",
+    );
 
     // Fire-and-forget push to the restaurant owner.
     // We don't await — order is already saved; push is best-effort.
