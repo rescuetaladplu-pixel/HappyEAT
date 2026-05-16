@@ -91,14 +91,14 @@ function RestaurantOrdersPage() {
     return localStorage.getItem("rest-sound") !== "off";
   });
   const [soundType, setSoundType] = useState<SoundId>(() => {
-    if (typeof window === "undefined") return "siren";
+    if (typeof window === "undefined") return "emergency";
     const saved = localStorage.getItem("rest-sound-type") as SoundId | null;
-    return saved && SOUND_OPTIONS.some((s) => s.id === saved) ? saved : "siren";
+    return saved && SOUND_OPTIONS.some((s) => s.id === saved) ? saved : "emergency";
   });
   const [volume, setVolume] = useState<VolumeLevel>(() => {
-    if (typeof window === "undefined") return "loud";
+    if (typeof window === "undefined") return "normal";
     const saved = localStorage.getItem("rest-sound-volume") as VolumeLevel | null;
-    return saved && VOLUME_OPTIONS.some((v) => v.id === saved) ? saved : "loud";
+    return saved && VOLUME_OPTIONS.some((v) => v.id === saved) ? saved : "normal";
   });
   const knownIdsRef = useRef<Set<string>>(new Set());
   const initRef = useRef(false);
@@ -130,7 +130,7 @@ function RestaurantOrdersPage() {
         return;
       }
       playNotificationSound(soundTypeRef.current, volumeRef.current);
-    }, 4000);
+    }, 3000);
     setAlerting(true);
   }
 
@@ -293,13 +293,13 @@ function RestaurantOrdersPage() {
         <Button asChild variant="ghost" size="sm"><Link to="/my-restaurant"><ArrowLeft className="h-4 w-4 mr-1" />หน้าร้าน</Link></Button>
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-2">
-              {soundOn ? (
-                <Volume2 className="h-4 w-4" />
-              ) : (
-                <VolumeX className="h-4 w-4 text-muted-foreground" />
-              )}
-              <span className="text-sm">เสียงแจ้งเตือน</span>
+            <Button
+              variant={soundOn ? "default" : "outline"}
+              size="sm"
+              className="gap-2 shadow-sm"
+            >
+              {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              <span className="text-sm font-medium">ตั้งค่าเสียงแจ้งเตือน</span>
             </Button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-80">

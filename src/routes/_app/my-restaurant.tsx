@@ -24,6 +24,7 @@ import {
   Star,
   ChevronRight,
   Utensils,
+  Volume2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -202,6 +203,7 @@ function MyRestaurantHub() {
     { to: "/my-restaurant/settings", icon: Settings, label: "จัดการข้อมูลร้านค้า", desc: "โปรไฟล์ ที่อยู่ เวลาทำการ" },
     { to: "/restaurant/menu", icon: ChefHat, label: "จัดการเมนูอาหาร", desc: "หมวดหมู่ เมนู ตัวเลือกเสริม" },
     { to: "/restaurant/orders", icon: Bell, label: "ออเดอร์คำสั่งซื้อ", desc: "รับออเดอร์ Real-time" },
+    { to: "/restaurant/notification-settings", icon: Volume2, label: "ตั้งค่าเสียงแจ้งเตือน", desc: "เลือกเสียง ความดัง สำหรับออเดอร์ใหม่" },
     { to: "/restaurant/analytics", icon: TrendingUp, label: "ข้อมูลยอดขาย", desc: "สรุปรายวัน / รายเดือน" },
     { to: "/restaurant/promotions", icon: Tag, label: "โปรโมชั่น", desc: "ส่วนลด โค้ดคูปอง" },
     { to: "/restaurant/reviews", icon: MessageSquare, label: "รีวิวลูกค้า", desc: "อ่านและตอบกลับรีวิว" },
