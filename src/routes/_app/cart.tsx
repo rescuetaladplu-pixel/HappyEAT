@@ -24,6 +24,14 @@ function CartPage() {
   const [submitting, setSubmitting] = useState(false);
   const [deliveryLat, setDeliveryLat] = useState<number | null>(null);
   const [deliveryLng, setDeliveryLng] = useState<number | null>(null);
+  const [savedAddrs, setSavedAddrs] = useState<Array<{
+    id: string; label: string; address: string;
+    latitude: number | null; longitude: number | null;
+    contact_name: string | null; phone_primary: string | null;
+    phone_secondary: string | null; rider_note: string | null;
+    is_default: boolean;
+  }>>([]);
+  const [selectedAddrId, setSelectedAddrId] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState("");
   const [promo, setPromo] = useState<{ id: string; code: string; discount: number } | null>(null);
   const [checking, setChecking] = useState(false);
