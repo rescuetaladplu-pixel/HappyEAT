@@ -30,7 +30,8 @@ function AuthPage() {
   const [siPassword, setSiPassword] = useState("");
 
   // Sign-up fields (ทุกคนเริ่มเป็นลูกค้า; เปิดร้านได้ในหน้าโปรไฟล์)
-  const [suName, setSuName] = useState("");
+  const [suFirstName, setSuFirstName] = useState("");
+  const [suLastName, setSuLastName] = useState("");
   const [suEmail, setSuEmail] = useState("");
   const [suPhone, setSuPhone] = useState("");
   const [suPassword, setSuPassword] = useState("");
