@@ -164,6 +164,13 @@ function CartPage() {
 
     clear();
     toast.success("สั่งสำเร็จ! กำลังรอร้านยืนยัน");
+
+    // Fire-and-forget push to the restaurant owner.
+    // We don't await — order is already saved; push is best-effort.
+    sendOrderPush({ data: { orderId: order.id, restaurantId } }).catch((e) => {
+      console.error("sendOrderPush failed", e);
+    });
+
     navigate({ to: "/orders" });
   }
 
