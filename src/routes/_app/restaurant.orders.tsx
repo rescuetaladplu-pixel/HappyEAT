@@ -290,8 +290,10 @@ function RestaurantOrdersPage() {
           </Button>
         </div>
       )}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <Button asChild variant="ghost" size="sm"><Link to="/my-restaurant"><ArrowLeft className="h-4 w-4 mr-1" />หน้าร้าน</Link></Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <EnablePushButton restaurantId={restaurantId} />
         <Popover>
           <PopoverTrigger asChild>
             <Button
