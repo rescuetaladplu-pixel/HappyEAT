@@ -35,6 +35,7 @@ interface Restaurant {
   rating: number;
   delivery_fee: number;
   is_open: boolean;
+  is_open_until: string | null;
   address: string | null;
   opening_hours: OpeningHours | null;
 }
