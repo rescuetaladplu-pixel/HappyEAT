@@ -1,99 +1,102 @@
 
-# ระบบชำระเงิน QR + ยืนยัน 2 ขั้นตอน
+## สิ่งที่เจอจากการตรวจ DB
 
-## Flow ใหม่
+ตอนนี้ในระบบจริง:
 
-```
-1. ลูกค้าเลือกอาหาร → กด "เสนอคำสั่งซื้อ"
-   └─ status: awaiting_restaurant
-2. ร้านได้ notification → ตรวจรายการ → กด "รับออเดอร์ พร้อมทำ" หรือ "ปฏิเสธ"
-   └─ status: awaiting_payment (ถ้ารับ) | rejected
-3. ลูกค้าได้ notification → เห็นหน้า QR PromptPay (ยอด = ค่าอาหาร) → สแกนจ่าย → upload สลิป → กด "ส่งสลิป"
-   └─ status: awaiting_payment_confirm
-4. ร้านได้ notification → เปิดดูสลิป + เช็ค app ธนาคาร → กด "ยืนยันรับเงิน เริ่มทำ" หรือ "ปฏิเสธสลิป"
-   └─ status: preparing (เริ่มทำอาหาร) | payment_rejected
-5. ขั้นตอนเดิมต่อไป: preparing → ready → picked_up → delivered
-```
+| ผู้ใช้ | roles | อยู่ใน `riders` |
+|---|---|---|
+| ไกรสิท (rider ที่สมัครเข้ามา) | `rider`, `customer` | ✓ |
+| Admin (`adminmai`) | `admin` | ✓ ← ตัวต้นเหตุที่ทำให้นับเป็น 2 |
+| สตีฟ จ๊อบ | `customer` | - |
+| Tester | `customer` | - |
 
-## State machine (order_status enum เพิ่มใหม่)
+**สรุปสาเหตุ 3 ข้อที่ user รายงาน:**
 
-```
-pending (เดิม - ยังใช้ได้สำหรับ COD)
-  ↓
-awaiting_restaurant   ← ขั้นที่ 1: รอร้านเช็คความพร้อม
-  ↓ ร้านรับ
-awaiting_payment      ← ขั้นที่ 2: รอลูกค้าจ่าย + upload สลิป
-  ↓ ลูกค้าส่งสลิป
-awaiting_payment_confirm  ← ขั้นที่ 3: รอร้านยืนยันสลิป
-  ↓ ร้านยืนยัน
-preparing → ready → picked_up → delivered
-  
-(ทุกขั้นก่อน preparing สามารถ → cancelled ได้ทั้งสองฝ่าย)
-```
-
-## Database changes
-
-**orders** (เพิ่ม column)
-- `payment_method` ขยายค่า: `'cash' | 'promptpay_qr'`
-- `payment_slip_url` text — URL สลิปใน storage
-- `payment_submitted_at` timestamptz — เวลาลูกค้าส่งสลิป
-- `payment_confirmed_at` timestamptz — เวลาร้านยืนยัน
-- `restaurant_accepted_at` timestamptz — เวลาร้านรับออเดอร์ (ขั้น 1)
-- `rejection_reason` text — เหตุผลปฏิเสธ (ร้าน/สลิป)
-
-**restaurants** (เพิ่ม column)
-- `promptpay_id` text — เบอร์โทร 10 หลัก หรือเลขบัตร ปชช. 13 หลัก
-- `promptpay_holder_name` text — ชื่อบัญชี (โชว์ให้ลูกค้าเห็นก่อนโอน)
-
-**order_status enum** เพิ่ม 3 ค่า: `awaiting_restaurant`, `awaiting_payment`, `awaiting_payment_confirm`, `payment_rejected`
-
-**Storage bucket ใหม่**: `payment-slips` (private — เฉพาะลูกค้าเจ้าของ + ร้านปลายทาง + admin อ่านได้)
-
-## หน้าจอที่ต้องสร้าง/แก้
-
-### Customer side
-1. **Cart checkout** (`/cart`) — เพิ่มตัวเลือก payment_method (cash / PromptPay QR). ถ้าเลือก QR → status เริ่มที่ `awaiting_restaurant` แทน `pending`
-2. **Order detail / `/orders`** — เพิ่ม UI ตาม state:
-   - `awaiting_restaurant`: แสดง "รอร้านยืนยันความพร้อม..." + spinner
-   - `awaiting_payment`: แสดง QR (generate ฝั่ง client), ยอด, ชื่อบัญชี, ปุ่ม upload สลิป + ปุ่มส่ง
-   - `awaiting_payment_confirm`: แสดงสลิปที่ส่งแล้ว + "รอร้านยืนยัน..."
-   - `payment_rejected` / `rejected`: แสดงเหตุผล + ปุ่มลองใหม่/ยกเลิก
-
-### Restaurant side (`/restaurant/orders`)
-- เพิ่ม tab/section: **ออเดอร์ใหม่ (รอรับ)**, **รอชำระเงิน**, **รอตรวจสลิป**, **กำลังทำ** ฯลฯ
-- การ์ด `awaiting_restaurant`: ดูรายการ → ปุ่ม "รับออเดอร์" / "ปฏิเสธ"
-- การ์ด `awaiting_payment_confirm`: เปิดดูสลิป (เต็มจอ zoom ได้) + ยอดที่ต้องตรวจ + ปุ่ม "ยืนยันรับเงิน" / "ปฏิเสธสลิป"
-
-### Restaurant settings (`/my-restaurant/settings`)
-- เพิ่มฟิลด์ **PromptPay** (เบอร์/เลขบัตร) + **ชื่อบัญชี** — บังคับกรอกถ้าจะรับชำระแบบ QR
-
-## Tech / libraries
-
-- **promptpay-qr** (npm) — generate PromptPay payload ฟรี, pure JS
-- **qrcode** (npm) — render เป็น SVG/canvas ใน browser
-- **Push notification** — ใช้ FCM ที่มีอยู่แล้ว (`sendOrderPush`) — trigger ทุกครั้งที่ status เปลี่ยนแบบที่อีกฝั่งต้อง action
-
-## RLS / Security
-- ลูกค้า upload สลิปได้เฉพาะ order ของตัวเอง + เฉพาะ state `awaiting_payment`
-- ร้านเปลี่ยน status ได้เฉพาะ transition ที่กำหนด (ใช้ validation trigger)
-- ไม่ใช้ CHECK constraint กับเวลา — ใช้ trigger
-- bucket `payment-slips` private + policy: customer/restaurant_owner/admin เท่านั้น
-
-## ขอบเขตในรอบนี้ (ไม่รวม)
-
-- ระบบบทลงโทษ/แบนร้าน — รอ user คิดทีหลัง
-- Auto-cancel timer — รอ user ตัดสินใจทีหลัง
-- ระบบคืนเงินอัตโนมัติ — ไม่มีในรอบนี้ (ทุก state ก่อน `awaiting_payment_confirm` ยกเลิกได้ฟรีเพราะลูกค้ายังไม่จ่าย)
-
-## ลำดับการ implement
-
-1. Migration: enum + columns + storage bucket + RLS
-2. Restaurant settings: ฟอร์ม PromptPay
-3. Cart: เพิ่มตัวเลือก payment_method
-4. Customer order detail: QR + upload สลิป
-5. Restaurant orders panel: 2 ปุ่มยืนยัน (รับออเดอร์ / ยืนยันสลิป)
-6. Push notification triggers ทุก state transition
+1. **ไรเดอร์ขึ้น 2** — เพราะแดชบอร์ดนับจากตาราง `riders` ตรงๆ แต่ในนั้นมีบัญชี admin หลุดเข้าไปอยู่ด้วย (น่าจะเกิดตอน admin ลองกดอะไรในฝั่งไรเดอร์)
+2. **rider ได้ role `customer` แถมมาด้วย** — เพราะ DB trigger `handle_new_user` มี logic บังคับใส่ `customer` ให้ทุกคนที่สมัครเป็น rider/restaurant
+3. **แดชบอร์ดยังรวมร่าง** — Card สถิติแสดง 3 ตัวเลขรวมกัน (orders/restaurants/riders) ไม่แยกฝั่ง Eat vs Rider
 
 ---
 
-ถ้าโอเค กดอนุมัติเพื่อเริ่ม implement ได้เลยครับ
+## สิ่งที่จะทำ
+
+### 1. แยกแดชบอร์ดแอดมินเป็น 2 ส่วน (UI ใน `src/routes/_app/admin.tsx`)
+
+```
+[ ฝั่ง Eat 🍔 ]                    [ ฝั่ง Rider 🛵 ]
+- ออเดอร์รวม                       - ไรเดอร์ทั้งหมด
+- ร้านค้า                          - ไรเดอร์ออนไลน์ตอนนี้
+- ลูกค้า (role=customer)           - ไรเดอร์รออนุมัติ (is_approved=false)
+- ออเดอร์รออนุมัติร้าน             - ออเดอร์ที่ไรเดอร์ถืออยู่ (status in transit)
+```
+
+ตารางรายชื่อผู้ใช้ยังอยู่ครบเหมือนเดิม แต่เพิ่ม quick filter tab: "ทั้งหมด / ฝั่ง Eat / ฝั่ง Rider"
+
+### 2. แก้ stat ไรเดอร์ให้ตรงกับ role จริง
+
+เปลี่ยนจาก `SELECT count FROM riders` → นับเฉพาะคนที่ `user_roles.role = 'rider'` แทน เพื่อกันบัญชี admin/customer ที่เผลอมีแถวใน `riders` ติดมา
+
+พร้อมกับ **ลบแถว admin ที่หลุดเข้า `riders`** ทิ้ง (migration cleanup)
+
+### 3. ยกเลิก auto-add `customer` role ตอนสมัคร rider
+
+แก้ trigger `handle_new_user` ให้:
+- สมัคร role=`rider` → ใส่ `rider` อย่างเดียว
+- สมัคร role=`restaurant` → ใส่ `restaurant` อย่างเดียว (ตามหลักการ "แยกแอคเค้าท์ชัดเจน" เดียวกัน)
+- สมัครปกติ → `customer`
+
+และลบ role `customer` ที่ติดมากับไกรสิทออก (cleanup ครั้งเดียว)
+
+### 4. เรื่อง "อีเมลเดียวกันสมัครได้ทั้งฝั่ง Eat และ Rider"
+
+**ตรงนี้ต้องตัดสินใจก่อนทำ** — Supabase auth บังคับ unique email ใน `auth.users` เปลี่ยนไม่ได้ ทำให้สมัครซ้ำด้วยอีเมลเดียวไม่ได้โดยตรง ทางออกที่เป็นไปได้:
+
+- **A. Email alias ภายใน** — ฝั่ง rider เก็บ auth email เป็น `user+rider@domain.com` (Gmail/most providers รองรับ + alias) แต่แสดง/ส่งจริงเป็น `user@domain.com` ปกติ → ผู้ใช้รู้สึกว่าใช้อีเมลเดียวกันได้ ส่วนระบบยังแยกบัญชีจริง
+- **B. ห้ามซ้ำ** — บอกผู้ใช้ตรงๆ ว่าต้องใช้คนละอีเมล (ง่ายสุด ไม่ต้องเขียน logic เพิ่ม)
+- **C. รวมเป็นบัญชีเดียวแบบมี role หลายอัน** — ตรงข้ามกับที่ user ขอ ตัดทิ้ง
+
+แผนนี้จะ **ขอเลือกข้อ A หรือ B ก่อน** แล้วค่อยลงรายละเอียดเฟส implementation (ส่วนใหญ่อยู่ฝั่ง HappyRider room ไม่ใช่ห้องนี้ — ห้องนี้แค่ปรับ trigger รองรับ)
+
+---
+
+## รายละเอียดทางเทคนิค
+
+### Migration (รันใน room นี้ — เจ้าของ schema)
+
+```sql
+-- 4a. แก้ trigger ไม่ใส่ customer role ให้ rider/restaurant
+CREATE OR REPLACE FUNCTION public.handle_new_user() ...
+  -- ตัด block IF _role IN ('restaurant','rider') THEN INSERT customer ... ทิ้ง
+
+-- 4b. ลบข้อมูลเก่าที่หลุด
+DELETE FROM public.user_roles
+  WHERE user_id='316d9fdb-...' AND role='customer';  -- ไกรสิท
+DELETE FROM public.riders
+  WHERE id='5038d4c3-...';  -- admin หลุดเข้า riders
+
+-- (ไม่แตะ admin ที่ยังเป็นแอดมิน)
+```
+
+### Frontend (`src/routes/_app/admin.tsx`)
+- เปลี่ยน Stat row → 2 Section (Eat / Rider) แต่ละ section มี Card stat 3-4 ตัว
+- queries ใหม่ผ่าน `supabase.from(...).select('id',{count:'exact',head:true})` พร้อม filter:
+  - eat customers: `user_roles` where `role='customer'`
+  - eat pending orders: `orders` where `status='pending'`
+  - rider total: `user_roles` where `role='rider'`
+  - rider online: `riders` where `is_online=true`
+  - rider pending approval: `riders` where `is_approved=false`
+  - rider active deliveries: `orders` where `status in (rider_picked_up/...) and rider_id is not null`
+
+### Shared contract impact
+- เปลี่ยน trigger `handle_new_user` = กระทบ HappyRider room ด้วย → ต้อง append changelog ใน `docs/SHARED_CONTRACT.md`
+- ฝั่ง HappyRider จะรับผลทันที (signup ไม่มี customer แถม) — ต้องแจ้งห้องนั้นด้วย
+
+---
+
+## คำถามก่อนเริ่ม implement
+
+**เลือกทางจัดการอีเมลซ้ำ Eat ↔ Rider:**
+- **A** ใช้ email-alias trick (`+rider` suffix ภายใน, ผู้ใช้ยังเห็นอีเมลตัวเอง) — ทำได้ตามที่ขอเป๊ะ แต่ logic เพิ่มฝั่ง HappyRider signup
+- **B** บังคับใช้คนละอีเมล — เรียบง่าย แต่ user ต้องมี 2 อีเมลจริง
+
+ส่วนข้อ 1-3 ทำได้เลยไม่ต้องตัดสินใจเพิ่ม

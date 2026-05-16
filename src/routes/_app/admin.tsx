@@ -52,7 +52,8 @@ const ROLE_LABEL: Record<string, string> = {
 
 function AdminPage() {
   const { role } = useAuth();
-  const [stats, setStats] = useState({ orders: 0, restaurants: 0, riders: 0 });
+  const [eatStats, setEatStats] = useState({ orders: 0, restaurants: 0, customers: 0, pendingOrders: 0 });
+  const [riderStats, setRiderStats] = useState({ total: 0, online: 0, pendingApproval: 0, activeDeliveries: 0 });
   const [admins, setAdmins] = useState<AdminRow[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
@@ -125,12 +126,34 @@ function AdminPage() {
   useEffect(() => {
     if (role !== "admin") return;
     (async () => {
-      const [o, r, ri] = await Promise.all([
+      const [orders, restaurants, customerRoles, pendingOrders, riderRoles, ridersAll] = await Promise.all([
         supabase.from("orders").select("id", { count: "exact", head: true }),
         supabase.from("restaurants").select("id", { count: "exact", head: true }),
-        supabase.from("riders").select("id", { count: "exact", head: true }),
+        supabase.from("user_roles").select("user_id", { count: "exact", head: true }).eq("role", "customer"),
+        supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("user_roles").select("user_id", { count: "exact", head: true }).eq("role", "rider"),
+        supabase.from("riders").select("id, is_online, is_approved"),
       ]);
-      setStats({ orders: o.count ?? 0, restaurants: r.count ?? 0, riders: ri.count ?? 0 });
+      const riderRows = ridersAll.data ?? [];
+      const online = riderRows.filter((r: any) => r.is_online).length;
+      const pendingApproval = riderRows.filter((r: any) => !r.is_approved).length;
+      const { count: activeDeliveries } = await supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .not("rider_id", "is", null)
+        .in("status", ["picked_up", "delivering"]);
+      setEatStats({
+        orders: orders.count ?? 0,
+        restaurants: restaurants.count ?? 0,
+        customers: customerRoles.count ?? 0,
+        pendingOrders: pendingOrders.count ?? 0,
+      });
+      setRiderStats({
+        total: riderRoles.count ?? 0,
+        online,
+        pendingApproval,
+        activeDeliveries: activeDeliveries ?? 0,
+      });
     })();
     loadAdmins();
     loadUsers();
@@ -165,11 +188,29 @@ function AdminPage() {
   return (
     <main className="max-w-4xl mx-auto p-4 space-y-4">
       <h1 className="text-2xl font-bold">แดชบอร์ดแอดมิน</h1>
-      <div className="grid grid-cols-3 gap-3">
-        <Stat label="ออเดอร์" value={stats.orders} />
-        <Stat label="ร้านค้า" value={stats.restaurants} />
-        <Stat label="ไรเดอร์" value={stats.riders} />
-      </div>
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+          <span className="text-base">🍔</span> ฝั่ง Eat (ลูกค้า + ร้านค้า)
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Stat label="ออเดอร์รวม" value={eatStats.orders} />
+          <Stat label="ร้านค้า" value={eatStats.restaurants} />
+          <Stat label="ลูกค้า" value={eatStats.customers} />
+          <Stat label="รออนุมัติร้าน" value={eatStats.pendingOrders} />
+        </div>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+          <span className="text-base">🛵</span> ฝั่ง Rider
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Stat label="ไรเดอร์ทั้งหมด" value={riderStats.total} />
+          <Stat label="ออนไลน์ตอนนี้" value={riderStats.online} />
+          <Stat label="รออนุมัติ" value={riderStats.pendingApproval} />
+          <Stat label="กำลังส่ง" value={riderStats.activeDeliveries} />
+        </div>
+      </section>
 
       <Card className="p-5 space-y-4">
         <div className="flex items-center gap-2">
