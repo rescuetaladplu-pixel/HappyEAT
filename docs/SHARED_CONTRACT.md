@@ -2,7 +2,7 @@
 
 > **Single source of truth** ระหว่าง 2 โปรเจกต์ Lovable ที่ใช้ Lovable Cloud (Supabase) **ตัวเดียวกัน**
 > - **happyeat** (โปรเจกต์นี้) — Customer + Restaurant
-> - **happyeat-rider** — Rider only
+> - **HappyRider** — Rider only
 >
 > **กฎ:** ทุกการเปลี่ยน schema / state machine / business rule ที่กระทบทั้ง 2 ฝั่ง ต้องอัปเดตไฟล์นี้ก่อน commit
 > **เจ้าของ migration:** ห้องนี้ (happyeat) เท่านั้น — rider room ห้าม run migration เด็ดขาด
