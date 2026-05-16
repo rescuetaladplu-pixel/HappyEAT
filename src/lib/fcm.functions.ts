@@ -184,6 +184,82 @@ export const sendStatusPush = createServerFn({ method: "POST" })
   });
 
 // ─────────────────────────────────────────────
+// Broadcast push to all ONLINE riders when an order becomes ready
+// (rider pool — HappyRider app subscribes via same fcm_tokens table)
+// ─────────────────────────────────────────────
+export const notifyRidersOrderReady = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        orderId: z.string().uuid(),
+        restaurantName: z.string().max(200).optional(),
+        deliveryFee: z.number().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    // Find online + approved riders
+    const { data: riders } = await supabaseAdmin
+      .from("riders")
+      .select("id")
+      .eq("is_online", true)
+      .eq("is_approved", true);
+
+    if (!riders || riders.length === 0) return { sent: 0 };
+
+    const riderIds = riders.map((r) => r.id);
+    const { data: tokens } = await supabaseAdmin
+      .from("fcm_tokens")
+      .select("token")
+      .in("user_id", riderIds);
+
+    if (!tokens || tokens.length === 0) return { sent: 0 };
+
+    const accessToken = await getGoogleAccessToken();
+    const projectId = getServiceAccount().project_id;
+    const title = "🛵 มีงานใหม่!";
+    const body = `${data.restaurantName ?? "ร้าน"} พร้อมส่ง${data.deliveryFee ? ` • ค่าส่ง ฿${data.deliveryFee}` : ""}`;
+    const link = "/rider-dashboard";
+
+    let sent = 0;
+    const stale: string[] = [];
+    await Promise.all(
+      tokens.map(async (t) => {
+        const res = await fetch(
+          `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              message: {
+                token: t.token,
+                notification: { title, body },
+                data: { url: link, tag: `pool-${data.orderId}`, orderId: data.orderId },
+                webpush: { fcm_options: { link } },
+              },
+            }),
+          },
+        );
+        if (res.ok) sent++;
+        else {
+          const errBody = await res.text();
+          if (res.status === 404 || res.status === 400 || errBody.includes("UNREGISTERED")) {
+            stale.push(t.token);
+          }
+        }
+      }),
+    );
+    if (stale.length > 0) {
+      await supabaseAdmin.from("fcm_tokens").delete().in("token", stale);
+    }
+    return { sent };
+  });
+
+// ─────────────────────────────────────────────
 // Google OAuth2 access token from service account
 // (JWT → exchange for short-lived bearer)
 // ─────────────────────────────────────────────

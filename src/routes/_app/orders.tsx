@@ -12,6 +12,7 @@ import { ClipboardList, Star } from "lucide-react";
 import { toast } from "sonner";
 import { STATUS_LABELS, STATUS_VARIANTS, type OrderStatus } from "@/lib/order-status";
 import { PaymentPanel } from "@/components/PaymentPanel";
+import { EnablePushButton } from "@/components/EnablePushButton";
 
 export const Route = createFileRoute("/_app/orders")({
   component: OrdersPage,
@@ -100,7 +101,10 @@ function OrdersPage() {
 
   return (
     <main className="max-w-2xl mx-auto p-4 space-y-3">
-      <h1 className="text-2xl font-bold mb-2">{role === "rider" ? "ประวัติงาน" : "ออเดอร์"}</h1>
+      <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+        <h1 className="text-2xl font-bold">{role === "rider" ? "ประวัติงาน" : "ออเดอร์"}</h1>
+        {role !== "rider" && <EnablePushButton />}
+      </div>
       {loading ? (
         Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)
       ) : orders.length === 0 ? (
