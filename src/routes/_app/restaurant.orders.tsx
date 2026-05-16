@@ -28,6 +28,10 @@ export const Route = createFileRoute("/_app/restaurant/orders")({
 
 type OrderStatus =
   | "pending"
+  | "awaiting_restaurant"
+  | "awaiting_payment"
+  | "awaiting_payment_confirm"
+  | "payment_rejected"
   | "accepted"
   | "preparing"
   | "ready"
@@ -53,11 +57,17 @@ interface Order {
   notes: string | null;
   created_at: string;
   customer_id: string;
+  payment_method: string;
+  payment_slip_url: string | null;
   order_items: OrderItem[];
 }
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "ใหม่",
+  awaiting_restaurant: "รอรับ (QR)",
+  awaiting_payment: "รอลูกค้าจ่าย",
+  awaiting_payment_confirm: "รอตรวจสลิป",
+  payment_rejected: "สลิปถูกปฏิเสธ",
   accepted: "รับแล้ว",
   preparing: "กำลังปรุง",
   ready: "พร้อมส่ง",
@@ -74,12 +84,13 @@ const NEXT: Partial<Record<OrderStatus, OrderStatus>> = {
 };
 
 const TABS: { key: string; label: string; statuses: OrderStatus[] }[] = [
-  { key: "new", label: "ใหม่", statuses: ["pending"] },
+  { key: "new", label: "ใหม่", statuses: ["pending", "awaiting_restaurant"] },
+  { key: "payment", label: "รอจ่าย/ตรวจสลิป", statuses: ["awaiting_payment", "awaiting_payment_confirm"] },
   { key: "cooking", label: "กำลังทำ", statuses: ["accepted", "preparing"] },
   { key: "ready", label: "พร้อมส่ง", statuses: ["ready"] },
   { key: "delivering", label: "กำลังส่ง", statuses: ["picked_up", "delivering"] },
   { key: "done", label: "เสร็จแล้ว", statuses: ["delivered"] },
-  { key: "cancelled", label: "ยกเลิก", statuses: ["cancelled"] },
+  { key: "cancelled", label: "ยกเลิก/ปฏิเสธ", statuses: ["cancelled", "payment_rejected"] },
 ];
 
 function RestaurantOrdersPage() {
