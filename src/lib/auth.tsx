@@ -80,13 +80,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq("user_id", userId);
 
       if (error) {
+        setRoles(["customer"]);
         setRole("customer");
         return;
       }
 
-      const roles = (data ?? []).map((row) => row.role as AppRole);
-      setRole(ROLE_PRIORITY.find((candidate) => roles.includes(candidate)) ?? "customer");
+      const list = (data ?? []).map((row) => row.role as AppRole);
+      setRoles(list.length > 0 ? list : ["customer"]);
+      setRole(ROLE_PRIORITY.find((candidate) => list.includes(candidate)) ?? "customer");
     } catch {
+      setRoles(["customer"]);
       setRole("customer");
     }
   }
