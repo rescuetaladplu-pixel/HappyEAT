@@ -120,7 +120,18 @@ function MyRestaurantHub() {
       .select("*")
       .eq("owner_id", user.id)
       .maybeSingle();
-    setRestaurant((data as unknown as Restaurant | null) ?? null);
+    const r = (data as unknown as Restaurant | null) ?? null;
+
+    // Auto-off: ถ้า is_open=true แต่นอกเวลาทำการ และไม่มี manual extension ที่ยังไม่หมดอายุ → ปิดอัตโนมัติ
+    if (r && r.is_open && !isOpenNow(r.opening_hours)) {
+      const extendActive = r.is_open_until && new Date(r.is_open_until) > new Date();
+      if (!extendActive) {
+        await supabase.from("restaurants").update({ is_open: false, is_open_until: null }).eq("id", r.id);
+        r.is_open = false;
+        r.is_open_until = null;
+      }
+    }
+    setRestaurant(r);
     setLoading(false);
   }
 
@@ -143,9 +154,29 @@ function MyRestaurantHub() {
 
   async function toggleOpen(open: boolean) {
     if (!restaurant) return;
-    await supabase.from("restaurants").update({ is_open: open }).eq("id", restaurant.id);
-    setRestaurant({ ...restaurant, is_open: open });
-    toast.success(open ? "เปิดร้านแล้ว" : "ปิดร้านชั่วคราว");
+    if (!open) {
+      await supabase.from("restaurants").update({ is_open: false, is_open_until: null }).eq("id", restaurant.id);
+      setRestaurant({ ...restaurant, is_open: false, is_open_until: null });
+      toast.success("ปิดร้านชั่วคราว");
+      return;
+    }
+    // เปิดร้าน — คำนวณเวลาปิดถัดไป
+    const closeAt = nextCloseAt(restaurant.opening_hours);
+    const closeIso = closeAt ? closeAt.toISOString() : null;
+    await supabase
+      .from("restaurants")
+      .update({ is_open: true, is_open_until: closeIso })
+      .eq("id", restaurant.id);
+    setRestaurant({ ...restaurant, is_open: true, is_open_until: closeIso });
+    const withinHours = isOpenNow(restaurant.opening_hours);
+    if (!withinHours && closeAt) {
+      toast.success("เปิดร้านนอกเวลาทำการ", {
+        description: `ร้านจะออนไลน์ยาวจนถึงเวลาปิดอัตโนมัติ: ${formatCloseLabel(closeAt)}`,
+        duration: 6000,
+      });
+    } else {
+      toast.success("เปิดร้านแล้ว");
+    }
   }
 
   if (loading) {
