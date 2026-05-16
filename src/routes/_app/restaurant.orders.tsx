@@ -267,6 +267,26 @@ function RestaurantOrdersPage() {
     const { error } = await supabase.from("orders").update({ status }).eq("id", o.id);
     if (error) return toast.error(error.message);
     toast.success(`อัปเดต: ${STATUS_LABELS[status]}`);
+    // Fire-and-forget push notifications
+    (async () => {
+      try {
+        const { sendStatusPush, notifyRidersOrderReady } = await import("@/lib/fcm.functions");
+        if (status === "accepted") {
+          await sendStatusPush({ data: { targetUserId: o.customer_id, title: "✅ ร้านรับออเดอร์แล้ว", body: "กำลังเตรียมทำอาหารให้คุณ", url: "/orders", tag: `order-${o.id}` } });
+        } else if (status === "preparing") {
+          await sendStatusPush({ data: { targetUserId: o.customer_id, title: "👨‍🍳 ร้านเริ่มทำอาหาร", body: "อีกสักครู่อาหารจะพร้อมส่ง", url: "/orders", tag: `order-${o.id}` } });
+        } else if (status === "ready") {
+          // Get restaurant info for the rider broadcast
+          const { data: r } = await supabase.from("restaurants").select("name, delivery_fee").eq("id", restaurantId ?? "").maybeSingle();
+          await Promise.all([
+            sendStatusPush({ data: { targetUserId: o.customer_id, title: "📦 อาหารพร้อมส่งแล้ว", body: "รอไรเดอร์มารับและจัดส่ง — เปิดแอปดูรหัส OTP", url: "/orders", tag: `order-${o.id}` } }),
+            notifyRidersOrderReady({ data: { orderId: o.id, restaurantName: r?.name ?? undefined, deliveryFee: r?.delivery_fee ? Number(r.delivery_fee) : undefined } }),
+          ]);
+        } else if (status === "cancelled") {
+          await sendStatusPush({ data: { targetUserId: o.customer_id, title: "❌ ออเดอร์ถูกยกเลิก", body: "ร้านยกเลิกออเดอร์ของคุณ", url: "/orders", tag: `order-${o.id}` } });
+        }
+      } catch (e) { console.error("push failed", e); }
+    })();
     if (restaurantId) load(restaurantId);
   }
 
