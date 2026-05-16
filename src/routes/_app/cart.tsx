@@ -342,12 +342,15 @@ function CartPage() {
 
       <div className="fixed bottom-20 inset-x-0 px-4 z-30">
         <div className="max-w-2xl mx-auto">
-          <Button size="lg" className="w-full shadow-lg" onClick={handleCheckout} disabled={submitting}>
+          <Button
+            size="lg"
+            className="w-full shadow-lg"
+            onClick={handleCheckout}
+            disabled={submitting || restaurantHasPromptpay === false}
+          >
             {submitting
               ? "กำลังสั่ง..."
-              : paymentMethod === "promptpay_qr"
-                ? `เสนอออเดอร์ — ฿${(total + deliveryFee - discount).toFixed(0)}`
-                : `สั่งเลย — ฿${(total + deliveryFee - discount).toFixed(0)} (เงินสดปลายทาง)`}
+              : `เสนอออเดอร์ — ฿${(total + deliveryFee - discount).toFixed(0)}`}
           </Button>
         </div>
       </div>
