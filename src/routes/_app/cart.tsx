@@ -64,29 +64,35 @@ function CartPage() {
     toast.success(`ใช้คูปอง ${data.code} ลด ฿${Math.round(d)}`);
   }
 
+  function applySavedAddr(a: typeof savedAddrs[number]) {
+    setSelectedAddrId(a.id);
+    setAddress(a.address);
+    setDeliveryLat(a.latitude !== null ? Number(a.latitude) : null);
+    setDeliveryLng(a.longitude !== null ? Number(a.longitude) : null);
+    const parts: string[] = [];
+    if (a.contact_name) parts.push(`ผู้รับ: ${a.contact_name}`);
+    if (a.phone_primary) parts.push(`โทร: ${a.phone_primary}`);
+    if (a.phone_secondary) parts.push(`สำรอง: ${a.phone_secondary}`);
+    if (a.rider_note) parts.push(`โน้ต: ${a.rider_note}`);
+    setNotes(parts.join(" | "));
+  }
+
   useEffect(() => {
     if (!user) return;
     supabase
       .from("addresses")
-      .select("address, latitude, longitude, contact_name, phone_primary, phone_secondary, rider_note")
+      .select("id, label, address, latitude, longitude, contact_name, phone_primary, phone_secondary, rider_note, is_default")
       .eq("user_id", user.id)
       .order("is_default", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
+      .limit(3)
       .then(({ data }) => {
-        if (!data) return;
-        setAddress((prev) => prev || data.address);
-        setDeliveryLat(data.latitude !== null ? Number(data.latitude) : null);
-        setDeliveryLng(data.longitude !== null ? Number(data.longitude) : null);
-        const parts: string[] = [];
-        if (data.contact_name) parts.push(`ผู้รับ: ${data.contact_name}`);
-        if (data.phone_primary) parts.push(`โทร: ${data.phone_primary}`);
-        if (data.phone_secondary) parts.push(`สำรอง: ${data.phone_secondary}`);
-        if (data.rider_note) parts.push(`โน้ต: ${data.rider_note}`);
-        const info = parts.join(" | ");
-        setNotes((prev) => prev || info);
+        const rows = (data ?? []) as typeof savedAddrs;
+        setSavedAddrs(rows);
+        const def = rows.find((r) => r.is_default) ?? rows[0];
+        if (def) applySavedAddr(def);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   async function handleCheckout() {
