@@ -145,7 +145,24 @@ function MyRestaurantSettingsPage() {
     toast.success("บันทึกเวลาทำการสำเร็จ");
   }
 
-  async function uploadImage(e: ChangeEvent<HTMLInputElement>, kind: "logo" | "cover") {
+  async function savePromptpay() {
+    if (!restaurant) return;
+    const id = promptpayId.replace(/[\s-]/g, "");
+    if (id && !/^\d{10}$|^\d{13}$/.test(id)) {
+      return toast.error("PromptPay ต้องเป็นเบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก");
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from("restaurants")
+      .update({
+        promptpay_id: id || null,
+        promptpay_holder_name: promptpayHolderName.trim() || null,
+      })
+      .eq("id", restaurant.id);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("บันทึก PromptPay สำเร็จ");
+  }
     const file = e.target.files?.[0];
     if (!file || !user) return;
     const ext = file.name.split(".").pop();
