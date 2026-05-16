@@ -301,6 +301,53 @@ function CartPage() {
         {promo && <p className="text-xs text-green-600">✓ ใช้ {promo.code} ลด ฿{promo.discount}</p>}
       </Card>
 
+      <Card className="p-4 space-y-3">
+        <div>
+          <h2 className="font-semibold">วิธีชำระเงิน</h2>
+          <p className="text-xs text-muted-foreground">
+            ค่าอาหารชำระตามวิธีที่เลือก ค่าส่งจ่ายไรเดอร์ตอนรับของ
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-2">
+          <button
+            type="button"
+            disabled={restaurantHasPromptpay === false}
+            onClick={() => setPaymentMethod("promptpay_qr")}
+            className={`text-left p-3 rounded-lg border transition flex items-center gap-3 ${
+              paymentMethod === "promptpay_qr"
+                ? "border-primary bg-primary/5 ring-1 ring-primary"
+                : "border-border hover:bg-secondary/50"
+            } ${restaurantHasPromptpay === false ? "opacity-50 cursor-not-allowed" : ""}`}
+          >
+            <QrCode className="h-5 w-5 text-primary shrink-0" />
+            <div className="flex-1">
+              <p className="font-medium text-sm">PromptPay QR (ค่าอาหาร)</p>
+              <p className="text-xs text-muted-foreground">
+                ร้านยืนยันความพร้อม → ลูกค้าสแกนจ่าย → ร้านตรวจสลิป → เริ่มทำอาหาร
+              </p>
+              {restaurantHasPromptpay === false && (
+                <p className="text-xs text-destructive mt-1">ร้านยังไม่ได้ตั้งค่า PromptPay</p>
+              )}
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("cash")}
+            className={`text-left p-3 rounded-lg border transition flex items-center gap-3 ${
+              paymentMethod === "cash"
+                ? "border-primary bg-primary/5 ring-1 ring-primary"
+                : "border-border hover:bg-secondary/50"
+            }`}
+          >
+            <Banknote className="h-5 w-5 text-primary shrink-0" />
+            <div className="flex-1">
+              <p className="font-medium text-sm">เงินสดปลายทาง</p>
+              <p className="text-xs text-muted-foreground">จ่ายค่าอาหาร + ค่าส่งให้ไรเดอร์ตอนรับ</p>
+            </div>
+          </button>
+        </div>
+      </Card>
+
       <Card className="p-4 space-y-2">
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">ยอดอาหาร</span>
@@ -325,7 +372,11 @@ function CartPage() {
       <div className="fixed bottom-20 inset-x-0 px-4 z-30">
         <div className="max-w-2xl mx-auto">
           <Button size="lg" className="w-full shadow-lg" onClick={handleCheckout} disabled={submitting}>
-            {submitting ? "กำลังสั่ง..." : `สั่งเลย — ฿${(total + deliveryFee - discount).toFixed(0)} (เก็บเงินปลายทาง)`}
+            {submitting
+              ? "กำลังสั่ง..."
+              : paymentMethod === "promptpay_qr"
+                ? `เสนอออเดอร์ — ฿${(total + deliveryFee - discount).toFixed(0)}`
+                : `สั่งเลย — ฿${(total + deliveryFee - discount).toFixed(0)} (เงินสดปลายทาง)`}
           </Button>
         </div>
       </div>
