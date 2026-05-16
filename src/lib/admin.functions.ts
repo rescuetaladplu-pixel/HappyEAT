@@ -131,7 +131,7 @@ export const listAllUsers = createServerFn({ method: "GET" })
     const userIds = authData.users.map((u) => u.id);
 
     const [{ data: profiles }, { data: roles }] = await Promise.all([
-      supabaseAdmin.from("profiles").select("id, full_name, phone, username, avatar_url").in("id", userIds),
+      supabaseAdmin.from("profiles").select("id, first_name, last_name, phone, username, avatar_url").in("id", userIds),
       supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", userIds),
     ]);
 
