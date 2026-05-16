@@ -46,7 +46,7 @@ export const createAdminAccount = createServerFn({ method: "POST" })
     // Ensure profile + role (trigger may have fired, but be defensive)
     await supabaseAdmin
       .from("profiles")
-      .upsert({ id: newId, full_name: data.username, username: data.username });
+      .upsert({ id: newId, first_name: data.username, last_name: "", username: data.username });
     await supabaseAdmin
       .from("user_roles")
       .upsert({ user_id: newId, role: "admin" }, { onConflict: "user_id,role" });
