@@ -635,7 +635,15 @@ function HomePage() {
             <p className="text-xs mt-1">ลองเปลี่ยนหมวดหมู่หรือคำค้นหา</p>
           </div>
         ) : (
-          filtered.map((r) => (
+          filtered.map((r) => {
+            const withinHours = isOpenNow(r.opening_hours);
+            const reallyOpen = r.is_open && withinHours;
+            const closedLabel = !r.is_open
+              ? "ปิดอยู่"
+              : !withinHours
+                ? (nextOpenLabel(r.opening_hours) ?? "นอกเวลาทำการ")
+                : null;
+            return (
             <Link key={r.id} to="/restaurants/$restaurantId" params={{ restaurantId: r.id }}>
               <Card className="overflow-hidden p-0 hover:shadow-md transition">
                 <div className="h-40 bg-gradient-to-br from-accent to-secondary relative">
@@ -651,9 +659,9 @@ function HomePage() {
                       <UtensilsCrossed className="h-12 w-12" />
                     </div>
                   )}
-                  {!r.is_open && (
+                  {!reallyOpen && (
                     <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
-                      <span className="font-semibold text-foreground">ปิดอยู่</span>
+                      <span className="font-semibold text-foreground">{closedLabel}</span>
                     </div>
                   )}
                 </div>
