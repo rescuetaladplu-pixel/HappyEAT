@@ -130,7 +130,7 @@ function RestaurantOrdersPage() {
         return;
       }
       playNotificationSound(soundTypeRef.current, volumeRef.current);
-    }, 4000);
+    }, 3000);
     setAlerting(true);
   }
 
