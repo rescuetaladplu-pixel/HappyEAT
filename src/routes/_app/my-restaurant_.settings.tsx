@@ -352,6 +352,46 @@ function MyRestaurantSettingsPage() {
             </Button>
           </Card>
         </TabsContent>
+
+        <TabsContent value="payment">
+          <Card className="p-5 space-y-4">
+            <div className="space-y-1">
+              <h2 className="font-semibold flex items-center gap-2">
+                <QrCode className="h-5 w-5" /> PromptPay สำหรับรับเงินค่าอาหาร
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                ลูกค้าจะสแกน QR นี้ชำระเงินค่าอาหารโดยตรงเข้าบัญชีร้าน
+                ระบบไม่หักค่าธรรมเนียม
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>เบอร์โทร / เลขบัตรประชาชนที่ผูก PromptPay</Label>
+              <Input
+                inputMode="numeric"
+                placeholder="0812345678 หรือ 1234567890123"
+                value={promptpayId}
+                onChange={(e) => setPromptpayId(e.target.value)}
+                maxLength={20}
+              />
+              <p className="text-xs text-muted-foreground">
+                เบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>ชื่อบัญชี (แสดงให้ลูกค้าเห็นก่อนโอน)</Label>
+              <Input
+                placeholder="เช่น สมชาย ใจดี"
+                value={promptpayHolderName}
+                onChange={(e) => setPromptpayHolderName(e.target.value)}
+                maxLength={100}
+              />
+            </div>
+            <Button onClick={savePromptpay} disabled={saving} className="w-full">
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              บันทึก PromptPay
+            </Button>
+          </Card>
+        </TabsContent>
       </Tabs>
     </main>
   );
