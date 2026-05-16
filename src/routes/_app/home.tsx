@@ -699,7 +699,8 @@ function HomePage() {
                 </div>
               </Card>
             </Link>
-          ))
+            );
+          })
         )}
       </section>
     </main>
