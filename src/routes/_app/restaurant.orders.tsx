@@ -91,9 +91,9 @@ function RestaurantOrdersPage() {
     return localStorage.getItem("rest-sound") !== "off";
   });
   const [soundType, setSoundType] = useState<SoundId>(() => {
-    if (typeof window === "undefined") return "kitchen";
+    if (typeof window === "undefined") return "siren";
     const saved = localStorage.getItem("rest-sound-type") as SoundId | null;
-    return saved && SOUND_OPTIONS.some((s) => s.id === saved) ? saved : "kitchen";
+    return saved && SOUND_OPTIONS.some((s) => s.id === saved) ? saved : "siren";
   });
   const [volume, setVolume] = useState<VolumeLevel>(() => {
     if (typeof window === "undefined") return "loud";
@@ -102,6 +102,37 @@ function RestaurantOrdersPage() {
   });
   const knownIdsRef = useRef<Set<string>>(new Set());
   const initRef = useRef(false);
+  const alertIntervalRef = useRef<number | null>(null);
+  const mutedUntilActionRef = useRef(false);
+  const [alerting, setAlerting] = useState(false);
+  // Keep latest values for the interval callback without re-creating it
+  const soundOnRef = useRef(soundOn);
+  const soundTypeRef = useRef(soundType);
+  const volumeRef = useRef(volume);
+  useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
+  useEffect(() => { soundTypeRef.current = soundType; }, [soundType]);
+  useEffect(() => { volumeRef.current = volume; }, [volume]);
+
+  function stopAlertLoop() {
+    if (alertIntervalRef.current !== null) {
+      window.clearInterval(alertIntervalRef.current);
+      alertIntervalRef.current = null;
+    }
+    setAlerting(false);
+  }
+  function startAlertLoop() {
+    if (alertIntervalRef.current !== null) return;
+    if (!soundOnRef.current) return;
+    playNotificationSound(soundTypeRef.current, volumeRef.current);
+    alertIntervalRef.current = window.setInterval(() => {
+      if (!soundOnRef.current) {
+        stopAlertLoop();
+        return;
+      }
+      playNotificationSound(soundTypeRef.current, volumeRef.current);
+    }, 4000);
+    setAlerting(true);
+  }
 
   async function load(rid: string) {
     const { data, error } = await supabase
