@@ -1,32 +1,57 @@
 ## เป้าหมาย
-ในหน้าแรก (Sheet "ที่อยู่จัดส่ง") ให้ช่อง "ที่อยู่" เปลี่ยนเป็น **กล่องค้นหาแบบ autocomplete** — พิมพ์ "โรงแรมฮิลตันพัทยา" แล้วมีรายการสถานที่ขึ้นมาให้เลือก พอกดสถานที่ระบบจะกรอกที่อยู่เต็มและปักหมุด (lat/lng) บนแผนที่ให้อัตโนมัติ
+ให้ผู้ใช้บันทึกที่อยู่จัดส่งได้สูงสุด **3 ที่อยู่** ใช้ชื่อสถานที่จาก Google Places เป็นชื่อเริ่มต้น แล้วเลือกสลับเป็น "ที่อยู่จัดส่งหลัก" ได้สะดวก ทั้งจากหน้าแรกและหน้าตะกร้า
 
-## วิธีทำ
+## พฤติกรรมที่ผู้ใช้จะเห็น
 
-ใช้ **Google Places Autocomplete (New)** ผ่าน Lovable connector — เป็นบริการที่ครอบคลุมสถานที่ในไทย (โรงแรม ห้าง ชื่อหมู่บ้าน ฯลฯ) ดีที่สุด
+### หน้าแรก (`/home`)
+- กดแถบ "ส่งไปยัง..." ด้านบน → เปิด Sheet "ที่อยู่จัดส่ง"
+- ด้านบน Sheet มี **รายการเทมเพลต** ที่บันทึกไว้ (สูงสุด 3 การ์ด)
+  - แต่ละการ์ดแสดง: ชื่อสถานที่ + ที่อยู่ย่อ + ป้าย "ใช้อยู่" หากเป็นค่าหลัก
+  - กดการ์ด = เลือกใช้ที่อยู่นั้น (ตั้ง `is_default=true`) และปิด Sheet
+  - มีปุ่มลบ (ถังขยะ) บนการ์ด
+- ใต้รายการ มีปุ่ม **"+ เพิ่มที่อยู่ใหม่"** (ซ่อนเมื่อครบ 3) → เปิดฟอร์มกรอกที่อยู่ใหม่
+- กดที่การ์ด → เปิดฟอร์มแก้ไขที่อยู่นั้นได้ (ปุ่ม "แก้ไข")
+- ฟอร์ม: ใช้ของเดิม (Place autocomplete + แผนที่ + เบอร์ + โน้ต) — เพิ่ม:
+  - เมื่อเลือกสถานที่จาก autocomplete → เติม `addrLabel` ด้วย `p.name` อัตโนมัติ (ทับของเดิม ยกเว้นผู้ใช้แก้เอง)
+  - ปุ่ม "บันทึก" → ถ้าเป็นที่อยู่ใหม่และยังมีไม่ครบ 3 → insert; ถ้าครบแล้ว → แจ้งเตือน
+  - เมื่อบันทึก/เลือก → ตั้งเป็น default โดย unset default ของรายการอื่น
 
-### 1. เปิด Google Maps connector
-ก่อนเริ่ม ต้องเชื่อม Google Maps connector ในโปรเจกต์ก่อน — ผมจะเปิด dialog ให้กดเชื่อมตอนเริ่ม implement
+### หน้าตะกร้า (`/cart`)
+- การ์ด "ที่อยู่จัดส่ง" เปลี่ยนจาก textarea เดี่ยว เป็น:
+  - **Dropdown/รายการ chip** เลือก 1 จากที่อยู่ที่บันทึกไว้
+  - แสดงข้อมูลที่อยู่ที่เลือก (ที่อยู่ + ผู้รับ + เบอร์ + โน้ต) แบบอ่านอย่างเดียว
+  - ลิงก์ "จัดการที่อยู่" → พาไปหน้าแรกเปิด Sheet (หรือเปิด Sheet เดียวกัน inline ก็ได้ — เลือก inline เพื่อให้ไม่ออกจากตะกร้า)
+- ใช้ค่าที่เลือกในการสั่งซื้อ (`delivery_address`, `delivery_lat`, `delivery_lng`, `notes`)
 
-### 2. คอมโพเนนต์ใหม่ `src/components/PlaceAutocomplete.tsx`
-- Input ที่ debounce การพิมพ์ (~300ms)
-- เรียก `places/v1/places:autocomplete` ผ่าน connector gateway (กรองเฉพาะประเทศไทย ภาษาไทย)
-- แสดงผลลัพธ์เป็นรายการ dropdown ใต้ช่อง input (ชื่อสถานที่ + ที่อยู่ย่อ)
-- เมื่อผู้ใช้กดเลือก → เรียก `places/v1/places/{placeId}` ดึงรายละเอียด (formattedAddress, location lat/lng)
-- ส่งกลับผ่าน prop `onSelect({ address, lat, lng })`
+## รายละเอียดทางเทคนิค
 
-### 3. แก้ `src/routes/_app/home.tsx`
-- แทนที่ `<Textarea id="addr-text">` ด้วย `<PlaceAutocomplete>`
-- ยังเก็บ Textarea เล็กไว้ด้านล่าง (ผู้ใช้สามารถแก้ที่อยู่หลังเลือกได้ เผื่อต้องเพิ่มเลขห้อง/บ้าน)
-- เมื่อ `onSelect` → setAddrText, setLat, setLng พร้อมกัน → แผนที่ Leaflet จะ recenter อัตโนมัติ (มี `<Recenter>` อยู่แล้ว)
+### Database
+ไม่ต้องสร้าง migration — ตาราง `addresses` มีฟิลด์ครบแล้ว (label, address, lat/lng, contact, phones, rider_note, is_default) และมี RLS `auth.uid() = user_id`
 
-### 4. ทำเหมือนกันใน `my-restaurant_.settings.tsx` (Tab "ที่อยู่")
-ร้านค้าก็จะตั้งที่อยู่ด้วย autocomplete เหมือนกัน — โค้ด component ใช้ซ้ำได้
+ข้อจำกัด 3 ที่อยู่ → บังคับฝั่งแอป (เช็คจำนวนก่อน insert) ก็พอ ไม่ต้องเพิ่ม DB constraint
 
-## รายละเอียดเทคนิค
-- ใช้ Places API (New) ไม่ใช่ legacy
-- เรียกผ่าน `https://connector-gateway.lovable.dev/google_maps/places/v1/...` พร้อม Authorization + X-Connection-Api-Key header
-- `LOVABLE_API_KEY` มีอยู่แล้วฝั่ง client (เป็น public key ของ gateway), `GOOGLE_MAPS_API_KEY` ก็เป็น connector secret
-- request body: `{ input, languageCode: "th", regionCode: "TH", includedRegionCodes: ["th"] }`
-- field mask `places.id,places.displayName,places.formattedAddress,places.location` เพื่อให้ราคาถูก
-- ไม่แตะ database schema, ไม่แตะ auth
+### โค้ดที่จะแก้ (ไม่แก้ DB)
+1. **`src/routes/_app/home.tsx`**
+   - เปลี่ยน state `addr: AddressRow | null` → `addresses: AddressRow[]` + `selectedId: string | null`
+   - โหลด `.limit(3)` แทน `.limit(1)`; เลือกตัวที่ `is_default` เป็นค่าเริ่มต้น
+   - Sheet ใหม่: 2 โหมด — `list` (แสดงเทมเพลต) / `form` (เพิ่ม/แก้ไข)
+   - ฟังก์ชันใหม่: `selectAddress(id)`, `deleteAddress(id)`, `openNewForm()`, `openEditForm(addr)`
+   - `saveAddress()`: insert ใหม่ (ถ้า < 3) หรือ update; ตั้ง default + unset อื่น
+   - ใน PlaceAutocomplete `onSelect`: เซ็ต `addrLabel = p.name` เสมอ (โหมด new) หรือ "ถ้ายังว่าง" (โหมด edit)
+
+2. **`src/routes/_app/cart.tsx`**
+   - โหลดที่อยู่ทั้งหมด (สูงสุด 3) แทน `.limit(1)`
+   - เพิ่ม UI เลือกที่อยู่ (rendered เป็น radio cards) — ค่าเริ่มต้น = `is_default`
+   - sync ค่า `address`, `deliveryLat/Lng`, `notes` จากที่อยู่ที่เลือก
+   - ถ้ายังไม่มีที่อยู่ → แสดงลิงก์ "ไปเพิ่มที่อยู่จัดส่งที่หน้าแรก"
+
+### Edge cases
+- ผู้ใช้ที่ยังไม่มีที่อยู่ (รายการว่าง) → Sheet เปิดมาที่โหมด `form` ทันที
+- ลบที่อยู่ default → เลื่อน default เป็นรายการล่าสุด
+- ครบ 3 แล้วกดเพิ่ม → toast แจ้ง "บันทึกได้สูงสุด 3 ที่อยู่ กรุณาลบรายการก่อน"
+- ยังไม่ได้แก้ `home.tsx` หน้าใหญ่ — ทำในไฟล์เดิม (ขนาดยังจัดการได้) ไม่แยก component ใหม่เพื่อลด churn
+
+### ไม่ทำในแผนนี้
+- ไม่แก้ DB schema / migration
+- ไม่แตะ PlaceAutocomplete หรือ LocationPicker
+- ไม่เพิ่มหน้า `/addresses` แยก (ใช้ Sheet เดียวพอ)

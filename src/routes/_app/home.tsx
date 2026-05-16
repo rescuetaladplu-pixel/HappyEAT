@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/sheet";
 import { LocationPicker } from "@/components/restaurant/LocationPicker";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
-import { Search, MapPin, Star, UtensilsCrossed, ChevronRight } from "lucide-react";
+import { Search, MapPin, Star, UtensilsCrossed, ChevronRight, Plus, Trash2, Check, ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
@@ -87,9 +87,12 @@ function HomePage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("ทั้งหมด");
 
-  // Address state
-  const [addr, setAddr] = useState<AddressRow | null>(null);
+  // Address state — รองรับสูงสุด 3 ที่อยู่
+  const MAX_ADDRESSES = 3;
+  const [addresses, setAddresses] = useState<AddressRow[]>([]);
   const [addrOpen, setAddrOpen] = useState(false);
+  const [sheetMode, setSheetMode] = useState<"list" | "form">("list");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [addrLabel, setAddrLabel] = useState("บ้าน");
   const [addrText, setAddrText] = useState("");
   const [contactName, setContactName] = useState("");
@@ -99,6 +102,8 @@ function HomePage() {
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [savingAddr, setSavingAddr] = useState(false);
+
+  const currentAddr = addresses.find((a) => a.is_default) ?? addresses[0] ?? null;
 
   const loadRestaurants = useCallback(async () => {
     setLoading(true);
@@ -135,7 +140,7 @@ function HomePage() {
 
   useEffect(() => {
     if (!user) return;
-    async function loadAddr() {
+    async function loadAddrs() {
       try {
         const res = await withTimeout(
           supabase
@@ -146,29 +151,51 @@ function HomePage() {
             .eq("user_id", user!.id)
             .order("is_default", { ascending: false })
             .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle(),
+            .limit(MAX_ADDRESSES),
           10000,
         );
-        const data = res.data;
-        if (data) {
-          const r = data as AddressRow;
-          setAddr(r);
-          setAddrLabel(r.label);
-          setAddrText(r.address);
-          setContactName(r.contact_name ?? "");
-          setPhonePrimary(r.phone_primary ?? "");
-          setPhoneSecondary(r.phone_secondary ?? "");
-          setRiderNote(r.rider_note ?? "");
-          setLat(r.latitude !== null ? Number(r.latitude) : null);
-          setLng(r.longitude !== null ? Number(r.longitude) : null);
-        }
+        const rows = (res.data ?? []) as AddressRow[];
+        setAddresses(rows);
       } catch {
-        // ignore — ไม่ต้องบล็อกหน้าแรกถ้าโหลดที่อยู่ไม่สำเร็จ
+        // ignore
       }
     }
-    loadAddr();
+    loadAddrs();
   }, [user]);
+
+  function resetForm() {
+    setEditingId(null);
+    setAddrLabel("");
+    setAddrText("");
+    setContactName("");
+    setPhonePrimary("");
+    setPhoneSecondary("");
+    setRiderNote("");
+    setLat(null);
+    setLng(null);
+  }
+
+  function openNewForm() {
+    if (addresses.length >= MAX_ADDRESSES) {
+      toast.error(`บันทึกได้สูงสุด ${MAX_ADDRESSES} ที่อยู่ กรุณาลบรายการก่อน`);
+      return;
+    }
+    resetForm();
+    setSheetMode("form");
+  }
+
+  function openEditForm(a: AddressRow) {
+    setEditingId(a.id);
+    setAddrLabel(a.label);
+    setAddrText(a.address);
+    setContactName(a.contact_name ?? "");
+    setPhonePrimary(a.phone_primary ?? "");
+    setPhoneSecondary(a.phone_secondary ?? "");
+    setRiderNote(a.rider_note ?? "");
+    setLat(a.latitude !== null ? Number(a.latitude) : null);
+    setLng(a.longitude !== null ? Number(a.longitude) : null);
+    setSheetMode("form");
+  }
 
   function handleAddressOpen(nextOpen: boolean) {
     if (nextOpen && !authLoading && !user) {
@@ -177,6 +204,50 @@ function HomePage() {
       return;
     }
     setAddrOpen(nextOpen);
+    if (nextOpen) {
+      // ถ้ายังไม่มีที่อยู่เลย → เปิดฟอร์มเลย
+      if (addresses.length === 0) {
+        resetForm();
+        setSheetMode("form");
+      } else {
+        setSheetMode("list");
+      }
+    }
+  }
+
+  async function selectAddress(id: string) {
+    if (!user) return;
+    const target = addresses.find((a) => a.id === id);
+    if (!target) return;
+    // optimistic
+    setAddresses((prev) => prev.map((a) => ({ ...a, is_default: a.id === id })));
+    setAddrOpen(false);
+    toast.success(`ใช้ที่อยู่: ${target.label}`);
+    try {
+      await supabase.from("addresses").update({ is_default: false }).eq("user_id", user.id).neq("id", id);
+      await supabase.from("addresses").update({ is_default: true }).eq("id", id);
+    } catch {
+      toast.error("สลับที่อยู่ไม่สำเร็จ");
+    }
+  }
+
+  async function deleteAddress(id: string) {
+    if (!user) return;
+    const wasDefault = addresses.find((a) => a.id === id)?.is_default;
+    const remaining = addresses.filter((a) => a.id !== id);
+    setAddresses(remaining);
+    try {
+      const res = await supabase.from("addresses").delete().eq("id", id);
+      if (res.error) throw res.error;
+      // ถ้าลบตัว default → ตั้ง default ใหม่ให้ตัวแรกที่เหลือ
+      if (wasDefault && remaining[0]) {
+        await supabase.from("addresses").update({ is_default: true }).eq("id", remaining[0].id);
+        setAddresses((prev) => prev.map((a, i) => ({ ...a, is_default: i === 0 })));
+      }
+      toast.success("ลบที่อยู่แล้ว");
+    } catch {
+      toast.error("ลบไม่สำเร็จ");
+    }
   }
 
   async function saveAddress() {
@@ -185,6 +256,9 @@ function HomePage() {
     if (!PHONE_RE.test(phonePrimary.trim())) return toast.error("รูปแบบเบอร์ติดต่อหลักไม่ถูกต้อง");
     if (phoneSecondary.trim() && !PHONE_RE.test(phoneSecondary.trim()))
       return toast.error("รูปแบบเบอร์ติดต่อสำรองไม่ถูกต้อง");
+    if (!editingId && addresses.length >= MAX_ADDRESSES) {
+      return toast.error(`บันทึกได้สูงสุด ${MAX_ADDRESSES} ที่อยู่`);
+    }
     setSavingAddr(true);
     try {
       const { data: sessionData } = await withTimeout(supabase.auth.getSession(), 5000);
@@ -197,7 +271,7 @@ function HomePage() {
       }
       const payload = {
         user_id: activeUser.id,
-        label: addrLabel.trim() || "บ้าน",
+        label: addrLabel.trim() || "ที่อยู่",
         address: addrText.trim(),
         is_default: true,
         latitude: lat,
@@ -208,14 +282,25 @@ function HomePage() {
         rider_note: riderNote.trim() || null,
       };
       const res = await withTimeout(
-        addr
-          ? supabase.from("addresses").update(payload).eq("id", addr.id).select().single()
+        editingId
+          ? supabase.from("addresses").update(payload).eq("id", editingId).select().single()
           : supabase.from("addresses").insert(payload).select().single(),
         ADDRESS_SAVE_TIMEOUT_MS,
       );
       if (res.error) return toast.error(res.error.message);
-      setAddr(res.data as AddressRow);
-      setAddrOpen(false);
+      const saved = res.data as AddressRow;
+      // unset default ของรายการอื่น
+      await supabase
+        .from("addresses")
+        .update({ is_default: false })
+        .eq("user_id", activeUser.id)
+        .neq("id", saved.id);
+      setAddresses((prev) => {
+        const others = prev.filter((a) => a.id !== saved.id).map((a) => ({ ...a, is_default: false }));
+        return [saved, ...others].slice(0, MAX_ADDRESSES);
+      });
+      setSheetMode("list");
+      resetForm();
       toast.success("บันทึกที่อยู่แล้ว");
     } catch (error) {
       const message =
@@ -266,7 +351,7 @@ function HomePage() {
                   <MapPin className="h-3 w-3" /> ส่งไปยัง
                 </p>
                 <p className="text-sm font-semibold truncate">
-                  {addr ? `${addr.label} · ${addr.address}` : "เพิ่มที่อยู่จัดส่ง"}
+                  {currentAddr ? `${currentAddr.label} · ${currentAddr.address}` : "เพิ่มที่อยู่จัดส่ง"}
                 </p>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -274,126 +359,213 @@ function HomePage() {
           </SheetTrigger>
           <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto">
             <SheetHeader>
-              <SheetTitle>ที่อยู่จัดส่ง</SheetTitle>
+              <SheetTitle className="flex items-center gap-2">
+                {sheetMode === "form" && addresses.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setSheetMode("list"); resetForm(); }}
+                    className="p-1 -ml-1 rounded hover:bg-secondary"
+                    aria-label="กลับ"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                )}
+                {sheetMode === "list" ? "เลือกที่อยู่จัดส่ง" : editingId ? "แก้ไขที่อยู่" : "เพิ่มที่อยู่ใหม่"}
+              </SheetTitle>
             </SheetHeader>
-            <div className="space-y-3 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="addr-label">ชื่อสถานที่</Label>
-                <Input
-                  id="addr-label"
-                  placeholder="เช่น บ้าน, ที่ทำงาน"
-                  maxLength={50}
-                  value={addrLabel}
-                  onChange={(e) => setAddrLabel(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>ค้นหาสถานที่</Label>
-                <PlaceAutocomplete
-                  onSelect={(p) => {
-                    setAddrText(p.address);
-                    if (p.lat !== null) setLat(p.lat);
-                    if (p.lng !== null) setLng(p.lng);
-                    if (p.name && !addrLabel.trim()) setAddrLabel(p.name);
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="addr-text">ที่อยู่ (แก้ไขเพิ่มเติมได้ เช่น เลขห้อง/ชั้น)</Label>
-                <Textarea
-                  id="addr-text"
-                  placeholder="บ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด"
-                  maxLength={500}
-                  value={addrText}
-                  onChange={(e) => setAddrText(e.target.value)}
-                  rows={3}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>ปักหมุดบนแผนที่ (คลิกเพื่อเลือกตำแหน่ง)</Label>
-                <LocationPicker
-                  lat={lat}
-                  lng={lng}
-                  onChange={(la, ln) => {
-                    setLat(la);
-                    setLng(ln);
-                  }}
-                />
-                {lat !== null && lng !== null && (
-                  <p className="text-xs text-muted-foreground">
-                    พิกัด: {lat.toFixed(5)}, {lng.toFixed(5)}
+
+            {sheetMode === "list" ? (
+              <div className="space-y-2 py-4">
+                {addresses.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    ยังไม่มีที่อยู่บันทึกไว้
                   </p>
                 )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  type="button"
-                  onClick={() => {
-                    if (!navigator.geolocation) return toast.error("เบราว์เซอร์ไม่รองรับ GPS");
-                    navigator.geolocation.getCurrentPosition(
-                      (pos) => {
-                        setLat(pos.coords.latitude);
-                        setLng(pos.coords.longitude);
-                      },
-                      () => toast.error("ไม่สามารถดึงตำแหน่งได้"),
-                    );
-                  }}
-                >
-                  <MapPin className="h-4 w-4 mr-2" /> ใช้ตำแหน่งปัจจุบัน
-                </Button>
+                {addresses.map((a) => (
+                  <Card
+                    key={a.id}
+                    className={`p-3 transition ${a.is_default ? "border-primary ring-1 ring-primary" : ""}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <button
+                        type="button"
+                        onClick={() => selectAddress(a.id)}
+                        className="flex-1 min-w-0 text-left"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <MapPin className="h-4 w-4 text-primary shrink-0" />
+                          <span className="font-semibold truncate">{a.label}</span>
+                          {a.is_default && (
+                            <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                              <Check className="h-2.5 w-2.5" /> ใช้อยู่
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{a.address}</p>
+                        {a.phone_primary && (
+                          <p className="text-xs text-muted-foreground mt-0.5">โทร: {a.phone_primary}</p>
+                        )}
+                      </button>
+                      <div className="flex flex-col gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => openEditForm(a)}
+                        >
+                          แก้ไข
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive"
+                          onClick={() => deleteAddress(a.id)}
+                          aria-label="ลบ"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+                {addresses.length < MAX_ADDRESSES && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={openNewForm}
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> เพิ่มที่อยู่ใหม่ ({addresses.length}/{MAX_ADDRESSES})
+                  </Button>
+                )}
+                {addresses.length >= MAX_ADDRESSES && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    บันทึกครบ {MAX_ADDRESSES} ที่อยู่แล้ว — ลบรายการเพื่อเพิ่มใหม่
+                  </p>
+                )}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="contact-name">ชื่อผู้รับ</Label>
-                <Input
-                  id="contact-name"
-                  placeholder="ชื่อผู้รับสินค้า"
-                  maxLength={100}
-                  value={contactName}
-                  onChange={(e) => setContactName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone-primary">เบอร์ติดต่อหลัก *</Label>
-                <Input
-                  id="phone-primary"
-                  type="tel"
-                  inputMode="tel"
-                  placeholder="08x-xxx-xxxx"
-                  maxLength={20}
-                  value={phonePrimary}
-                  onChange={(e) => setPhonePrimary(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone-secondary">เบอร์ติดต่อสำรอง</Label>
-                <Input
-                  id="phone-secondary"
-                  type="tel"
-                  inputMode="tel"
-                  placeholder="ไม่บังคับ"
-                  maxLength={20}
-                  value={phoneSecondary}
-                  onChange={(e) => setPhoneSecondary(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="rider-note">โน้ตถึงไรเดอร์</Label>
-                <Textarea
-                  id="rider-note"
-                  placeholder="เช่น ตึก B ชั้น 3 โทรก่อนถึง"
-                  maxLength={300}
-                  value={riderNote}
-                  onChange={(e) => setRiderNote(e.target.value)}
-                  rows={2}
-                />
-              </div>
-            </div>
-            <SheetFooter>
-              <Button onClick={saveAddress} disabled={savingAddr} className="w-full">
-                {savingAddr ? "กำลังบันทึก..." : "บันทึก"}
-              </Button>
-            </SheetFooter>
+            ) : (
+              <>
+                <div className="space-y-3 py-4">
+                  <div className="space-y-2">
+                    <Label>ค้นหาสถานที่</Label>
+                    <PlaceAutocomplete
+                      onSelect={(p) => {
+                        setAddrText(p.address);
+                        if (p.lat !== null) setLat(p.lat);
+                        if (p.lng !== null) setLng(p.lng);
+                        // ใช้ชื่อสถานที่เป็นชื่อที่อยู่อัตโนมัติ
+                        if (p.name) setAddrLabel(p.name);
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="addr-label">ชื่อที่อยู่ (แก้ไขได้)</Label>
+                    <Input
+                      id="addr-label"
+                      placeholder="เช่น บ้าน, ที่ทำงาน, โรงแรมฮิลตัน"
+                      maxLength={50}
+                      value={addrLabel}
+                      onChange={(e) => setAddrLabel(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="addr-text">ที่อยู่ (แก้ไขเพิ่มเติมได้ เช่น เลขห้อง/ชั้น)</Label>
+                    <Textarea
+                      id="addr-text"
+                      placeholder="บ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด"
+                      maxLength={500}
+                      value={addrText}
+                      onChange={(e) => setAddrText(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ปักหมุดบนแผนที่ (คลิกเพื่อเลือกตำแหน่ง)</Label>
+                    <LocationPicker
+                      lat={lat}
+                      lng={lng}
+                      onChange={(la, ln) => {
+                        setLat(la);
+                        setLng(ln);
+                      }}
+                    />
+                    {lat !== null && lng !== null && (
+                      <p className="text-xs text-muted-foreground">
+                        พิกัด: {lat.toFixed(5)}, {lng.toFixed(5)}
+                      </p>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      type="button"
+                      onClick={() => {
+                        if (!navigator.geolocation) return toast.error("เบราว์เซอร์ไม่รองรับ GPS");
+                        navigator.geolocation.getCurrentPosition(
+                          (pos) => {
+                            setLat(pos.coords.latitude);
+                            setLng(pos.coords.longitude);
+                          },
+                          () => toast.error("ไม่สามารถดึงตำแหน่งได้"),
+                        );
+                      }}
+                    >
+                      <MapPin className="h-4 w-4 mr-2" /> ใช้ตำแหน่งปัจจุบัน
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="contact-name">ชื่อผู้รับ</Label>
+                    <Input
+                      id="contact-name"
+                      placeholder="ชื่อผู้รับสินค้า"
+                      maxLength={100}
+                      value={contactName}
+                      onChange={(e) => setContactName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone-primary">เบอร์ติดต่อหลัก *</Label>
+                    <Input
+                      id="phone-primary"
+                      type="tel"
+                      inputMode="tel"
+                      placeholder="08x-xxx-xxxx"
+                      maxLength={20}
+                      value={phonePrimary}
+                      onChange={(e) => setPhonePrimary(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone-secondary">เบอร์ติดต่อสำรอง</Label>
+                    <Input
+                      id="phone-secondary"
+                      type="tel"
+                      inputMode="tel"
+                      placeholder="ไม่บังคับ"
+                      maxLength={20}
+                      value={phoneSecondary}
+                      onChange={(e) => setPhoneSecondary(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="rider-note">โน้ตถึงไรเดอร์</Label>
+                    <Textarea
+                      id="rider-note"
+                      placeholder="เช่น ตึก B ชั้น 3 โทรก่อนถึง"
+                      maxLength={300}
+                      value={riderNote}
+                      onChange={(e) => setRiderNote(e.target.value)}
+                      rows={2}
+                    />
+                  </div>
+                </div>
+                <SheetFooter>
+                  <Button onClick={saveAddress} disabled={savingAddr} className="w-full">
+                    {savingAddr ? "กำลังบันทึก..." : "บันทึก"}
+                  </Button>
+                </SheetFooter>
+              </>
+            )}
           </SheetContent>
         </Sheet>
         <h1 className="text-2xl font-bold leading-tight">หิวอะไรวันนี้?</h1>

@@ -24,6 +24,14 @@ function CartPage() {
   const [submitting, setSubmitting] = useState(false);
   const [deliveryLat, setDeliveryLat] = useState<number | null>(null);
   const [deliveryLng, setDeliveryLng] = useState<number | null>(null);
+  const [savedAddrs, setSavedAddrs] = useState<Array<{
+    id: string; label: string; address: string;
+    latitude: number | null; longitude: number | null;
+    contact_name: string | null; phone_primary: string | null;
+    phone_secondary: string | null; rider_note: string | null;
+    is_default: boolean;
+  }>>([]);
+  const [selectedAddrId, setSelectedAddrId] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState("");
   const [promo, setPromo] = useState<{ id: string; code: string; discount: number } | null>(null);
   const [checking, setChecking] = useState(false);
@@ -56,29 +64,35 @@ function CartPage() {
     toast.success(`ใช้คูปอง ${data.code} ลด ฿${Math.round(d)}`);
   }
 
+  function applySavedAddr(a: typeof savedAddrs[number]) {
+    setSelectedAddrId(a.id);
+    setAddress(a.address);
+    setDeliveryLat(a.latitude !== null ? Number(a.latitude) : null);
+    setDeliveryLng(a.longitude !== null ? Number(a.longitude) : null);
+    const parts: string[] = [];
+    if (a.contact_name) parts.push(`ผู้รับ: ${a.contact_name}`);
+    if (a.phone_primary) parts.push(`โทร: ${a.phone_primary}`);
+    if (a.phone_secondary) parts.push(`สำรอง: ${a.phone_secondary}`);
+    if (a.rider_note) parts.push(`โน้ต: ${a.rider_note}`);
+    setNotes(parts.join(" | "));
+  }
+
   useEffect(() => {
     if (!user) return;
     supabase
       .from("addresses")
-      .select("address, latitude, longitude, contact_name, phone_primary, phone_secondary, rider_note")
+      .select("id, label, address, latitude, longitude, contact_name, phone_primary, phone_secondary, rider_note, is_default")
       .eq("user_id", user.id)
       .order("is_default", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
+      .limit(3)
       .then(({ data }) => {
-        if (!data) return;
-        setAddress((prev) => prev || data.address);
-        setDeliveryLat(data.latitude !== null ? Number(data.latitude) : null);
-        setDeliveryLng(data.longitude !== null ? Number(data.longitude) : null);
-        const parts: string[] = [];
-        if (data.contact_name) parts.push(`ผู้รับ: ${data.contact_name}`);
-        if (data.phone_primary) parts.push(`โทร: ${data.phone_primary}`);
-        if (data.phone_secondary) parts.push(`สำรอง: ${data.phone_secondary}`);
-        if (data.rider_note) parts.push(`โน้ต: ${data.rider_note}`);
-        const info = parts.join(" | ");
-        setNotes((prev) => prev || info);
+        const rows = (data ?? []) as typeof savedAddrs;
+        setSavedAddrs(rows);
+        const def = rows.find((r) => r.is_default) ?? rows[0];
+        if (def) applySavedAddr(def);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   async function handleCheckout() {
@@ -198,13 +212,46 @@ function CartPage() {
       </div>
 
       <Card className="p-4 space-y-3">
-        <h2 className="font-semibold">ที่อยู่จัดส่ง</h2>
-        <div className="space-y-2">
-          <Label htmlFor="addr">ที่อยู่ *</Label>
-          <Input id="addr" placeholder="บ้านเลขที่ ถนน เขต/อำเภอ จังหวัด" value={address} onChange={(e) => setAddress(e.target.value)} />
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold">ที่อยู่จัดส่ง</h2>
+          <Link to="/home" className="text-xs text-primary underline">จัดการที่อยู่</Link>
         </div>
+        {savedAddrs.length > 0 ? (
+          <div className="space-y-2">
+            {savedAddrs.map((a) => {
+              const active = selectedAddrId === a.id;
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => applySavedAddr(a)}
+                  className={`w-full text-left p-3 rounded-lg border transition ${
+                    active ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:bg-secondary/50"
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <div className={`mt-0.5 h-4 w-4 rounded-full border-2 shrink-0 ${active ? "border-primary bg-primary" : "border-muted-foreground"}`}>
+                      {active && <div className="h-full w-full rounded-full bg-primary-foreground scale-[0.4]" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{a.label}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{a.address}</p>
+                      {a.phone_primary && (
+                        <p className="text-xs text-muted-foreground mt-0.5">โทร: {a.phone_primary}</p>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            ยังไม่มีที่อยู่บันทึกไว้ — <Link to="/home" className="text-primary underline">เพิ่มที่อยู่จัดส่ง</Link>
+          </p>
+        )}
         <div className="space-y-2">
-          <Label htmlFor="notes">หมายเหตุถึงร้าน</Label>
+          <Label htmlFor="notes">หมายเหตุถึงร้าน / ไรเดอร์</Label>
           <Textarea id="notes" placeholder="เช่น ไม่ใส่ผัก เผ็ดน้อย" value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
       </Card>
