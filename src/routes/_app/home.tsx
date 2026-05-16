@@ -638,11 +638,12 @@ function HomePage() {
         ) : (
           filtered.map((r) => {
             const withinHours = isOpenNow(r.opening_hours);
-            const reallyOpen = r.is_open && withinHours;
+            const extendActive = !!(r.is_open_until && new Date(r.is_open_until) > new Date());
+            const reallyOpen = r.is_open && (withinHours || extendActive);
             let closedLabel: string | null = null;
             if (!r.is_open) {
               closedLabel = "ปิดอยู่";
-            } else if (!withinHours) {
+            } else if (!withinHours && !extendActive) {
               closedLabel = nextOpenLabel(r.opening_hours) || "นอกเวลาทำการ";
             }
             return (
