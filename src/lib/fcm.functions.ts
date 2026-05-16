@@ -184,42 +184,91 @@ export const sendStatusPush = createServerFn({ method: "POST" })
   });
 
 // ─────────────────────────────────────────────
-// Broadcast push to all ONLINE riders when an order becomes ready
-// (rider pool — HappyRider app subscribes via same fcm_tokens table)
+// Push to the NEAREST 3 online riders when an order becomes ready.
+// First rider to tap "รับงาน" wins (atomic UPDATE … WHERE rider_id IS NULL via RLS).
+// Riders without GPS coords are used as fallback to fill up to 3 slots.
 // ─────────────────────────────────────────────
+const NEAREST_RIDER_COUNT = 3;
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
 export const notifyRidersOrderReady = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
     z
       .object({
         orderId: z.string().uuid(),
+        restaurantId: z.string().uuid().optional(),
         restaurantName: z.string().max(200).optional(),
+        restaurantLat: z.number().optional(),
+        restaurantLng: z.number().optional(),
         deliveryFee: z.number().optional(),
       })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    // Find online + approved riders
+    // Resolve restaurant pickup point if not provided
+    let pickupLat = data.restaurantLat;
+    let pickupLng = data.restaurantLng;
+    let restName = data.restaurantName;
+    if ((pickupLat == null || pickupLng == null || !restName) && data.restaurantId) {
+      const { data: r } = await supabaseAdmin
+        .from("restaurants")
+        .select("latitude, longitude, name")
+        .eq("id", data.restaurantId)
+        .maybeSingle();
+      if (r) {
+        pickupLat = pickupLat ?? (r.latitude != null ? Number(r.latitude) : undefined);
+        pickupLng = pickupLng ?? (r.longitude != null ? Number(r.longitude) : undefined);
+        restName = restName ?? r.name;
+      }
+    }
+
     const { data: riders } = await supabaseAdmin
       .from("riders")
-      .select("id")
+      .select("id, current_lat, current_lng")
       .eq("is_online", true)
       .eq("is_approved", true);
 
-    if (!riders || riders.length === 0) return { sent: 0 };
+    if (!riders || riders.length === 0) return { sent: 0, picked: 0 };
 
-    const riderIds = riders.map((r) => r.id);
+    // Rank by distance when we know the pickup point; otherwise use insertion order
+    let picked: string[];
+    if (pickupLat != null && pickupLng != null) {
+      const withDist = riders.map((r) => {
+        const lat = r.current_lat != null ? Number(r.current_lat) : null;
+        const lng = r.current_lng != null ? Number(r.current_lng) : null;
+        const km = lat != null && lng != null ? haversineKm(pickupLat!, pickupLng!, lat, lng) : Number.POSITIVE_INFINITY;
+        return { id: r.id, km };
+      });
+      withDist.sort((a, b) => a.km - b.km);
+      picked = withDist.slice(0, NEAREST_RIDER_COUNT).map((r) => r.id);
+    } else {
+      picked = riders.slice(0, NEAREST_RIDER_COUNT).map((r) => r.id);
+    }
+
+    if (picked.length === 0) return { sent: 0, picked: 0 };
+
     const { data: tokens } = await supabaseAdmin
       .from("fcm_tokens")
       .select("token")
-      .in("user_id", riderIds);
+      .in("user_id", picked);
 
-    if (!tokens || tokens.length === 0) return { sent: 0 };
+    if (!tokens || tokens.length === 0) return { sent: 0, picked: picked.length };
 
     const accessToken = await getGoogleAccessToken();
     const projectId = getServiceAccount().project_id;
-    const title = "🛵 มีงานใหม่!";
-    const body = `${data.restaurantName ?? "ร้าน"} พร้อมส่ง${data.deliveryFee ? ` • ค่าส่ง ฿${data.deliveryFee}` : ""}`;
+    const title = "🛵 มีงานใหม่ใกล้คุณ!";
+    const body = `${restName ?? "ร้าน"} พร้อมส่ง${data.deliveryFee ? ` • ค่าส่ง ฿${data.deliveryFee}` : ""} — ใครรับก่อนได้ก่อน`;
     const link = "/rider-dashboard";
 
     let sent = 0;
@@ -256,7 +305,7 @@ export const notifyRidersOrderReady = createServerFn({ method: "POST" })
     if (stale.length > 0) {
       await supabaseAdmin.from("fcm_tokens").delete().in("token", stale);
     }
-    return { sent };
+    return { sent, picked: picked.length };
   });
 
 // ─────────────────────────────────────────────
