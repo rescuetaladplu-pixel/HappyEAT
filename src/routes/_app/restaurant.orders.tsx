@@ -293,13 +293,13 @@ function RestaurantOrdersPage() {
         <Button asChild variant="ghost" size="sm"><Link to="/my-restaurant"><ArrowLeft className="h-4 w-4 mr-1" />หน้าร้าน</Link></Button>
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-2">
-              {soundOn ? (
-                <Volume2 className="h-4 w-4" />
-              ) : (
-                <VolumeX className="h-4 w-4 text-muted-foreground" />
-              )}
-              <span className="text-sm">เสียงแจ้งเตือน</span>
+            <Button
+              variant={soundOn ? "default" : "outline"}
+              size="sm"
+              className="gap-2 shadow-sm"
+            >
+              {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              <span className="text-sm font-medium">ตั้งค่าเสียงแจ้งเตือน</span>
             </Button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-80">
