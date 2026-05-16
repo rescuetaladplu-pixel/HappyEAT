@@ -149,7 +149,7 @@ function RestaurantOrdersPage() {
   async function load(rid: string) {
     const { data, error } = await supabase
       .from("orders")
-      .select("id, status, total, subtotal, delivery_fee, delivery_address, notes, created_at, customer_id, order_items(id, name, price, quantity, notes)")
+      .select("id, status, total, subtotal, delivery_fee, delivery_address, notes, created_at, customer_id, payment_method, payment_slip_url, order_items(id, name, price, quantity, notes)")
       .eq("restaurant_id", rid)
       .order("created_at", { ascending: false })
       .limit(100);
