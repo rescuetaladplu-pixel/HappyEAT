@@ -91,14 +91,14 @@ function RestaurantOrdersPage() {
     return localStorage.getItem("rest-sound") !== "off";
   });
   const [soundType, setSoundType] = useState<SoundId>(() => {
-    if (typeof window === "undefined") return "siren";
+    if (typeof window === "undefined") return "emergency";
     const saved = localStorage.getItem("rest-sound-type") as SoundId | null;
-    return saved && SOUND_OPTIONS.some((s) => s.id === saved) ? saved : "siren";
+    return saved && SOUND_OPTIONS.some((s) => s.id === saved) ? saved : "emergency";
   });
   const [volume, setVolume] = useState<VolumeLevel>(() => {
-    if (typeof window === "undefined") return "loud";
+    if (typeof window === "undefined") return "normal";
     const saved = localStorage.getItem("rest-sound-volume") as VolumeLevel | null;
-    return saved && VOLUME_OPTIONS.some((v) => v.id === saved) ? saved : "loud";
+    return saved && VOLUME_OPTIONS.some((v) => v.id === saved) ? saved : "normal";
   });
   const knownIdsRef = useRef<Set<string>>(new Set());
   const initRef = useRef(false);

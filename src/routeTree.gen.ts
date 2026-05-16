@@ -24,6 +24,7 @@ import { Route as AppRestaurantsRestaurantIdRouteImport } from './routes/_app/re
 import { Route as AppRestaurantReviewsRouteImport } from './routes/_app/restaurant.reviews'
 import { Route as AppRestaurantPromotionsRouteImport } from './routes/_app/restaurant.promotions'
 import { Route as AppRestaurantOrdersRouteImport } from './routes/_app/restaurant.orders'
+import { Route as AppRestaurantNotificationSettingsRouteImport } from './routes/_app/restaurant.notification-settings'
 import { Route as AppRestaurantMenuRouteImport } from './routes/_app/restaurant.menu'
 import { Route as AppRestaurantAnalyticsRouteImport } from './routes/_app/restaurant.analytics'
 import { Route as AppMyRestaurantSettingsRouteImport } from './routes/_app/my-restaurant_.settings'
@@ -103,6 +104,12 @@ const AppRestaurantOrdersRoute = AppRestaurantOrdersRouteImport.update({
   path: '/restaurant/orders',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRestaurantNotificationSettingsRoute =
+  AppRestaurantNotificationSettingsRouteImport.update({
+    id: '/restaurant/notification-settings',
+    path: '/restaurant/notification-settings',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppRestaurantMenuRoute = AppRestaurantMenuRouteImport.update({
   id: '/restaurant/menu',
   path: '/restaurant/menu',
@@ -133,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/my-restaurant/settings': typeof AppMyRestaurantSettingsRoute
   '/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
   '/restaurant/menu': typeof AppRestaurantMenuRoute
+  '/restaurant/notification-settings': typeof AppRestaurantNotificationSettingsRoute
   '/restaurant/orders': typeof AppRestaurantOrdersRoute
   '/restaurant/promotions': typeof AppRestaurantPromotionsRoute
   '/restaurant/reviews': typeof AppRestaurantReviewsRoute
@@ -152,6 +160,7 @@ export interface FileRoutesByTo {
   '/my-restaurant/settings': typeof AppMyRestaurantSettingsRoute
   '/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
   '/restaurant/menu': typeof AppRestaurantMenuRoute
+  '/restaurant/notification-settings': typeof AppRestaurantNotificationSettingsRoute
   '/restaurant/orders': typeof AppRestaurantOrdersRoute
   '/restaurant/promotions': typeof AppRestaurantPromotionsRoute
   '/restaurant/reviews': typeof AppRestaurantReviewsRoute
@@ -173,6 +182,7 @@ export interface FileRoutesById {
   '/_app/my-restaurant_/settings': typeof AppMyRestaurantSettingsRoute
   '/_app/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
   '/_app/restaurant/menu': typeof AppRestaurantMenuRoute
+  '/_app/restaurant/notification-settings': typeof AppRestaurantNotificationSettingsRoute
   '/_app/restaurant/orders': typeof AppRestaurantOrdersRoute
   '/_app/restaurant/promotions': typeof AppRestaurantPromotionsRoute
   '/_app/restaurant/reviews': typeof AppRestaurantReviewsRoute
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/my-restaurant/settings'
     | '/restaurant/analytics'
     | '/restaurant/menu'
+    | '/restaurant/notification-settings'
     | '/restaurant/orders'
     | '/restaurant/promotions'
     | '/restaurant/reviews'
@@ -213,6 +224,7 @@ export interface FileRouteTypes {
     | '/my-restaurant/settings'
     | '/restaurant/analytics'
     | '/restaurant/menu'
+    | '/restaurant/notification-settings'
     | '/restaurant/orders'
     | '/restaurant/promotions'
     | '/restaurant/reviews'
@@ -233,6 +245,7 @@ export interface FileRouteTypes {
     | '/_app/my-restaurant_/settings'
     | '/_app/restaurant/analytics'
     | '/_app/restaurant/menu'
+    | '/_app/restaurant/notification-settings'
     | '/_app/restaurant/orders'
     | '/_app/restaurant/promotions'
     | '/_app/restaurant/reviews'
@@ -352,6 +365,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRestaurantOrdersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/restaurant/notification-settings': {
+      id: '/_app/restaurant/notification-settings'
+      path: '/restaurant/notification-settings'
+      fullPath: '/restaurant/notification-settings'
+      preLoaderRoute: typeof AppRestaurantNotificationSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/restaurant/menu': {
       id: '/_app/restaurant/menu'
       path: '/restaurant/menu'
@@ -388,6 +408,7 @@ interface AppRouteChildren {
   AppMyRestaurantSettingsRoute: typeof AppMyRestaurantSettingsRoute
   AppRestaurantAnalyticsRoute: typeof AppRestaurantAnalyticsRoute
   AppRestaurantMenuRoute: typeof AppRestaurantMenuRoute
+  AppRestaurantNotificationSettingsRoute: typeof AppRestaurantNotificationSettingsRoute
   AppRestaurantOrdersRoute: typeof AppRestaurantOrdersRoute
   AppRestaurantPromotionsRoute: typeof AppRestaurantPromotionsRoute
   AppRestaurantReviewsRoute: typeof AppRestaurantReviewsRoute
@@ -406,6 +427,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppMyRestaurantSettingsRoute: AppMyRestaurantSettingsRoute,
   AppRestaurantAnalyticsRoute: AppRestaurantAnalyticsRoute,
   AppRestaurantMenuRoute: AppRestaurantMenuRoute,
+  AppRestaurantNotificationSettingsRoute:
+    AppRestaurantNotificationSettingsRoute,
   AppRestaurantOrdersRoute: AppRestaurantOrdersRoute,
   AppRestaurantPromotionsRoute: AppRestaurantPromotionsRoute,
   AppRestaurantReviewsRoute: AppRestaurantReviewsRoute,
