@@ -87,9 +87,12 @@ function HomePage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("ทั้งหมด");
 
-  // Address state
-  const [addr, setAddr] = useState<AddressRow | null>(null);
+  // Address state — รองรับสูงสุด 3 ที่อยู่
+  const MAX_ADDRESSES = 3;
+  const [addresses, setAddresses] = useState<AddressRow[]>([]);
   const [addrOpen, setAddrOpen] = useState(false);
+  const [sheetMode, setSheetMode] = useState<"list" | "form">("list");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [addrLabel, setAddrLabel] = useState("บ้าน");
   const [addrText, setAddrText] = useState("");
   const [contactName, setContactName] = useState("");
@@ -99,6 +102,8 @@ function HomePage() {
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [savingAddr, setSavingAddr] = useState(false);
+
+  const currentAddr = addresses.find((a) => a.is_default) ?? addresses[0] ?? null;
 
   const loadRestaurants = useCallback(async () => {
     setLoading(true);
@@ -135,7 +140,7 @@ function HomePage() {
 
   useEffect(() => {
     if (!user) return;
-    async function loadAddr() {
+    async function loadAddrs() {
       try {
         const res = await withTimeout(
           supabase
@@ -146,29 +151,51 @@ function HomePage() {
             .eq("user_id", user!.id)
             .order("is_default", { ascending: false })
             .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle(),
+            .limit(MAX_ADDRESSES),
           10000,
         );
-        const data = res.data;
-        if (data) {
-          const r = data as AddressRow;
-          setAddr(r);
-          setAddrLabel(r.label);
-          setAddrText(r.address);
-          setContactName(r.contact_name ?? "");
-          setPhonePrimary(r.phone_primary ?? "");
-          setPhoneSecondary(r.phone_secondary ?? "");
-          setRiderNote(r.rider_note ?? "");
-          setLat(r.latitude !== null ? Number(r.latitude) : null);
-          setLng(r.longitude !== null ? Number(r.longitude) : null);
-        }
+        const rows = (res.data ?? []) as AddressRow[];
+        setAddresses(rows);
       } catch {
-        // ignore — ไม่ต้องบล็อกหน้าแรกถ้าโหลดที่อยู่ไม่สำเร็จ
+        // ignore
       }
     }
-    loadAddr();
+    loadAddrs();
   }, [user]);
+
+  function resetForm() {
+    setEditingId(null);
+    setAddrLabel("");
+    setAddrText("");
+    setContactName("");
+    setPhonePrimary("");
+    setPhoneSecondary("");
+    setRiderNote("");
+    setLat(null);
+    setLng(null);
+  }
+
+  function openNewForm() {
+    if (addresses.length >= MAX_ADDRESSES) {
+      toast.error(`บันทึกได้สูงสุด ${MAX_ADDRESSES} ที่อยู่ กรุณาลบรายการก่อน`);
+      return;
+    }
+    resetForm();
+    setSheetMode("form");
+  }
+
+  function openEditForm(a: AddressRow) {
+    setEditingId(a.id);
+    setAddrLabel(a.label);
+    setAddrText(a.address);
+    setContactName(a.contact_name ?? "");
+    setPhonePrimary(a.phone_primary ?? "");
+    setPhoneSecondary(a.phone_secondary ?? "");
+    setRiderNote(a.rider_note ?? "");
+    setLat(a.latitude !== null ? Number(a.latitude) : null);
+    setLng(a.longitude !== null ? Number(a.longitude) : null);
+    setSheetMode("form");
+  }
 
   function handleAddressOpen(nextOpen: boolean) {
     if (nextOpen && !authLoading && !user) {
@@ -177,6 +204,50 @@ function HomePage() {
       return;
     }
     setAddrOpen(nextOpen);
+    if (nextOpen) {
+      // ถ้ายังไม่มีที่อยู่เลย → เปิดฟอร์มเลย
+      if (addresses.length === 0) {
+        resetForm();
+        setSheetMode("form");
+      } else {
+        setSheetMode("list");
+      }
+    }
+  }
+
+  async function selectAddress(id: string) {
+    if (!user) return;
+    const target = addresses.find((a) => a.id === id);
+    if (!target) return;
+    // optimistic
+    setAddresses((prev) => prev.map((a) => ({ ...a, is_default: a.id === id })));
+    setAddrOpen(false);
+    toast.success(`ใช้ที่อยู่: ${target.label}`);
+    try {
+      await supabase.from("addresses").update({ is_default: false }).eq("user_id", user.id).neq("id", id);
+      await supabase.from("addresses").update({ is_default: true }).eq("id", id);
+    } catch {
+      toast.error("สลับที่อยู่ไม่สำเร็จ");
+    }
+  }
+
+  async function deleteAddress(id: string) {
+    if (!user) return;
+    const wasDefault = addresses.find((a) => a.id === id)?.is_default;
+    const remaining = addresses.filter((a) => a.id !== id);
+    setAddresses(remaining);
+    try {
+      const res = await supabase.from("addresses").delete().eq("id", id);
+      if (res.error) throw res.error;
+      // ถ้าลบตัว default → ตั้ง default ใหม่ให้ตัวแรกที่เหลือ
+      if (wasDefault && remaining[0]) {
+        await supabase.from("addresses").update({ is_default: true }).eq("id", remaining[0].id);
+        setAddresses((prev) => prev.map((a, i) => ({ ...a, is_default: i === 0 })));
+      }
+      toast.success("ลบที่อยู่แล้ว");
+    } catch {
+      toast.error("ลบไม่สำเร็จ");
+    }
   }
 
   async function saveAddress() {
@@ -185,6 +256,9 @@ function HomePage() {
     if (!PHONE_RE.test(phonePrimary.trim())) return toast.error("รูปแบบเบอร์ติดต่อหลักไม่ถูกต้อง");
     if (phoneSecondary.trim() && !PHONE_RE.test(phoneSecondary.trim()))
       return toast.error("รูปแบบเบอร์ติดต่อสำรองไม่ถูกต้อง");
+    if (!editingId && addresses.length >= MAX_ADDRESSES) {
+      return toast.error(`บันทึกได้สูงสุด ${MAX_ADDRESSES} ที่อยู่`);
+    }
     setSavingAddr(true);
     try {
       const { data: sessionData } = await withTimeout(supabase.auth.getSession(), 5000);
@@ -197,7 +271,7 @@ function HomePage() {
       }
       const payload = {
         user_id: activeUser.id,
-        label: addrLabel.trim() || "บ้าน",
+        label: addrLabel.trim() || "ที่อยู่",
         address: addrText.trim(),
         is_default: true,
         latitude: lat,
@@ -208,14 +282,25 @@ function HomePage() {
         rider_note: riderNote.trim() || null,
       };
       const res = await withTimeout(
-        addr
-          ? supabase.from("addresses").update(payload).eq("id", addr.id).select().single()
+        editingId
+          ? supabase.from("addresses").update(payload).eq("id", editingId).select().single()
           : supabase.from("addresses").insert(payload).select().single(),
         ADDRESS_SAVE_TIMEOUT_MS,
       );
       if (res.error) return toast.error(res.error.message);
-      setAddr(res.data as AddressRow);
-      setAddrOpen(false);
+      const saved = res.data as AddressRow;
+      // unset default ของรายการอื่น
+      await supabase
+        .from("addresses")
+        .update({ is_default: false })
+        .eq("user_id", activeUser.id)
+        .neq("id", saved.id);
+      setAddresses((prev) => {
+        const others = prev.filter((a) => a.id !== saved.id).map((a) => ({ ...a, is_default: false }));
+        return [saved, ...others].slice(0, MAX_ADDRESSES);
+      });
+      setSheetMode("list");
+      resetForm();
       toast.success("บันทึกที่อยู่แล้ว");
     } catch (error) {
       const message =
