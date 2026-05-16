@@ -29,6 +29,7 @@ interface Order {
   payment_method: string;
   payment_slip_url: string | null;
   rejection_reason: string | null;
+  delivery_otp: string | null;
   restaurants: {
     name: string;
     owner_id: string;
