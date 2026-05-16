@@ -30,7 +30,8 @@ function AuthPage() {
   const [siPassword, setSiPassword] = useState("");
 
   // Sign-up fields (ทุกคนเริ่มเป็นลูกค้า; เปิดร้านได้ในหน้าโปรไฟล์)
-  const [suName, setSuName] = useState("");
+  const [suFirstName, setSuFirstName] = useState("");
+  const [suLastName, setSuLastName] = useState("");
   const [suEmail, setSuEmail] = useState("");
   const [suPhone, setSuPhone] = useState("");
   const [suPassword, setSuPassword] = useState("");
@@ -88,7 +89,7 @@ function AuthPage() {
       return toast.error("รหัสผ่านยืนยันไม่ตรงกัน กรุณากรอกใหม่");
     }
     setLoading(true);
-    const { error } = await signUp(suEmail, suPassword, suName, "customer", suPhone);
+    const { error } = await signUp(suEmail, suPassword, suFirstName, suLastName, "customer", suPhone);
     setLoading(false);
     if (error) return toast.error(translateAuthError(error));
     toast.success("สมัครสมาชิกสำเร็จ! กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชี");
@@ -147,14 +148,25 @@ function AuthPage() {
 
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="su-name">ชื่อ-นามสกุล</Label>
-                    <Input
-                      id="su-name"
-                      required
-                      value={suName}
-                      onChange={(e) => setSuName(e.target.value)}
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="su-first">ชื่อ</Label>
+                      <Input
+                        id="su-first"
+                        required
+                        value={suFirstName}
+                        onChange={(e) => setSuFirstName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="su-last">นามสกุล</Label>
+                      <Input
+                        id="su-last"
+                        required
+                        value={suLastName}
+                        onChange={(e) => setSuLastName(e.target.value)}
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="su-email">อีเมล</Label>

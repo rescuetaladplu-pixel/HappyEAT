@@ -38,7 +38,7 @@ export const createAdminAccount = createServerFn({ method: "POST" })
       email,
       password: data.password,
       email_confirm: true,
-      user_metadata: { full_name: data.username, role: "admin", username: data.username },
+      user_metadata: { first_name: data.username, last_name: "", role: "admin", username: data.username },
     });
     if (createErr) throw new Error(createErr.message);
     const newId = created.user!.id;
@@ -46,7 +46,7 @@ export const createAdminAccount = createServerFn({ method: "POST" })
     // Ensure profile + role (trigger may have fired, but be defensive)
     await supabaseAdmin
       .from("profiles")
-      .upsert({ id: newId, full_name: data.username, username: data.username });
+      .upsert({ id: newId, first_name: data.username, last_name: "", username: data.username });
     await supabaseAdmin
       .from("user_roles")
       .upsert({ user_id: newId, role: "admin" }, { onConflict: "user_id,role" });
@@ -68,7 +68,7 @@ export const listAdmins = createServerFn({ method: "GET" })
     if (ids.length === 0) return [];
     const { data: profiles } = await supabaseAdmin
       .from("profiles")
-      .select("id, username, full_name")
+      .select("id, username, first_name, last_name")
       .in("id", ids);
     const pmap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
     return (roleRows ?? []).map((r) => {
@@ -77,7 +77,8 @@ export const listAdmins = createServerFn({ method: "GET" })
         user_id: r.user_id,
         created_at: r.created_at,
         username: p.username ?? null,
-        full_name: p.full_name ?? null,
+        first_name: p.first_name ?? null,
+        last_name: p.last_name ?? null,
       };
     });
   });
@@ -130,7 +131,7 @@ export const listAllUsers = createServerFn({ method: "GET" })
     const userIds = authData.users.map((u) => u.id);
 
     const [{ data: profiles }, { data: roles }] = await Promise.all([
-      supabaseAdmin.from("profiles").select("id, full_name, phone, username, avatar_url").in("id", userIds),
+      supabaseAdmin.from("profiles").select("id, first_name, last_name, phone, username, avatar_url").in("id", userIds),
       supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", userIds),
     ]);
 
@@ -151,7 +152,8 @@ export const listAllUsers = createServerFn({ method: "GET" })
           created_at: u.created_at,
           last_sign_in_at: u.last_sign_in_at ?? null,
           email_confirmed: !!u.email_confirmed_at,
-          full_name: p.full_name ?? null,
+          first_name: p.first_name ?? null,
+          last_name: p.last_name ?? null,
           phone: p.phone ?? null,
           username: p.username ?? null,
           avatar_url: p.avatar_url ?? null,
