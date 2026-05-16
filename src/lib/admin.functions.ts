@@ -68,7 +68,7 @@ export const listAdmins = createServerFn({ method: "GET" })
     if (ids.length === 0) return [];
     const { data: profiles } = await supabaseAdmin
       .from("profiles")
-      .select("id, username, full_name")
+      .select("id, username, first_name, last_name")
       .in("id", ids);
     const pmap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
     return (roleRows ?? []).map((r) => {
@@ -77,7 +77,8 @@ export const listAdmins = createServerFn({ method: "GET" })
         user_id: r.user_id,
         created_at: r.created_at,
         username: p.username ?? null,
-        full_name: p.full_name ?? null,
+        first_name: p.first_name ?? null,
+        last_name: p.last_name ?? null,
       };
     });
   });
