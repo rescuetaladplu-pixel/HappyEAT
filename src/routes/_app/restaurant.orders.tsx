@@ -16,7 +16,9 @@ import { toast } from "sonner";
 import {
   playNotificationSound,
   SOUND_OPTIONS,
+  VOLUME_OPTIONS,
   type SoundId,
+  type VolumeLevel,
 } from "@/lib/notification-sounds";
 
 export const Route = createFileRoute("/_app/restaurant/orders")({
@@ -89,9 +91,14 @@ function RestaurantOrdersPage() {
     return localStorage.getItem("rest-sound") !== "off";
   });
   const [soundType, setSoundType] = useState<SoundId>(() => {
-    if (typeof window === "undefined") return "ding";
+    if (typeof window === "undefined") return "kitchen";
     const saved = localStorage.getItem("rest-sound-type") as SoundId | null;
-    return saved && SOUND_OPTIONS.some((s) => s.id === saved) ? saved : "ding";
+    return saved && SOUND_OPTIONS.some((s) => s.id === saved) ? saved : "kitchen";
+  });
+  const [volume, setVolume] = useState<VolumeLevel>(() => {
+    if (typeof window === "undefined") return "loud";
+    const saved = localStorage.getItem("rest-sound-volume") as VolumeLevel | null;
+    return saved && VOLUME_OPTIONS.some((v) => v.id === saved) ? saved : "loud";
   });
   const knownIdsRef = useRef<Set<string>>(new Set());
   const initRef = useRef(false);
@@ -114,7 +121,7 @@ function RestaurantOrdersPage() {
         (o) => o.status === "pending" && !knownIdsRef.current.has(o.id),
       );
       if (newPending.length > 0) {
-        if (soundOn) playNotificationSound(soundType);
+        if (soundOn) playNotificationSound(soundType, volume);
         toast.success(`มีออเดอร์ใหม่ ${newPending.length} รายการ!`);
       }
     }
@@ -157,12 +164,19 @@ function RestaurantOrdersPage() {
   function toggleSound(on: boolean) {
     setSoundOn(on);
     localStorage.setItem("rest-sound", on ? "on" : "off");
-    if (on) playNotificationSound(soundType);
+    if (on) playNotificationSound(soundType, volume);
   }
 
   function selectSound(id: SoundId) {
     setSoundType(id);
     localStorage.setItem("rest-sound-type", id);
+    playNotificationSound(id, volume);
+  }
+
+  function selectVolume(v: VolumeLevel) {
+    setVolume(v);
+    localStorage.setItem("rest-sound-volume", v);
+    playNotificationSound(soundType, v);
   }
 
   async function setStatus(o: Order, status: OrderStatus) {
@@ -244,7 +258,7 @@ function RestaurantOrdersPage() {
                         size="sm"
                         onClick={(e) => {
                           e.preventDefault();
-                          playNotificationSound(opt.id);
+                          playNotificationSound(opt.id, volume);
                         }}
                       >
                         <Play className="h-3 w-3 mr-1" />
