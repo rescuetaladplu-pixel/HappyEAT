@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useRefetchOnFocus } from "@/hooks/use-refetch-on-focus";
+import { isOpenNow, nextOpenLabel } from "@/lib/opening-hours";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
