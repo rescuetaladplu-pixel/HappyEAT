@@ -74,11 +74,20 @@ function RestaurantDashboard() {
       .select("*")
       .eq("owner_id", user.id)
       .maybeSingle();
-    setRestaurant(r as Restaurant | null);
-    if (r) {
+    const rest = r as Restaurant | null;
+    if (rest && rest.is_open && !isOpenNow(rest.opening_hours)) {
+      const extendActive = rest.is_open_until && new Date(rest.is_open_until) > new Date();
+      if (!extendActive) {
+        await supabase.from("restaurants").update({ is_open: false, is_open_until: null }).eq("id", rest.id);
+        rest.is_open = false;
+        rest.is_open_until = null;
+      }
+    }
+    setRestaurant(rest);
+    if (rest) {
       const [{ data: m }, { data: o }] = await Promise.all([
-        supabase.from("menu_items").select("id, name, price, is_available").eq("restaurant_id", r.id).order("created_at"),
-        supabase.from("orders").select("id, status, total, delivery_address, notes, created_at").eq("restaurant_id", r.id).order("created_at", { ascending: false }).limit(20),
+        supabase.from("menu_items").select("id, name, price, is_available").eq("restaurant_id", rest.id).order("created_at"),
+        supabase.from("orders").select("id, status, total, delivery_address, notes, created_at").eq("restaurant_id", rest.id).order("created_at", { ascending: false }).limit(20),
       ]);
       setItems((m ?? []) as MenuItem[]);
       setOrders((o ?? []) as Order[]);
