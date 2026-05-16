@@ -27,6 +27,7 @@ import {
   Volume2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { isOpenNow, nextOpenLabel } from "@/lib/opening-hours";
 
 export const Route = createFileRoute("/_app/my-restaurant")({
   component: MyRestaurantHub,
@@ -251,38 +252,55 @@ function MyRestaurantHub() {
           </div>
 
           {/* Online status bar */}
-          <div
-            className={`mt-3 flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-colors ${
-              restaurant.is_open
-                ? "bg-green-500/10 border-green-500/30"
-                : "bg-muted border-border"
-            }`}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="relative flex h-3 w-3 shrink-0">
-                {restaurant.is_open && (
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-60" />
-                )}
-                <span
-                  className={`relative inline-flex h-3 w-3 rounded-full ${
-                    restaurant.is_open ? "bg-green-500" : "bg-muted-foreground"
-                  }`}
-                />
-              </span>
-              <div className="min-w-0">
-                <p className={`text-sm font-semibold ${restaurant.is_open ? "text-green-700 dark:text-green-400" : "text-muted-foreground"}`}>
-                  {restaurant.is_open ? "ออนไลน์ – พร้อมรับออเดอร์" : "ออฟไลน์ – ปิดรับออเดอร์"}
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  {restaurant.is_open ? "ลูกค้าสามารถสั่งอาหารจากร้านคุณได้" : "ลูกค้าจะสั่งอาหารจากร้านคุณไม่ได้ชั่วคราว"}
-                </p>
+          {(() => {
+            const withinHours = isOpenNow(restaurant.opening_hours);
+            const reallyOpen = restaurant.is_open && withinHours;
+            const nextLabel = nextOpenLabel(restaurant.opening_hours);
+            const title = !restaurant.is_open
+              ? "ออฟไลน์ – ปิดรับออเดอร์"
+              : !withinHours
+                ? `นอกเวลาทำการ${nextLabel ? ` – ${nextLabel}` : ""}`
+                : "ออนไลน์ – พร้อมรับออเดอร์";
+            const subtitle = !restaurant.is_open
+              ? "ลูกค้าจะสั่งอาหารจากร้านคุณไม่ได้ชั่วคราว"
+              : !withinHours
+                ? "ร้านจะรับออเดอร์อัตโนมัติเมื่อถึงเวลาทำการ"
+                : "ลูกค้าสามารถสั่งอาหารจากร้านคุณได้";
+            return (
+              <div
+                className={`mt-3 flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-colors ${
+                  reallyOpen
+                    ? "bg-green-500/10 border-green-500/30"
+                    : "bg-muted border-border"
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="relative flex h-3 w-3 shrink-0">
+                    {reallyOpen && (
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-60" />
+                    )}
+                    <span
+                      className={`relative inline-flex h-3 w-3 rounded-full ${
+                        reallyOpen ? "bg-green-500" : "bg-muted-foreground"
+                      }`}
+                    />
+                  </span>
+                  <div className="min-w-0">
+                    <p className={`text-sm font-semibold ${reallyOpen ? "text-green-700 dark:text-green-400" : "text-muted-foreground"}`}>
+                      {title}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {subtitle}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs font-medium text-muted-foreground">เปิดร้าน</span>
+                  <Switch checked={restaurant.is_open} onCheckedChange={toggleOpen} />
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs font-medium text-muted-foreground">เปิดร้าน</span>
-              <Switch checked={restaurant.is_open} onCheckedChange={toggleOpen} />
-            </div>
-          </div>
+            );
+          })()}
 
           {restaurant.description && (
             <p className="text-sm text-muted-foreground mt-3">{restaurant.description}</p>
