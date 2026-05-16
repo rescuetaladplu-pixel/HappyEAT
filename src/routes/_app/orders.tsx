@@ -111,9 +111,18 @@ function OrdersPage() {
       ) : (
         orders.map((o) => {
           const canReview = o.status === "delivered" && o.customer_id === user?.id && !reviewedIds.has(o.id);
+          const showPayment =
+            o.status === "awaiting_payment" &&
+            o.customer_id === user?.id &&
+            o.restaurants?.promptpay_id;
+          async function cancelOrder() {
+            const { error } = await supabase.from("orders").update({ status: "cancelled" }).eq("id", o.id);
+            if (error) toast.error(error.message);
+            else { toast.success("ยกเลิกแล้ว"); loadOrders(); }
+          }
           return (
-            <Card key={o.id} className="p-4">
-              <div className="flex items-start justify-between mb-2">
+            <Card key={o.id} className="p-4 space-y-3">
+              <div className="flex items-start justify-between">
                 <div className="min-w-0">
                   <h3 className="font-semibold truncate">{o.restaurants?.name ?? "ร้านไม่พบ"}</h3>
                   <p className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString("th-TH")}</p>
@@ -124,13 +133,37 @@ function OrdersPage() {
                 <span className="text-muted-foreground">#{o.id.slice(0, 8)}</span>
                 <span className="font-semibold text-primary">฿{Number(o.total).toFixed(0)}</span>
               </div>
+              {o.status === "awaiting_restaurant" && o.customer_id === user?.id && (
+                <div className="bg-secondary/50 rounded p-2 text-xs flex items-center justify-between">
+                  <span>⏳ รอร้านเช็คความพร้อม...</span>
+                  <Button size="sm" variant="ghost" className="text-destructive h-7" onClick={cancelOrder}>ยกเลิก</Button>
+                </div>
+              )}
+              {showPayment && o.restaurants && (
+                <PaymentPanel
+                  orderId={o.id}
+                  amount={Number(o.subtotal)}
+                  promptpayId={o.restaurants.promptpay_id!}
+                  holderName={o.restaurants.promptpay_holder_name}
+                  restaurantOwnerId={o.restaurants.owner_id}
+                  onSubmitted={loadOrders}
+                />
+              )}
+              {o.status === "awaiting_payment_confirm" && o.customer_id === user?.id && (
+                <p className="text-xs text-center bg-secondary/50 rounded p-2">⏳ ส่งสลิปแล้ว รอร้านยืนยัน...</p>
+              )}
+              {o.status === "payment_rejected" && o.rejection_reason && (
+                <p className="text-xs text-destructive bg-destructive/10 rounded p-2">
+                  ❌ สลิปถูกปฏิเสธ: {o.rejection_reason}
+                </p>
+              )}
               {canReview && (
-                <Button size="sm" variant="outline" className="w-full mt-3" onClick={() => openReview(o)}>
+                <Button size="sm" variant="outline" className="w-full" onClick={() => openReview(o)}>
                   <Star className="h-4 w-4 mr-1" /> ให้คะแนน
                 </Button>
               )}
               {o.status === "delivered" && reviewedIds.has(o.id) && (
-                <p className="text-xs text-green-600 mt-2 text-center">✓ คุณรีวิวแล้ว</p>
+                <p className="text-xs text-green-600 text-center">✓ คุณรีวิวแล้ว</p>
               )}
             </Card>
           );
