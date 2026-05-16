@@ -414,7 +414,12 @@ export type Database = {
           discount: number
           id: string
           notes: string | null
+          payment_confirmed_at: string | null
           payment_method: string
+          payment_slip_url: string | null
+          payment_submitted_at: string | null
+          rejection_reason: string | null
+          restaurant_accepted_at: string | null
           restaurant_id: string
           rider_id: string | null
           status: Database["public"]["Enums"]["order_status"]
@@ -432,7 +437,12 @@ export type Database = {
           discount?: number
           id?: string
           notes?: string | null
+          payment_confirmed_at?: string | null
           payment_method?: string
+          payment_slip_url?: string | null
+          payment_submitted_at?: string | null
+          rejection_reason?: string | null
+          restaurant_accepted_at?: string | null
           restaurant_id: string
           rider_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -450,7 +460,12 @@ export type Database = {
           discount?: number
           id?: string
           notes?: string | null
+          payment_confirmed_at?: string | null
           payment_method?: string
+          payment_slip_url?: string | null
+          payment_submitted_at?: string | null
+          rejection_reason?: string | null
+          restaurant_accepted_at?: string | null
           restaurant_id?: string
           rider_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -568,6 +583,8 @@ export type Database = {
           opening_hours: Json
           owner_id: string
           phone: string | null
+          promptpay_holder_name: string | null
+          promptpay_id: string | null
           rating: number
           updated_at: string
         }
@@ -589,6 +606,8 @@ export type Database = {
           opening_hours?: Json
           owner_id: string
           phone?: string | null
+          promptpay_holder_name?: string | null
+          promptpay_id?: string | null
           rating?: number
           updated_at?: string
         }
@@ -610,6 +629,8 @@ export type Database = {
           opening_hours?: Json
           owner_id?: string
           phone?: string | null
+          promptpay_holder_name?: string | null
+          promptpay_id?: string | null
           rating?: number
           updated_at?: string
         }
@@ -796,6 +817,10 @@ export type Database = {
         | "delivering"
         | "delivered"
         | "cancelled"
+        | "awaiting_restaurant"
+        | "awaiting_payment"
+        | "awaiting_payment_confirm"
+        | "payment_rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -933,6 +958,10 @@ export const Constants = {
         "delivering",
         "delivered",
         "cancelled",
+        "awaiting_restaurant",
+        "awaiting_payment",
+        "awaiting_payment_confirm",
+        "payment_rejected",
       ],
     },
   },

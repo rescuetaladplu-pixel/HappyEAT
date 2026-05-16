@@ -28,6 +28,10 @@ export const Route = createFileRoute("/_app/restaurant/orders")({
 
 type OrderStatus =
   | "pending"
+  | "awaiting_restaurant"
+  | "awaiting_payment"
+  | "awaiting_payment_confirm"
+  | "payment_rejected"
   | "accepted"
   | "preparing"
   | "ready"
@@ -53,11 +57,17 @@ interface Order {
   notes: string | null;
   created_at: string;
   customer_id: string;
+  payment_method: string;
+  payment_slip_url: string | null;
   order_items: OrderItem[];
 }
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "ใหม่",
+  awaiting_restaurant: "รอรับ (QR)",
+  awaiting_payment: "รอลูกค้าจ่าย",
+  awaiting_payment_confirm: "รอตรวจสลิป",
+  payment_rejected: "สลิปถูกปฏิเสธ",
   accepted: "รับแล้ว",
   preparing: "กำลังปรุง",
   ready: "พร้อมส่ง",
@@ -74,12 +84,13 @@ const NEXT: Partial<Record<OrderStatus, OrderStatus>> = {
 };
 
 const TABS: { key: string; label: string; statuses: OrderStatus[] }[] = [
-  { key: "new", label: "ใหม่", statuses: ["pending"] },
+  { key: "new", label: "ใหม่", statuses: ["pending", "awaiting_restaurant"] },
+  { key: "payment", label: "รอจ่าย/ตรวจสลิป", statuses: ["awaiting_payment", "awaiting_payment_confirm"] },
   { key: "cooking", label: "กำลังทำ", statuses: ["accepted", "preparing"] },
   { key: "ready", label: "พร้อมส่ง", statuses: ["ready"] },
   { key: "delivering", label: "กำลังส่ง", statuses: ["picked_up", "delivering"] },
   { key: "done", label: "เสร็จแล้ว", statuses: ["delivered"] },
-  { key: "cancelled", label: "ยกเลิก", statuses: ["cancelled"] },
+  { key: "cancelled", label: "ยกเลิก/ปฏิเสธ", statuses: ["cancelled", "payment_rejected"] },
 ];
 
 function RestaurantOrdersPage() {
@@ -138,7 +149,7 @@ function RestaurantOrdersPage() {
   async function load(rid: string) {
     const { data, error } = await supabase
       .from("orders")
-      .select("id, status, total, subtotal, delivery_fee, delivery_address, notes, created_at, customer_id, order_items(id, name, price, quantity, notes)")
+      .select("id, status, total, subtotal, delivery_fee, delivery_address, notes, created_at, customer_id, payment_method, payment_slip_url, order_items(id, name, price, quantity, notes)")
       .eq("restaurant_id", rid)
       .order("created_at", { ascending: false })
       .limit(100);
@@ -436,6 +447,7 @@ function RestaurantOrdersPage() {
                       </div>
                     </div>
 
+                    <QrFlowActions order={o} onChanged={() => restaurantId && load(restaurantId)} />
                     <div className="flex gap-2">
                       {NEXT[o.status] && (
                         <Button className="flex-1" onClick={() => setStatus(o, NEXT[o.status]!)}>
@@ -457,4 +469,151 @@ function RestaurantOrdersPage() {
       </Tabs>
     </main>
   );
+}
+
+function QrFlowActions({ order, onChanged }: { order: Order; onChanged: () => void }) {
+  const [slipUrl, setSlipUrl] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (order.status === "awaiting_payment_confirm" && order.payment_slip_url) {
+      supabase.storage
+        .from("payment-slips")
+        .createSignedUrl(order.payment_slip_url, 300)
+        .then(({ data }) => setSlipUrl(data?.signedUrl ?? null));
+    }
+  }, [order.status, order.payment_slip_url]);
+
+  async function notify(title: string, body: string) {
+    try {
+      const { sendStatusPush } = await import("@/lib/fcm.functions");
+      await sendStatusPush({
+        data: {
+          targetUserId: order.customer_id,
+          title,
+          body,
+          url: "/orders",
+          tag: `order-${order.id}`,
+        },
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function acceptOrder() {
+    setBusy(true);
+    const { error } = await supabase
+      .from("orders")
+      .update({ status: "awaiting_payment", restaurant_accepted_at: new Date().toISOString() })
+      .eq("id", order.id);
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("รับออเดอร์แล้ว รอลูกค้าจ่าย");
+    notify("✅ ร้านรับออเดอร์", `กรุณาสแกน QR ชำระเงิน ฿${Number(order.subtotal).toFixed(0)}`);
+    onChanged();
+  }
+
+  async function rejectOrder() {
+    setBusy(true);
+    const { error } = await supabase
+      .from("orders")
+      .update({ status: "cancelled", rejection_reason: reason || "ร้านไม่สามารถรับออเดอร์ได้" })
+      .eq("id", order.id);
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("ปฏิเสธออเดอร์แล้ว");
+    notify("❌ ร้านปฏิเสธออเดอร์", reason || "ร้านไม่สามารถรับออเดอร์ได้");
+    onChanged();
+  }
+
+  async function confirmSlip() {
+    setBusy(true);
+    const { error } = await supabase
+      .from("orders")
+      .update({ status: "preparing", payment_confirmed_at: new Date().toISOString() })
+      .eq("id", order.id);
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("ยืนยันรับเงิน เริ่มทำอาหาร");
+    notify("💚 ร้านยืนยันรับเงิน", "กำลังจัดทำอาหารของคุณ");
+    onChanged();
+  }
+
+  async function rejectSlip() {
+    setBusy(true);
+    const { error } = await supabase
+      .from("orders")
+      .update({ status: "payment_rejected", rejection_reason: reason || "สลิปไม่ตรง / ยอดไม่ถูกต้อง" })
+      .eq("id", order.id);
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("ปฏิเสธสลิปแล้ว");
+    notify("⚠️ สลิปไม่ผ่าน", reason || "กรุณาตรวจสอบและส่งสลิปใหม่");
+    onChanged();
+  }
+
+  if (order.status === "awaiting_restaurant") {
+    return (
+      <div className="space-y-2 border rounded p-2 bg-secondary/30">
+        <p className="text-xs font-medium">📋 ลูกค้าเสนอออเดอร์ (จ่ายด้วย QR) — ตรวจรายการแล้วกดรับ</p>
+        <div className="flex gap-2">
+          <Button className="flex-1" disabled={busy} onClick={acceptOrder}>
+            ✅ รับออเดอร์ พร้อมทำ
+          </Button>
+          <Button variant="outline" className="text-destructive" disabled={busy} onClick={rejectOrder}>
+            ปฏิเสธ
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (order.status === "awaiting_payment") {
+    return (
+      <p className="text-xs text-center bg-secondary/50 rounded p-2">
+        ⏳ รอลูกค้าสแกน QR ชำระเงิน ฿{Number(order.subtotal).toFixed(0)} แล้วส่งสลิป
+      </p>
+    );
+  }
+
+  if (order.status === "awaiting_payment_confirm") {
+    return (
+      <div className="space-y-2 border-2 border-primary rounded p-2 bg-primary/5">
+        <p className="text-xs font-medium">💰 ลูกค้าส่งสลิปแล้ว — ตรวจในแอปธนาคารแล้วยืนยัน</p>
+        {slipUrl ? (
+          <a href={slipUrl} target="_blank" rel="noreferrer" className="block">
+            <img src={slipUrl} alt="slip" className="max-h-72 w-full object-contain rounded border bg-white" />
+          </a>
+        ) : (
+          <Loader2InlineLoader />
+        )}
+        <p className="text-xs text-muted-foreground">
+          ยอดที่ต้องเข้าบัญชี: <strong className="text-primary">฿{Number(order.subtotal).toFixed(2)}</strong>
+        </p>
+        <input
+          placeholder="เหตุผลปฏิเสธ (ถ้ามี)"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          className="w-full text-xs border rounded px-2 py-1"
+          maxLength={200}
+        />
+        <div className="flex gap-2">
+          <Button className="flex-1" disabled={busy} onClick={confirmSlip}>
+            ✅ ยืนยันรับเงิน เริ่มทำ
+          </Button>
+          <Button variant="outline" className="text-destructive" disabled={busy} onClick={rejectSlip}>
+            ❌ ปฏิเสธสลิป
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+function Loader2InlineLoader() {
+  return <div className="flex justify-center py-4 text-xs text-muted-foreground">กำลังโหลดสลิป...</div>;
 }

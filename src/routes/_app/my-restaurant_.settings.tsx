@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Store, Upload, MapPin, Clock, Loader2, ArrowLeft } from "lucide-react";
+import { Store, Upload, MapPin, Clock, Loader2, ArrowLeft, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { LocationPicker } from "@/components/restaurant/LocationPicker";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
@@ -46,6 +46,8 @@ interface Restaurant {
   cover_url: string | null;
   is_open: boolean;
   opening_hours: OpeningHours;
+  promptpay_id: string | null;
+  promptpay_holder_name: string | null;
 }
 
 const DEFAULT_HOURS: OpeningHours = Object.fromEntries(
@@ -68,6 +70,8 @@ function MyRestaurantSettingsPage() {
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [hours, setHours] = useState<OpeningHours>(DEFAULT_HOURS);
+  const [promptpayId, setPromptpayId] = useState("");
+  const [promptpayHolderName, setPromptpayHolderName] = useState("");
 
   const logoRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
@@ -92,6 +96,8 @@ function MyRestaurantSettingsPage() {
       setLat(r.latitude !== null ? Number(r.latitude) : null);
       setLng(r.longitude !== null ? Number(r.longitude) : null);
       setHours({ ...DEFAULT_HOURS, ...(r.opening_hours ?? {}) });
+      setPromptpayId(r.promptpay_id ?? "");
+      setPromptpayHolderName(r.promptpay_holder_name ?? "");
     }
     setLoading(false);
   }
@@ -137,6 +143,25 @@ function MyRestaurantSettingsPage() {
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("บันทึกเวลาทำการสำเร็จ");
+  }
+
+  async function savePromptpay() {
+    if (!restaurant) return;
+    const id = promptpayId.replace(/[\s-]/g, "");
+    if (id && !/^\d{10}$|^\d{13}$/.test(id)) {
+      return toast.error("PromptPay ต้องเป็นเบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก");
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from("restaurants")
+      .update({
+        promptpay_id: id || null,
+        promptpay_holder_name: promptpayHolderName.trim() || null,
+      })
+      .eq("id", restaurant.id);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("บันทึก PromptPay สำเร็จ");
   }
 
   async function uploadImage(e: ChangeEvent<HTMLInputElement>, kind: "logo" | "cover") {
@@ -190,10 +215,11 @@ function MyRestaurantSettingsPage() {
       </div>
 
       <Tabs defaultValue="profile">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="profile"><Store className="h-4 w-4 mr-1" />โปรไฟล์</TabsTrigger>
           <TabsTrigger value="location"><MapPin className="h-4 w-4 mr-1" />ที่อยู่</TabsTrigger>
           <TabsTrigger value="hours"><Clock className="h-4 w-4 mr-1" />เวลา</TabsTrigger>
+          <TabsTrigger value="payment"><QrCode className="h-4 w-4 mr-1" />ชำระเงิน</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
@@ -323,6 +349,46 @@ function MyRestaurantSettingsPage() {
             <Button onClick={saveHours} disabled={saving} className="w-full">
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               บันทึกเวลาทำการ
+            </Button>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="payment">
+          <Card className="p-5 space-y-4">
+            <div className="space-y-1">
+              <h2 className="font-semibold flex items-center gap-2">
+                <QrCode className="h-5 w-5" /> PromptPay สำหรับรับเงินค่าอาหาร
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                ลูกค้าจะสแกน QR นี้ชำระเงินค่าอาหารโดยตรงเข้าบัญชีร้าน
+                ระบบไม่หักค่าธรรมเนียม
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>เบอร์โทร / เลขบัตรประชาชนที่ผูก PromptPay</Label>
+              <Input
+                inputMode="numeric"
+                placeholder="0812345678 หรือ 1234567890123"
+                value={promptpayId}
+                onChange={(e) => setPromptpayId(e.target.value)}
+                maxLength={20}
+              />
+              <p className="text-xs text-muted-foreground">
+                เบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>ชื่อบัญชี (แสดงให้ลูกค้าเห็นก่อนโอน)</Label>
+              <Input
+                placeholder="เช่น สมชาย ใจดี"
+                value={promptpayHolderName}
+                onChange={(e) => setPromptpayHolderName(e.target.value)}
+                maxLength={100}
+              />
+            </div>
+            <Button onClick={savePromptpay} disabled={saving} className="w-full">
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              บันทึก PromptPay
             </Button>
           </Card>
         </TabsContent>
