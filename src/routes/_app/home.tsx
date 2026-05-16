@@ -38,6 +38,7 @@ interface Restaurant {
   rating: number;
   delivery_fee: number;
   is_open: boolean;
+  is_open_until: string | null;
   opening_hours: import("@/lib/opening-hours").OpeningHours | null;
 }
 
@@ -115,7 +116,7 @@ function HomePage() {
         supabase
           .from("restaurants")
           .select(
-            "id, name, description, category, image_url, cover_url, logo_url, rating, delivery_fee, is_open, opening_hours",
+            "id, name, description, category, image_url, cover_url, logo_url, rating, delivery_fee, is_open, is_open_until, opening_hours",
           )
           .eq("is_approved", true)
           .order("rating", { ascending: false }),
@@ -637,11 +638,12 @@ function HomePage() {
         ) : (
           filtered.map((r) => {
             const withinHours = isOpenNow(r.opening_hours);
-            const reallyOpen = r.is_open && withinHours;
+            const extendActive = !!(r.is_open_until && new Date(r.is_open_until) > new Date());
+            const reallyOpen = r.is_open && (withinHours || extendActive);
             let closedLabel: string | null = null;
             if (!r.is_open) {
               closedLabel = "ปิดอยู่";
-            } else if (!withinHours) {
+            } else if (!withinHours && !extendActive) {
               closedLabel = nextOpenLabel(r.opening_hours) || "นอกเวลาทำการ";
             }
             return (

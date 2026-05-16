@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Store, Trash2, ChefHat, Bell, TrendingUp, Tag, MessageSquare } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { isOpenNow, nextCloseAt, formatCloseLabel, type OpeningHours } from "@/lib/opening-hours";
 
 export const Route = createFileRoute("/_app/restaurant-dashboard")({
   component: RestaurantDashboard,
@@ -23,8 +24,10 @@ interface Restaurant {
   description: string | null;
   category: string | null;
   is_open: boolean;
+  is_open_until: string | null;
   is_approved: boolean;
   delivery_fee: number;
+  opening_hours: OpeningHours;
 }
 interface MenuItem {
   id: string;
@@ -71,11 +74,20 @@ function RestaurantDashboard() {
       .select("*")
       .eq("owner_id", user.id)
       .maybeSingle();
-    setRestaurant(r as Restaurant | null);
-    if (r) {
+    const rest = r as Restaurant | null;
+    if (rest && rest.is_open && !isOpenNow(rest.opening_hours)) {
+      const extendActive = rest.is_open_until && new Date(rest.is_open_until) > new Date();
+      if (!extendActive) {
+        await supabase.from("restaurants").update({ is_open: false, is_open_until: null }).eq("id", rest.id);
+        rest.is_open = false;
+        rest.is_open_until = null;
+      }
+    }
+    setRestaurant(rest);
+    if (rest) {
       const [{ data: m }, { data: o }] = await Promise.all([
-        supabase.from("menu_items").select("id, name, price, is_available").eq("restaurant_id", r.id).order("created_at"),
-        supabase.from("orders").select("id, status, total, delivery_address, notes, created_at").eq("restaurant_id", r.id).order("created_at", { ascending: false }).limit(20),
+        supabase.from("menu_items").select("id, name, price, is_available").eq("restaurant_id", rest.id).order("created_at"),
+        supabase.from("orders").select("id, status, total, delivery_address, notes, created_at").eq("restaurant_id", rest.id).order("created_at", { ascending: false }).limit(20),
       ]);
       setItems((m ?? []) as MenuItem[]);
       setOrders((o ?? []) as Order[]);
@@ -107,8 +119,24 @@ function RestaurantDashboard() {
 
   async function toggleOpen(open: boolean) {
     if (!restaurant) return;
-    await supabase.from("restaurants").update({ is_open: open }).eq("id", restaurant.id);
-    setRestaurant({ ...restaurant, is_open: open });
+    if (!open) {
+      await supabase.from("restaurants").update({ is_open: false, is_open_until: null }).eq("id", restaurant.id);
+      setRestaurant({ ...restaurant, is_open: false, is_open_until: null });
+      toast.success("ปิดร้าน");
+      return;
+    }
+    const closeAt = nextCloseAt(restaurant.opening_hours);
+    const closeIso = closeAt ? closeAt.toISOString() : null;
+    await supabase.from("restaurants").update({ is_open: true, is_open_until: closeIso }).eq("id", restaurant.id);
+    setRestaurant({ ...restaurant, is_open: true, is_open_until: closeIso });
+    if (!isOpenNow(restaurant.opening_hours) && closeAt) {
+      toast.success("เปิดร้านนอกเวลาทำการ", {
+        description: `ร้านจะออนไลน์ยาวจนถึงเวลาปิดอัตโนมัติ: ${formatCloseLabel(closeAt)}`,
+        duration: 6000,
+      });
+    } else {
+      toast.success("เปิดร้านแล้ว");
+    }
   }
 
   async function addMenu() {
