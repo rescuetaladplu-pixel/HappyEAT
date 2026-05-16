@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.generate_delivery_otp() FROM PUBLIC, anon, authenticated;
