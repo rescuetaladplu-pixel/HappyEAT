@@ -114,7 +114,7 @@ function HomePage() {
         supabase
           .from("restaurants")
           .select(
-            "id, name, description, category, image_url, cover_url, logo_url, rating, delivery_fee, is_open",
+            "id, name, description, category, image_url, cover_url, logo_url, rating, delivery_fee, is_open, opening_hours",
           )
           .eq("is_approved", true)
           .order("rating", { ascending: false }),
