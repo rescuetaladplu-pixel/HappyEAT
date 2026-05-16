@@ -162,3 +162,144 @@ export const listAllUsers = createServerFn({ method: "GET" })
       })
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
   });
+
+// ---------------- Restaurant management ----------------
+
+export const listRestaurantsForAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { data, error } = await supabaseAdmin
+      .from("restaurants")
+      .select("id, name, owner_id, is_approved, is_open, category, phone, address, created_at")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const approveRestaurant = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin
+      .from("restaurants")
+      .update({ is_approved: true })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const suspendRestaurant = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin
+      .from("restaurants")
+      .update({ is_approved: false, is_open: false })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteRestaurant = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin.from("restaurants").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ---------------- Rider management ----------------
+
+export const listRidersForAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { data: riders, error } = await supabaseAdmin
+      .from("riders")
+      .select("id, is_approved, is_online, vehicle_type, license_plate, rating, current_lat, current_lng, created_at")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    const ids = (riders ?? []).map((r) => r.id);
+    if (ids.length === 0) return [];
+
+    const [{ data: profiles }, { data: authData }] = await Promise.all([
+      supabaseAdmin.from("profiles").select("id, first_name, last_name, phone").in("id", ids),
+      supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+    ]);
+    const pmap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+    const emap = new Map(authData.users.map((u) => [u.id, u.email ?? null]));
+
+    return (riders ?? []).map((r) => {
+      const p: any = pmap.get(r.id) ?? {};
+      return {
+        ...r,
+        first_name: p.first_name ?? null,
+        last_name: p.last_name ?? null,
+        phone: p.phone ?? null,
+        email: emap.get(r.id) ?? null,
+      };
+    });
+  });
+
+export const approveRider = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin
+      .from("riders")
+      .update({ is_approved: true })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const suspendRider = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin
+      .from("riders")
+      .update({ is_approved: false, is_online: false })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ---------------- Orders monitoring ----------------
+
+export const listRecentOrders = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ limit: z.number().int().min(1).max(100).default(10) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { data: orders, error } = await supabaseAdmin
+      .from("orders")
+      .select("id, status, total, created_at, customer_id, restaurant_id, rider_id, restaurants(name)")
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) throw new Error(error.message);
+    return orders ?? [];
+  });
+
+export const listActiveDeliveries = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { data, error } = await supabaseAdmin
+      .from("orders")
+      .select("id, status, total, delivery_address, created_at, rider_id, restaurants(name)")
+      .not("rider_id", "is", null)
+      .in("status", ["picked_up", "delivering"])
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
