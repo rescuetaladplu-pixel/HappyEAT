@@ -38,6 +38,7 @@ interface Restaurant {
   rating: number;
   delivery_fee: number;
   is_open: boolean;
+  is_open_until: string | null;
   opening_hours: import("@/lib/opening-hours").OpeningHours | null;
 }
 
