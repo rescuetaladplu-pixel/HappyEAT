@@ -215,10 +215,11 @@ function MyRestaurantSettingsPage() {
       </div>
 
       <Tabs defaultValue="profile">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="profile"><Store className="h-4 w-4 mr-1" />โปรไฟล์</TabsTrigger>
           <TabsTrigger value="location"><MapPin className="h-4 w-4 mr-1" />ที่อยู่</TabsTrigger>
           <TabsTrigger value="hours"><Clock className="h-4 w-4 mr-1" />เวลา</TabsTrigger>
+          <TabsTrigger value="payment"><QrCode className="h-4 w-4 mr-1" />ชำระเงิน</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
