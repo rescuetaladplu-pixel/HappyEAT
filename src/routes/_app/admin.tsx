@@ -29,19 +29,30 @@ export const Route = createFileRoute("/_app/admin")({
   component: AdminPage,
 });
 
-type AdminRow = { user_id: string; created_at: string; username: string | null; full_name: string | null };
+type AdminRow = {
+  user_id: string;
+  created_at: string;
+  username: string | null;
+  first_name: string | null;
+  last_name: string | null;
+};
 type UserRow = {
   user_id: string;
   email: string | null;
   created_at: string;
   last_sign_in_at: string | null;
   email_confirmed: boolean;
-  full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
   phone: string | null;
   username: string | null;
   avatar_url: string | null;
   roles: string[];
 };
+
+function displayName(p: { first_name: string | null; last_name: string | null }): string {
+  return [p.first_name, p.last_name].filter(Boolean).join(" ").trim();
+}
 
 const ROLE_LABEL: Record<string, string> = {
   customer: "ลูกค้า",
