@@ -147,17 +147,35 @@ function RestaurantOrdersPage() {
     }
     const list = (data ?? []) as unknown as Order[];
 
+    const pendingCount = list.filter((o) => o.status === "pending").length;
+
     if (initRef.current) {
       const newPending = list.filter(
         (o) => o.status === "pending" && !knownIdsRef.current.has(o.id),
       );
       if (newPending.length > 0) {
-        if (soundOn) playNotificationSound(soundType, volume);
         toast.success(`มีออเดอร์ใหม่ ${newPending.length} รายการ!`);
+        // New order arrives → un-mute and (re)start the loop
+        mutedUntilActionRef.current = false;
+        if (soundOnRef.current) startAlertLoop();
       }
     }
     knownIdsRef.current = new Set(list.map((o) => o.id));
     initRef.current = true;
+
+    // Auto stop when no pending orders are left
+    if (pendingCount === 0) {
+      stopAlertLoop();
+      mutedUntilActionRef.current = false;
+    } else if (
+      !mutedUntilActionRef.current &&
+      soundOnRef.current &&
+      alertIntervalRef.current === null
+    ) {
+      // Pending exists (e.g. on first load / refresh) → start looping
+      startAlertLoop();
+    }
+
     setOrders(list);
     setLoading(false);
   }
