@@ -111,7 +111,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signUp(
     email: string,
     password: string,
-    fullName: string,
+    firstName: string,
+    lastName: string,
     roleChoice: AppRole,
     phone?: string,
   ) {
@@ -120,7 +121,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/`,
-        data: { full_name: fullName, phone: phone ?? "", role: roleChoice },
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          phone: phone ?? "",
+          role: roleChoice,
+        },
       },
     });
     return { error: error?.message ?? null };
