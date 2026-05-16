@@ -94,6 +94,7 @@ interface Restaurant {
   logo_url: string | null;
   cover_url: string | null;
   is_open: boolean;
+  is_open_until: string | null;
   is_approved: boolean;
   delivery_fee: number;
   rating: number;
