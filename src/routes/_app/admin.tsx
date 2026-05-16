@@ -141,7 +141,7 @@ function AdminPage() {
         .from("orders")
         .select("id", { count: "exact", head: true })
         .not("rider_id", "is", null)
-        .in("status", ["rider_assigned", "picked_up", "on_the_way"]);
+        .in("status", ["picked_up", "delivering"]);
       setEatStats({
         orders: orders.count ?? 0,
         restaurants: restaurants.count ?? 0,
