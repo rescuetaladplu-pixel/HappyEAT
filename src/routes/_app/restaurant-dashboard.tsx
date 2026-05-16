@@ -119,8 +119,24 @@ function RestaurantDashboard() {
 
   async function toggleOpen(open: boolean) {
     if (!restaurant) return;
-    await supabase.from("restaurants").update({ is_open: open }).eq("id", restaurant.id);
-    setRestaurant({ ...restaurant, is_open: open });
+    if (!open) {
+      await supabase.from("restaurants").update({ is_open: false, is_open_until: null }).eq("id", restaurant.id);
+      setRestaurant({ ...restaurant, is_open: false, is_open_until: null });
+      toast.success("ปิดร้าน");
+      return;
+    }
+    const closeAt = nextCloseAt(restaurant.opening_hours);
+    const closeIso = closeAt ? closeAt.toISOString() : null;
+    await supabase.from("restaurants").update({ is_open: true, is_open_until: closeIso }).eq("id", restaurant.id);
+    setRestaurant({ ...restaurant, is_open: true, is_open_until: closeIso });
+    if (!isOpenNow(restaurant.opening_hours) && closeAt) {
+      toast.success("เปิดร้านนอกเวลาทำการ", {
+        description: `ร้านจะออนไลน์ยาวจนถึงเวลาปิดอัตโนมัติ: ${formatCloseLabel(closeAt)}`,
+        duration: 6000,
+      });
+    } else {
+      toast.success("เปิดร้านแล้ว");
+    }
   }
 
   async function addMenu() {
