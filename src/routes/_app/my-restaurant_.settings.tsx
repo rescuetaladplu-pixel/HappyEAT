@@ -163,6 +163,8 @@ function MyRestaurantSettingsPage() {
     if (error) return toast.error(error.message);
     toast.success("บันทึก PromptPay สำเร็จ");
   }
+
+  async function uploadImage(e: ChangeEvent<HTMLInputElement>, kind: "logo" | "cover") {
     const file = e.target.files?.[0];
     if (!file || !user) return;
     const ext = file.name.split(".").pop();
