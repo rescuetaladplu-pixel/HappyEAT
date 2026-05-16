@@ -232,6 +232,27 @@ function RestaurantOrdersPage() {
               </div>
               <div className="space-y-2">
                 <p className="text-sm font-medium">เลือกเสียง</p>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">ระดับความดัง</p>
+                <div className="grid grid-cols-3 gap-1">
+                  {VOLUME_OPTIONS.map((v) => (
+                    <Button
+                      key={v.id}
+                      type="button"
+                      size="sm"
+                      variant={volume === v.id ? "default" : "outline"}
+                      onClick={() => selectVolume(v.id)}
+                    >
+                      {v.label}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  ดังสุด = ขยายเสียงด้วยตัวบีบสัญญาณ (compressor) เพิ่มเป็น 3 เท่า
+                </p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">เลือกเสียง</p>
                 <RadioGroup
                   value={soundType}
                   onValueChange={(v) => selectSound(v as SoundId)}
