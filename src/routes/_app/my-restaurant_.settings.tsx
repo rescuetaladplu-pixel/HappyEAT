@@ -625,9 +625,21 @@ function MyRestaurantSettingsPage() {
                 ชื่อบัญชีเก็บแยกตามโหมด — สลับโหมดแล้วจะไม่ทับกัน
               </p>
             </div>
+            {ownedCount > 1 && (
+              <label className="flex items-start gap-3 rounded-lg border bg-muted/30 p-3 cursor-pointer">
+                <Switch checked={applyToAll} onCheckedChange={setApplyToAll} className="mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium">ใช้ข้อมูลนี้กับทุกร้านของฉัน ({ownedCount} ร้าน)</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    ถ้าเปิด: บันทึกแล้วจะอัปเดต PromptPay ของทุกร้านที่คุณเป็นเจ้าของพร้อมกัน
+                    ถ้าปิด: บันทึกเฉพาะร้าน "{restaurant.name}" เท่านั้น
+                  </p>
+                </div>
+              </label>
+            )}
             <Button onClick={savePromptpay} disabled={saving} className="w-full">
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              บันทึก PromptPay
+              {applyToAll && ownedCount > 1 ? `บันทึก PromptPay (ทั้ง ${ownedCount} ร้าน)` : "บันทึก PromptPay"}
             </Button>
           </Card>
         </TabsContent>
