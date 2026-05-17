@@ -49,6 +49,7 @@ function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"active" | "completed" | "cancelled">("active");
   const [reviewing, setReviewing] = useState<Order | null>(null);
   const [restRating, setRestRating] = useState(5);
   const [riderRating, setRiderRating] = useState(5);
