@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { Input } from "@/components/ui/input";
 import { Loader2, MapPin, Search } from "lucide-react";
-import { placesAutocomplete, placeDetails } from "@/lib/places.functions";
 
 export interface PlaceSelection {
   address: string;
@@ -21,22 +19,25 @@ interface Suggestion {
   placeId: string;
   mainText: string;
   secondaryText: string;
+  lat: number;
+  lng: number;
+  displayName: string;
 }
 
-function newSessionToken() {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+interface NominatimResult {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+  name?: string;
+  address?: Record<string, string>;
 }
 
 export function PlaceAutocomplete({ onSelect, placeholder, id }: Props) {
-  const autocomplete = useServerFn(placesAutocomplete);
-  const details = useServerFn(placeDetails);
-
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [fetchingDetails, setFetchingDetails] = useState(false);
-  const sessionRef = useRef<string>(newSessionToken());
   const reqIdRef = useRef(0);
 
   useEffect(() => {
@@ -49,11 +50,35 @@ export function PlaceAutocomplete({ onSelect, placeholder, id }: Props) {
     setLoading(true);
     const t = setTimeout(async () => {
       try {
-        const res = await autocomplete({
-          data: { input: q, sessionToken: sessionRef.current },
+        const url = new URL("https://nominatim.openstreetmap.org/search");
+        url.searchParams.set("q", q);
+        url.searchParams.set("format", "json");
+        url.searchParams.set("addressdetails", "1");
+        url.searchParams.set("limit", "8");
+        url.searchParams.set("countrycodes", "th");
+        url.searchParams.set("accept-language", "th");
+        const res = await fetch(url.toString(), {
+          headers: { Accept: "application/json" },
         });
+        const json = (await res.json()) as NominatimResult[];
         if (myReq !== reqIdRef.current) return;
-        setSuggestions(res.results);
+        const mapped: Suggestion[] = json.map((r) => {
+          const main = r.name || r.display_name.split(",")[0];
+          const secondary = r.display_name
+            .split(",")
+            .slice(1)
+            .join(",")
+            .trim();
+          return {
+            placeId: String(r.place_id),
+            mainText: main,
+            secondaryText: secondary,
+            lat: parseFloat(r.lat),
+            lng: parseFloat(r.lon),
+            displayName: r.display_name,
+          };
+        });
+        setSuggestions(mapped);
         setOpen(true);
       } catch {
         if (myReq !== reqIdRef.current) return;
@@ -61,36 +86,19 @@ export function PlaceAutocomplete({ onSelect, placeholder, id }: Props) {
       } finally {
         if (myReq === reqIdRef.current) setLoading(false);
       }
-    }, 300);
+    }, 400);
     return () => clearTimeout(t);
-  }, [query, autocomplete]);
+  }, [query]);
 
-  async function pick(s: Suggestion) {
+  function pick(s: Suggestion) {
     setOpen(false);
-    setFetchingDetails(true);
-    try {
-      const d = await details({
-        data: { placeId: s.placeId, sessionToken: sessionRef.current },
-      });
-      onSelect({
-        address: d.address || `${s.mainText} ${s.secondaryText}`.trim(),
-        name: d.name || s.mainText,
-        lat: d.lat,
-        lng: d.lng,
-      });
-      setQuery(d.address || s.mainText);
-      // start new session after a selection per Places API billing model
-      sessionRef.current = newSessionToken();
-    } catch {
-      onSelect({
-        address: `${s.mainText} ${s.secondaryText}`.trim(),
-        name: s.mainText,
-        lat: null,
-        lng: null,
-      });
-    } finally {
-      setFetchingDetails(false);
-    }
+    onSelect({
+      address: s.displayName,
+      name: s.mainText,
+      lat: s.lat,
+      lng: s.lng,
+    });
+    setQuery(s.displayName);
   }
 
   return (
@@ -107,7 +115,7 @@ export function PlaceAutocomplete({ onSelect, placeholder, id }: Props) {
           autoComplete="off"
           className="pl-9 pr-9"
         />
-        {(loading || fetchingDetails) && (
+        {loading && (
           <Loader2 className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground animate-spin" />
         )}
       </div>
