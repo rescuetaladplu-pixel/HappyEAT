@@ -241,17 +241,53 @@ export const notifyRidersOrderReady = createServerFn({ method: "POST" })
 
     if (!riders || riders.length === 0) return { sent: 0, picked: 0 };
 
-    // Rank by distance when we know the pickup point; otherwise use insertion order
+    // Rank by ACTUAL DRIVING DISTANCE using Google Distance Matrix.
+    // Pre-filter to up to 10 candidates by straight-line distance to cap API cost,
+    // then resolve driving distance and pick the nearest NEAREST_RIDER_COUNT.
     let picked: string[];
     if (pickupLat != null && pickupLng != null) {
-      const withDist = riders.map((r) => {
-        const lat = r.current_lat != null ? Number(r.current_lat) : null;
-        const lng = r.current_lng != null ? Number(r.current_lng) : null;
-        const km = lat != null && lng != null ? haversineKm(pickupLat!, pickupLng!, lat, lng) : Number.POSITIVE_INFINITY;
-        return { id: r.id, km };
-      });
-      withDist.sort((a, b) => a.km - b.km);
-      picked = withDist.slice(0, NEAREST_RIDER_COUNT).map((r) => r.id);
+      const withCoords = riders
+        .map((r) => {
+          const lat = r.current_lat != null ? Number(r.current_lat) : null;
+          const lng = r.current_lng != null ? Number(r.current_lng) : null;
+          if (lat == null || lng == null) return null;
+          return { id: r.id, lat, lng, straightKm: haversineKm(pickupLat!, pickupLng!, lat, lng) };
+        })
+        .filter((x): x is { id: string; lat: number; lng: number; straightKm: number } => x !== null)
+        .sort((a, b) => a.straightKm - b.straightKm)
+        .slice(0, 10);
+
+      const noCoords = riders
+        .filter((r) => r.current_lat == null || r.current_lng == null)
+        .map((r) => r.id);
+
+      let ranked: string[] = [];
+      const gmapsKey = process.env.GOOGLE_MAPS_API_KEY;
+      if (gmapsKey && withCoords.length > 0) {
+        try {
+          const origin = `${pickupLat},${pickupLng}`;
+          const destinations = withCoords.map((r) => `${r.lat},${r.lng}`).join("|");
+          const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${encodeURIComponent(destinations)}&mode=driving&key=${gmapsKey}`;
+          const res = await fetch(url);
+          const json: any = await res.json();
+          const elements = json?.rows?.[0]?.elements ?? [];
+          const withDriving = withCoords.map((r, i) => {
+            const el = elements[i];
+            const meters = el?.status === "OK" ? Number(el.distance?.value ?? Number.POSITIVE_INFINITY) : Number.POSITIVE_INFINITY;
+            return { id: r.id, meters, straightKm: r.straightKm };
+          });
+          withDriving.sort((a, b) => a.meters - b.meters || a.straightKm - b.straightKm);
+          ranked = withDriving.map((r) => r.id);
+        } catch (e) {
+          console.error("Distance Matrix failed, falling back to straight-line:", e);
+          ranked = withCoords.map((r) => r.id);
+        }
+      } else {
+        ranked = withCoords.map((r) => r.id);
+      }
+
+      // Fill remaining slots with no-coord riders if needed
+      picked = [...ranked, ...noCoords].slice(0, NEAREST_RIDER_COUNT);
     } else {
       picked = riders.slice(0, NEAREST_RIDER_COUNT).map((r) => r.id);
     }
