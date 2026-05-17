@@ -572,6 +572,18 @@ function QrFlowActions({ order, onChanged }: { order: Order; onChanged: () => vo
 
   async function acceptOrder() {
     setBusy(true);
+    // New flow: use RPC. Trigger auto-transitions to awaiting_payment when rider also claimed.
+    const { data, error } = await supabase.rpc("restaurant_accept_order", { _order_id: order.id });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    if (data === false) return toast.error("ไม่สามารถยืนยันออเดอร์นี้ได้ (อาจถูกยืนยันไปแล้วหรือถูกยกเลิก)");
+    toast.success("ยืนยันออเดอร์แล้ว — รอไรเดอร์รับงานก่อนลูกค้าจะจ่ายเงินได้");
+    notify("✅ ร้านยืนยันออเดอร์แล้ว", "รอไรเดอร์รับงาน จากนั้นคุณจะได้สแกน QR ชำระเงิน");
+    onChanged();
+  }
+
+  async function acceptOrderLegacy() {
+    setBusy(true);
     const { error } = await supabase
       .from("orders")
       .update({ status: "awaiting_payment", restaurant_accepted_at: new Date().toISOString() })
