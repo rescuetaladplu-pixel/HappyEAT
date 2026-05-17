@@ -120,11 +120,14 @@ function OrdersPage() {
       ) : (
         orders.map((o) => {
           const canReview = o.status === "delivered" && o.customer_id === user?.id && !reviewedIds.has(o.id);
-          const rMode = (o.restaurants?.promptpay_mode ?? "id") as "id" | "qr_image";
+          // Default = PromptPay ID (สะดวกสุด). ถ้าร้านไม่ได้ใส่ ID → fallback ไป QR image
+          const rMode: "id" | "qr_image" = o.restaurants?.promptpay_id
+            ? "id"
+            : o.restaurants?.promptpay_qr_url
+              ? "qr_image"
+              : ((o.restaurants?.promptpay_mode ?? "id") as "id" | "qr_image");
           const hasPaymentSetup =
-            rMode === "qr_image"
-              ? !!o.restaurants?.promptpay_qr_url
-              : !!o.restaurants?.promptpay_id;
+            !!o.restaurants?.promptpay_id || !!o.restaurants?.promptpay_qr_url;
           const showPayment =
             o.status === "awaiting_payment" &&
             o.customer_id === user?.id &&
