@@ -183,13 +183,24 @@ function MyRestaurantSettingsPage() {
       }
     }
     setSaving(true);
-    const payload = {
+    // เก็บข้อมูลทั้งสองโหมดแยกกัน — บันทึกโหมดไหนก็แตะแค่ฟิลด์ของโหมดนั้น + ตั้ง promptpay_mode
+    // เพื่อไม่ให้สลับโหมดแล้วลบข้อมูลของอีกโหมดทิ้ง
+    const payload: {
+      promptpay_mode: "id" | "qr_image";
+      promptpay_id?: string | null;
+      promptpay_holder_name?: string | null;
+      promptpay_qr_url?: string | null;
+      promptpay_qr_holder_name?: string | null;
+    } = {
       promptpay_mode: promptpayMode,
-      promptpay_id: promptpayMode === "id" ? (id || null) : null,
-      promptpay_qr_url: promptpayMode === "qr_image" ? promptpayQrUrl : null,
-      promptpay_holder_name: promptpayMode === "id" ? (promptpayHolderName.trim() || null) : null,
-      promptpay_qr_holder_name: promptpayMode === "qr_image" ? (promptpayQrHolderName.trim() || null) : null,
     };
+    if (promptpayMode === "id") {
+      payload.promptpay_id = id || null;
+      payload.promptpay_holder_name = promptpayHolderName.trim() || null;
+    } else {
+      payload.promptpay_qr_url = promptpayQrUrl;
+      payload.promptpay_qr_holder_name = promptpayQrHolderName.trim() || null;
+    }
     const q = supabase.from("restaurants").update(payload);
     const { error } = applyToAll && user
       ? await q.eq("owner_id", user.id)
@@ -639,7 +650,10 @@ function MyRestaurantSettingsPage() {
             )}
             <Button onClick={savePromptpay} disabled={saving} className="w-full">
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {applyToAll && ownedCount > 1 ? `บันทึก QR Code (ทั้ง ${ownedCount} ร้าน)` : "บันทึก QR Code"}
+              {(() => {
+                const base = promptpayMode === "id" ? "บันทึก PromptPay" : "บันทึก QR Code";
+                return applyToAll && ownedCount > 1 ? `${base} (ทั้ง ${ownedCount} ร้าน)` : base;
+              })()}
             </Button>
           </Card>
         </TabsContent>
