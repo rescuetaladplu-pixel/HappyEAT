@@ -183,19 +183,20 @@ function MyRestaurantSettingsPage() {
       }
     }
     setSaving(true);
-    const { error } = await supabase
-      .from("restaurants")
-      .update({
-        promptpay_mode: promptpayMode,
-        promptpay_id: promptpayMode === "id" ? (id || null) : null,
-        promptpay_qr_url: promptpayMode === "qr_image" ? promptpayQrUrl : null,
-        promptpay_holder_name: promptpayMode === "id" ? (promptpayHolderName.trim() || null) : null,
-        promptpay_qr_holder_name: promptpayMode === "qr_image" ? (promptpayQrHolderName.trim() || null) : null,
-      })
-      .eq("id", restaurant.id);
+    const payload = {
+      promptpay_mode: promptpayMode,
+      promptpay_id: promptpayMode === "id" ? (id || null) : null,
+      promptpay_qr_url: promptpayMode === "qr_image" ? promptpayQrUrl : null,
+      promptpay_holder_name: promptpayMode === "id" ? (promptpayHolderName.trim() || null) : null,
+      promptpay_qr_holder_name: promptpayMode === "qr_image" ? (promptpayQrHolderName.trim() || null) : null,
+    };
+    const q = supabase.from("restaurants").update(payload);
+    const { error } = applyToAll && user
+      ? await q.eq("owner_id", user.id)
+      : await q.eq("id", restaurant.id);
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("บันทึก PromptPay สำเร็จ");
+    toast.success(applyToAll ? `บันทึกแล้วทั้ง ${ownedCount} ร้าน` : "บันทึก PromptPay สำเร็จ");
   }
 
   async function uploadQrImage(e: ChangeEvent<HTMLInputElement>) {
