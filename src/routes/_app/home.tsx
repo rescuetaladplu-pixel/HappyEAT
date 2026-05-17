@@ -32,6 +32,7 @@ interface Restaurant {
   name: string;
   description: string | null;
   category: string | null;
+  categories: string[] | null;
   image_url: string | null;
   cover_url: string | null;
   logo_url: string | null;
