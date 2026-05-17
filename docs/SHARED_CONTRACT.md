@@ -96,7 +96,8 @@ delivered             ← ไรเดอร์รับค่าส่งจา
 | `preparing → ready` | ✅ ร้าน | ❌ |
 | รับงาน (set `rider_id`, → `picked_up`) | ❌ | ✅ |
 | GPS update (`delivery_lat/lng` หรือ realtime channel) | ❌ | ✅ |
-| `picked_up → delivering → delivered` + OTP verify | ❌ | ✅ |
+| `picked_up → delivering` | ❌ | ✅ (UPDATE ตรงๆ) |
+| `delivering → delivered` + OTP verify | ❌ | ✅ **เฉพาะผ่าน RPC `confirm_delivery(order_id, otp_code)`** — UPDATE ตรงๆ ถูก RLS บล็อก |
 | สร้าง review | ✅ ลูกค้า | ❌ |
 | แก้ไข `riders` table | ❌ | ✅ |
 | แก้ไข `restaurants`, `menu_*` | ✅ | ❌ |
