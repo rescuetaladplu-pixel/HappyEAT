@@ -90,7 +90,7 @@ function OrdersPage() {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, role]);
 
   function openReview(o: Order) {
     setReviewing(o);
