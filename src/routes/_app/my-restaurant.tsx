@@ -322,6 +322,14 @@ function MyRestaurantHub() {
                 <p className="text-xs text-muted-foreground truncate">
                   {r.category ?? "-"} · {r.is_open ? "เปิดอยู่" : "ปิด"}
                 </p>
+                {pendingCounts[r.id] ? (
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    <Badge className="text-[10px] h-5 px-1.5">
+                      <Bell className="h-3 w-3 mr-1" />
+                      ค้าง {pendingCounts[r.id]} ออเดอร์
+                    </Badge>
+                  </div>
+                ) : null}
               </div>
               {r.id === activeId && <Check className="h-4 w-4 text-primary shrink-0" />}
             </button>
