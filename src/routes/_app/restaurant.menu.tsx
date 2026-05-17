@@ -480,7 +480,13 @@ function ItemEditDialog({
   const isNew = !item.id;
   const [name, setName] = useState(item.name);
   const [description, setDescription] = useState(item.description ?? "");
-  const [allergenInfo, setAllergenInfo] = useState(item.allergen_info ?? "");
+  const NO_ALLERGEN_SENTINEL = "ไม่มีข้อมูลแจ้ง";
+  const [allergenInfo, setAllergenInfo] = useState(
+    item.allergen_info && item.allergen_info !== NO_ALLERGEN_SENTINEL ? item.allergen_info : "",
+  );
+  const [noAllergenInfo, setNoAllergenInfo] = useState(
+    item.allergen_info === NO_ALLERGEN_SENTINEL,
+  );
   const [price, setPrice] = useState(String(item.price ?? ""));
   const [imageUrl, setImageUrl] = useState<string | null>(item.image_url);
   const [categoryId, setCategoryId] = useState<string | null>(item.category_id);
