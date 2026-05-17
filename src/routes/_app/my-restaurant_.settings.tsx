@@ -83,6 +83,8 @@ function MyRestaurantSettingsPage() {
   const [promptpayMode, setPromptpayMode] = useState<"id" | "qr_image">("id");
   const [promptpayQrUrl, setPromptpayQrUrl] = useState<string | null>(null);
   const [uploadingQr, setUploadingQr] = useState(false);
+  const [applyToAll, setApplyToAll] = useState(false);
+  const [ownedCount, setOwnedCount] = useState(1);
   const qrRef = useRef<HTMLInputElement>(null);
 
   const logoRef = useRef<HTMLInputElement>(null);
@@ -113,6 +115,13 @@ function MyRestaurantSettingsPage() {
       setPromptpayQrHolderName(r.promptpay_qr_holder_name ?? "");
       setPromptpayMode((r.promptpay_mode as "id" | "qr_image") ?? "id");
       setPromptpayQrUrl(r.promptpay_qr_url ?? null);
+    }
+    if (user) {
+      const { count } = await supabase
+        .from("restaurants")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", user.id);
+      setOwnedCount(count ?? 1);
     }
     setLoading(false);
   }
@@ -174,19 +183,20 @@ function MyRestaurantSettingsPage() {
       }
     }
     setSaving(true);
-    const { error } = await supabase
-      .from("restaurants")
-      .update({
-        promptpay_mode: promptpayMode,
-        promptpay_id: promptpayMode === "id" ? (id || null) : null,
-        promptpay_qr_url: promptpayMode === "qr_image" ? promptpayQrUrl : null,
-        promptpay_holder_name: promptpayMode === "id" ? (promptpayHolderName.trim() || null) : null,
-        promptpay_qr_holder_name: promptpayMode === "qr_image" ? (promptpayQrHolderName.trim() || null) : null,
-      })
-      .eq("id", restaurant.id);
+    const payload = {
+      promptpay_mode: promptpayMode,
+      promptpay_id: promptpayMode === "id" ? (id || null) : null,
+      promptpay_qr_url: promptpayMode === "qr_image" ? promptpayQrUrl : null,
+      promptpay_holder_name: promptpayMode === "id" ? (promptpayHolderName.trim() || null) : null,
+      promptpay_qr_holder_name: promptpayMode === "qr_image" ? (promptpayQrHolderName.trim() || null) : null,
+    };
+    const q = supabase.from("restaurants").update(payload);
+    const { error } = applyToAll && user
+      ? await q.eq("owner_id", user.id)
+      : await q.eq("id", restaurant.id);
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("บันทึก PromptPay สำเร็จ");
+    toast.success(applyToAll ? `บันทึกแล้วทั้ง ${ownedCount} ร้าน` : "บันทึก PromptPay สำเร็จ");
   }
 
   async function uploadQrImage(e: ChangeEvent<HTMLInputElement>) {
@@ -615,9 +625,21 @@ function MyRestaurantSettingsPage() {
                 ชื่อบัญชีเก็บแยกตามโหมด — สลับโหมดแล้วจะไม่ทับกัน
               </p>
             </div>
+            {ownedCount > 1 && (
+              <label className="flex items-start gap-3 rounded-lg border bg-muted/30 p-3 cursor-pointer">
+                <Switch checked={applyToAll} onCheckedChange={setApplyToAll} className="mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium">ใช้ข้อมูลนี้กับทุกร้านของฉัน ({ownedCount} ร้าน)</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    ถ้าเปิด: บันทึกแล้วจะอัปเดต PromptPay ของทุกร้านที่คุณเป็นเจ้าของพร้อมกัน
+                    ถ้าปิด: บันทึกเฉพาะร้าน "{restaurant.name}" เท่านั้น
+                  </p>
+                </div>
+              </label>
+            )}
             <Button onClick={savePromptpay} disabled={saving} className="w-full">
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              บันทึก PromptPay
+              {applyToAll && ownedCount > 1 ? `บันทึก PromptPay (ทั้ง ${ownedCount} ร้าน)` : "บันทึก PromptPay"}
             </Button>
           </Card>
         </TabsContent>
