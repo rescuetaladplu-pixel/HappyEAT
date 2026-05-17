@@ -83,6 +83,8 @@ function MyRestaurantSettingsPage() {
   const [promptpayMode, setPromptpayMode] = useState<"id" | "qr_image">("id");
   const [promptpayQrUrl, setPromptpayQrUrl] = useState<string | null>(null);
   const [uploadingQr, setUploadingQr] = useState(false);
+  const [applyToAll, setApplyToAll] = useState(false);
+  const [ownedCount, setOwnedCount] = useState(1);
   const qrRef = useRef<HTMLInputElement>(null);
 
   const logoRef = useRef<HTMLInputElement>(null);
