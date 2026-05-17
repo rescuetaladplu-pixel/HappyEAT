@@ -8,9 +8,11 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Minus, Plus, Trash2, ShoppingBag, QrCode, Pencil, Check, X } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, QrCode, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { sendOrderPush } from "@/lib/fcm.functions";
+import { ItemPickerDialog, PickerMenuItem } from "@/components/ItemPickerDialog";
+import type { CartItem } from "@/lib/cart";
 
 export const Route = createFileRoute("/_app/cart")({
   component: CartPage,
@@ -18,10 +20,22 @@ export const Route = createFileRoute("/_app/cart")({
 
 function CartPage() {
   const { user } = useAuth();
-  const { items, total, setQty, remove, updateNote, clear, restaurantId } = useCart();
+  const { items, total, setQty, remove, clear, restaurantId } = useCart();
   const navigate = useNavigate();
-  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
-  const [noteDraft, setNoteDraft] = useState("");
+  const [editing, setEditing] = useState<{ line: CartItem; menu: PickerMenuItem } | null>(null);
+  const [openingEdit, setOpeningEdit] = useState<string | null>(null);
+
+  async function openEditDialog(line: CartItem) {
+    setOpeningEdit(line.lineId);
+    const { data, error } = await supabase
+      .from("menu_items")
+      .select("id, name, description, allergen_info, price, image_url")
+      .eq("id", line.menuItemId)
+      .maybeSingle();
+    setOpeningEdit(null);
+    if (error || !data) return toast.error("ไม่พบเมนูนี้แล้ว");
+    setEditing({ line, menu: data as PickerMenuItem });
+  }
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
