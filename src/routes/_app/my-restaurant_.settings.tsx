@@ -98,6 +98,7 @@ function MyRestaurantSettingsPage() {
       setName(r.name ?? "");
       setDescription(r.description ?? "");
       setCategory(r.category ?? "");
+      setCategories(Array.isArray(r.categories) ? r.categories : (r.category ? [r.category] : []));
       setPhone(r.phone ?? "");
       setAddress(r.address ?? "");
       setLogoUrl(r.logo_url);
