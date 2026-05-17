@@ -37,6 +37,7 @@ interface Order {
     logo_url: string | null;
     promptpay_id: string | null;
     promptpay_holder_name: string | null;
+    promptpay_qr_holder_name: string | null;
     promptpay_mode: "id" | "qr_image" | null;
     promptpay_qr_url: string | null;
   } | null;
@@ -56,7 +57,7 @@ function OrdersPage() {
     if (!user) return;
     const { data, error } = await supabase
       .from("orders")
-      .select("id, status, total, subtotal, created_at, customer_id, rider_id, restaurant_id, payment_method, payment_slip_url, rejection_reason, delivery_otp, restaurants(name, owner_id, logo_url, promptpay_id, promptpay_holder_name, promptpay_mode, promptpay_qr_url)")
+      .select("id, status, total, subtotal, created_at, customer_id, rider_id, restaurant_id, payment_method, payment_slip_url, rejection_reason, delivery_otp, restaurants(name, owner_id, logo_url, promptpay_id, promptpay_holder_name, promptpay_qr_holder_name, promptpay_mode, promptpay_qr_url)")
       .order("created_at", { ascending: false })
       .limit(50);
     if (error) toast.error(error.message);
@@ -159,7 +160,7 @@ function OrdersPage() {
                   mode={rMode}
                   promptpayId={o.restaurants.promptpay_id}
                   qrImageUrl={o.restaurants.promptpay_qr_url}
-                  holderName={o.restaurants.promptpay_holder_name}
+                  holderName={rMode === "qr_image" ? o.restaurants.promptpay_qr_holder_name : o.restaurants.promptpay_holder_name}
                   restaurantName={o.restaurants.name}
                   restaurantLogoUrl={o.restaurants.logo_url}
                   restaurantOwnerId={o.restaurants.owner_id}
