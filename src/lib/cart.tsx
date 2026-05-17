@@ -108,6 +108,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   }
 
+  function updateNote(lineId: string, note: string) {
+    setItems((prev) =>
+      prev.map((p) => (p.lineId === lineId ? { ...p, note: note.trim() || null } : p)),
+    );
+  }
+
   function clear() {
     setItems([]);
   }
@@ -117,7 +123,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   return (
     <CartContext.Provider
-      value={{ items, restaurantId, add, remove, setQty, clear, total, count }}
+      value={{ items, restaurantId, add, remove, setQty, updateNote, clear, total, count }}
     >
       {children}
     </CartContext.Provider>
