@@ -216,6 +216,7 @@ function MyRestaurantHub() {
       setRestaurant({ ...restaurant, is_open: false, is_open_until: null });
       toast.success("ปิดร้านชั่วคราว");
       return;
+    }
     const hasPayment = !!restaurant.promptpay_id || !!restaurant.promptpay_qr_url;
     if (!hasPayment) {
       toast.error("ยังเปิดร้านไม่ได้", {
