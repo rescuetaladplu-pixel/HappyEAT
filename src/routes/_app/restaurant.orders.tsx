@@ -627,6 +627,13 @@ function QrFlowActions({ order, onChanged }: { order: Order; onChanged: () => vo
     if (error) return toast.error(error.message);
     toast.success("ยืนยันรับเงิน เริ่มทำอาหาร");
     notify("💚 ร้านยืนยันรับเงิน", "กำลังจัดทำอาหารของคุณ");
+    // Notify the bound rider to head to the restaurant
+    if (order.rider_id) {
+      try {
+        const { sendStatusPush } = await import("@/lib/fcm.functions");
+        await sendStatusPush({ data: { targetUserId: order.rider_id, title: "🍳 ร้านเริ่มทำอาหารแล้ว", body: "ออกเดินทางไปร้านได้เลย — เตรียมรับอาหาร", url: "/rider-dashboard", tag: `order-${order.id}` } });
+      } catch (e) { console.error(e); }
+    }
     onChanged();
   }
 
