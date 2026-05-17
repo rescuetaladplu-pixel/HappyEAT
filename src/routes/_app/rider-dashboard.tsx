@@ -32,7 +32,7 @@ function RiderDashboard() {
     if (!user) return;
     const { data } = await supabase.from("riders").select("is_online").eq("id", user.id).maybeSingle();
     if (!data) {
-      await supabase.from("riders").insert({ id: user.id, is_approved: true });
+      await supabase.from("riders").insert({ id: user.id });
       setOnline(false);
     } else {
       setOnline(data.is_online);
