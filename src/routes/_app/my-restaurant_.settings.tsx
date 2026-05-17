@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, useRef, ChangeEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { fetchActiveRestaurantId } from "@/lib/active-restaurant";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -78,11 +79,10 @@ function MyRestaurantSettingsPage() {
 
   async function load() {
     if (!user) return;
-    const { data } = await supabase
-      .from("restaurants")
-      .select("*")
-      .eq("owner_id", user.id)
-      .maybeSingle();
+    const rid = await fetchActiveRestaurantId(user.id);
+    const { data } = rid
+      ? await supabase.from("restaurants").select("*").eq("id", rid).maybeSingle()
+      : { data: null };
     if (data) {
       const r = data as unknown as Restaurant;
       setRestaurant(r);

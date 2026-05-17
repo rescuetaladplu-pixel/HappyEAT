@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, useRef, ChangeEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { fetchActiveRestaurantId } from "@/lib/active-restaurant";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -99,11 +100,10 @@ function MenuManagementPage() {
 
   async function load() {
     if (!user) return;
-    const { data: r } = await supabase
-      .from("restaurants")
-      .select("id, name")
-      .eq("owner_id", user.id)
-      .maybeSingle();
+    const rid = await fetchActiveRestaurantId(user.id);
+    const { data: r } = rid
+      ? await supabase.from("restaurants").select("id, name").eq("id", rid).maybeSingle()
+      : { data: null };
     setRestaurant(r as Restaurant | null);
     if (r) {
       const [{ data: c }, { data: m }] = await Promise.all([

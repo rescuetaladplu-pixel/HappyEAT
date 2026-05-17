@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { fetchActiveRestaurantId } from "@/lib/active-restaurant";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,10 +48,9 @@ function RestaurantReviewsPage() {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("restaurants").select("id").eq("owner_id", user.id).maybeSingle()
-      .then(({ data }) => {
-        if (data) { setRestaurantId(data.id); load(data.id); } else setLoading(false);
-      });
+    fetchActiveRestaurantId(user.id).then((id) => {
+      if (id) { setRestaurantId(id); load(id); } else setLoading(false);
+    });
   }, [user]);
 
   const filtered = filter === "all"
