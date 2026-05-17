@@ -99,6 +99,8 @@ interface Restaurant {
   delivery_fee: number;
   rating: number;
   opening_hours: OpeningHours;
+  promptpay_id: string | null;
+  promptpay_qr_url: string | null;
 }
 
 function MyRestaurantHub() {
@@ -161,12 +163,20 @@ function MyRestaurantHub() {
       .eq("id", id)
       .maybeSingle();
     const r = (data as unknown as Restaurant | null) ?? null;
-    if (r && r.is_open && !isOpenNow(r.opening_hours)) {
-      const extendActive = r.is_open_until && new Date(r.is_open_until) > new Date();
-      if (!extendActive) {
+    if (r) {
+      const hasPayment = !!r.promptpay_id || !!r.promptpay_qr_url;
+      // ออฟไลน์อัตโนมัติถ้ายังไม่ตั้งค่าการรับชำระเงิน
+      if (r.is_open && !hasPayment) {
         await supabase.from("restaurants").update({ is_open: false, is_open_until: null }).eq("id", r.id);
         r.is_open = false;
         r.is_open_until = null;
+      } else if (r.is_open && !isOpenNow(r.opening_hours)) {
+        const extendActive = r.is_open_until && new Date(r.is_open_until) > new Date();
+        if (!extendActive) {
+          await supabase.from("restaurants").update({ is_open: false, is_open_until: null }).eq("id", r.id);
+          r.is_open = false;
+          r.is_open_until = null;
+        }
       }
     }
     setRestaurant(r);
@@ -205,6 +215,14 @@ function MyRestaurantHub() {
       await supabase.from("restaurants").update({ is_open: false, is_open_until: null }).eq("id", restaurant.id);
       setRestaurant({ ...restaurant, is_open: false, is_open_until: null });
       toast.success("ปิดร้านชั่วคราว");
+      return;
+    }
+    const hasPayment = !!restaurant.promptpay_id || !!restaurant.promptpay_qr_url;
+    if (!hasPayment) {
+      toast.error("ยังเปิดร้านไม่ได้", {
+        description: "กรุณาตั้งค่าการรับชำระเงิน (PromptPay หรือ QR ของร้าน) ก่อนเปิดรับออเดอร์",
+        duration: 6000,
+      });
       return;
     }
     const closeAt = nextCloseAt(restaurant.opening_hours);
@@ -485,6 +503,21 @@ function MyRestaurantHub() {
               </div>
             );
           })()}
+
+          {!restaurant.promptpay_id && !restaurant.promptpay_qr_url && (
+            <Link
+              to="/my-restaurant/settings"
+              className="mt-3 flex items-start gap-3 rounded-xl border-2 border-destructive/40 bg-destructive/10 px-4 py-3 hover:bg-destructive/15 transition-colors"
+            >
+              <span className="text-xl shrink-0">⚠️</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-destructive">ยังเปิดร้านไม่ได้ — ต้องตั้งค่าการรับชำระเงินก่อน</p>
+                <p className="text-xs text-destructive/80 mt-0.5">
+                  เพิ่มเลข PromptPay หรืออัปโหลด QR ของร้าน เพื่อให้ลูกค้าโอนชำระค่าอาหารได้ → แตะที่นี่เพื่อตั้งค่า
+                </p>
+              </div>
+            </Link>
+          )}
 
           {restaurant.description && (
             <p className="text-sm text-muted-foreground mt-3">{restaurant.description}</p>

@@ -29,6 +29,8 @@ interface Restaurant {
   is_approved: boolean;
   delivery_fee: number;
   opening_hours: OpeningHours;
+  promptpay_id: string | null;
+  promptpay_qr_url: string | null;
 }
 interface MenuItem {
   id: string;
@@ -75,12 +77,19 @@ function RestaurantDashboard() {
       ? await supabase.from("restaurants").select("*").eq("id", rid).maybeSingle()
       : { data: null };
     const rest = r as Restaurant | null;
-    if (rest && rest.is_open && !isOpenNow(rest.opening_hours)) {
-      const extendActive = rest.is_open_until && new Date(rest.is_open_until) > new Date();
-      if (!extendActive) {
+    if (rest) {
+      const hasPayment = !!rest.promptpay_id || !!rest.promptpay_qr_url;
+      if (rest.is_open && !hasPayment) {
         await supabase.from("restaurants").update({ is_open: false, is_open_until: null }).eq("id", rest.id);
         rest.is_open = false;
         rest.is_open_until = null;
+      } else if (rest.is_open && !isOpenNow(rest.opening_hours)) {
+        const extendActive = rest.is_open_until && new Date(rest.is_open_until) > new Date();
+        if (!extendActive) {
+          await supabase.from("restaurants").update({ is_open: false, is_open_until: null }).eq("id", rest.id);
+          rest.is_open = false;
+          rest.is_open_until = null;
+        }
       }
     }
     setRestaurant(rest);
@@ -123,6 +132,14 @@ function RestaurantDashboard() {
       await supabase.from("restaurants").update({ is_open: false, is_open_until: null }).eq("id", restaurant.id);
       setRestaurant({ ...restaurant, is_open: false, is_open_until: null });
       toast.success("ปิดร้าน");
+      return;
+    }
+    const hasPayment = !!restaurant.promptpay_id || !!restaurant.promptpay_qr_url;
+    if (!hasPayment) {
+      toast.error("ยังเปิดร้านไม่ได้", {
+        description: "กรุณาตั้งค่าการรับชำระเงิน (PromptPay หรือ QR ของร้าน) ก่อนเปิดรับออเดอร์",
+        duration: 6000,
+      });
       return;
     }
     const closeAt = nextCloseAt(restaurant.opening_hours);
@@ -200,6 +217,20 @@ function RestaurantDashboard() {
             <span className="text-sm">{restaurant.is_open ? "เปิด" : "ปิด"}</span>
           </div>
         </div>
+        {!restaurant.promptpay_id && !restaurant.promptpay_qr_url && (
+          <Link
+            to="/my-restaurant/settings"
+            className="mt-3 flex items-start gap-3 rounded-lg border-2 border-destructive/40 bg-destructive/10 px-3 py-2.5 hover:bg-destructive/15 transition-colors"
+          >
+            <span className="text-lg shrink-0">⚠️</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-destructive">ยังเปิดร้านไม่ได้ — ต้องตั้งค่าการรับชำระเงินก่อน</p>
+              <p className="text-xs text-destructive/80 mt-0.5">
+                เพิ่มเลข PromptPay หรืออัปโหลด QR ของร้าน → แตะที่นี่เพื่อตั้งค่า
+              </p>
+            </div>
+          </Link>
+        )}
       </Card>
 
       <div className="grid grid-cols-2 gap-2">

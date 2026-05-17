@@ -167,13 +167,28 @@ export function PaymentPanel({
         </span>
       </button>
 
-      {/* Warning only for image mode (amount not embedded in QR) */}
-      {isImageMode && (
-        <div className="flex gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-lg p-2 text-xs text-amber-900 dark:text-amber-200">
-          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-          <span>
-            QR นี้เป็นแบบคงที่ — โปรด <b>พิมพ์ยอด ฿{amount.toFixed(2)}</b> ในแอปธนาคารด้วยตนเองก่อนกดโอน
-          </span>
+      {/* Notice — แตกต่างชัดเจนระหว่าง 2 โหมด */}
+      {isImageMode ? (
+        <div className="flex gap-2 bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-400 dark:border-amber-600 rounded-lg p-3 text-sm text-amber-900 dark:text-amber-100">
+          <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-bold">⚠️ ต้องพิมพ์ยอดเงินเอง</p>
+            <p className="text-xs leading-relaxed">
+              QR นี้เป็นรูปภาพคงที่ <b>ไม่มียอดเงินฝังอยู่</b> — โปรดพิมพ์ยอด{" "}
+              <b className="text-base">฿{amount.toFixed(2)}</b>{" "}
+              ในแอปธนาคารด้วยตนเองก่อนกดโอน
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2 bg-green-50 dark:bg-green-950/30 border-2 border-green-400 dark:border-green-600 rounded-lg p-3 text-sm text-green-900 dark:text-green-100">
+          <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-bold">✓ ยอดเงินถูกฝังใน QR แล้ว</p>
+            <p className="text-xs leading-relaxed">
+              สแกน QR แล้วแอปธนาคารจะ <b>กรอกยอด ฿{amount.toFixed(2)} ให้อัตโนมัติ</b> — ไม่ต้องพิมพ์เอง
+            </p>
+          </div>
         </div>
       )}
 
