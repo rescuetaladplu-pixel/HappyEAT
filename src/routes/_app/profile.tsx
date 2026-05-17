@@ -44,32 +44,28 @@ function ProfilePage() {
       setRestaurant(null);
       return;
     }
-    fetchActiveRestaurantId(user.id).then((rid) =>
-      rid
-        ? supabase
+    (async () => {
+      const rid = await fetchActiveRestaurantId(user.id);
+      if (!rid) { setRestaurant(null); return; }
+      const { data } = await supabase
+        .from("restaurants")
+        .select("id, is_open, is_open_until, opening_hours")
+        .eq("id", rid)
+        .maybeSingle();
+      const r = (data as MyRestaurant | null) ?? null;
+      if (r && r.is_open && !isOpenNow(r.opening_hours)) {
+        const extendActive = r.is_open_until && new Date(r.is_open_until) > new Date();
+        if (!extendActive) {
+          await supabase
             .from("restaurants")
-            .select("id, is_open, is_open_until, opening_hours")
-            .eq("id", rid)
-            .maybeSingle()
-        : Promise.resolve({ data: null }),
-    ).then(
-        async ({ data }) => {
-          const r = (data as MyRestaurant | null) ?? null;
-          if (r && r.is_open && !isOpenNow(r.opening_hours)) {
-            const extendActive = r.is_open_until && new Date(r.is_open_until) > new Date();
-            if (!extendActive) {
-              await supabase
-                .from("restaurants")
-                .update({ is_open: false, is_open_until: null })
-                .eq("id", r.id);
-              r.is_open = false;
-              r.is_open_until = null;
-            }
-          }
-          setRestaurant(r);
-        },
-        () => { /* ignore */ },
-      );
+            .update({ is_open: false, is_open_until: null })
+            .eq("id", r.id);
+          r.is_open = false;
+          r.is_open_until = null;
+        }
+      }
+      setRestaurant(r);
+    })().catch(() => { /* ignore */ });
   }, [user]);
 
   if (authLoading) {
