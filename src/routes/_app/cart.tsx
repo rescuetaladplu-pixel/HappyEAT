@@ -242,7 +242,7 @@ function CartPage() {
       <Card className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">ที่อยู่จัดส่ง</h2>
-          <Link to="/home" search={{ addr: "1" } as never} className="text-xs text-primary underline">จัดการที่อยู่</Link>
+          <a href="/home?addr=1" className="text-xs text-primary underline">จัดการที่อยู่</a>
         </div>
         {savedAddrs.length > 0 ? (
           <div className="space-y-2">
