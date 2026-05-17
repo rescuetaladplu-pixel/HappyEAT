@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { fetchActiveRestaurantId } from "@/lib/active-restaurant";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -41,8 +42,7 @@ function AnalyticsPage() {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("restaurants").select("id").eq("owner_id", user.id).maybeSingle()
-      .then(({ data }) => setRestaurantId(data?.id ?? null));
+    fetchActiveRestaurantId(user.id).then(setRestaurantId);
   }, [user]);
 
   useEffect(() => {

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { fetchActiveRestaurantId } from "@/lib/active-restaurant";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -196,24 +197,20 @@ function RestaurantOrdersPage() {
     if (!user) return;
     let active = true;
     (async () => {
-      const { data: r } = await supabase
-        .from("restaurants")
-        .select("id")
-        .eq("owner_id", user.id)
-        .maybeSingle();
+      const rid = await fetchActiveRestaurantId(user.id);
       if (!active) return;
-      if (!r) {
+      if (!rid) {
         setLoading(false);
         return;
       }
-      setRestaurantId(r.id);
-      await load(r.id);
+      setRestaurantId(rid);
+      await load(rid);
       const ch = supabase
-        .channel(`rest-orders-${r.id}`)
+        .channel(`rest-orders-${rid}`)
         .on(
           "postgres_changes",
-          { event: "*", schema: "public", table: "orders", filter: `restaurant_id=eq.${r.id}` },
-          () => load(r.id),
+          { event: "*", schema: "public", table: "orders", filter: `restaurant_id=eq.${rid}` },
+          () => load(rid),
         )
         .subscribe();
       return () => { supabase.removeChannel(ch); };

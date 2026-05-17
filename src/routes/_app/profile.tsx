@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { LogOut, User, Store, ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { isOpenNow, nextOpenLabel, nextCloseAt, formatCloseLabel } from "@/lib/opening-hours";
+import { fetchActiveRestaurantId } from "@/lib/active-restaurant";
 
 interface OpeningHours {
   [k: string]: { open: string; close: string; closed: boolean };
@@ -43,12 +44,15 @@ function ProfilePage() {
       setRestaurant(null);
       return;
     }
-    supabase
-      .from("restaurants")
-      .select("id, is_open, is_open_until, opening_hours")
-      .eq("owner_id", user.id)
-      .maybeSingle()
-      .then(
+    fetchActiveRestaurantId(user.id).then((rid) =>
+      rid
+        ? supabase
+            .from("restaurants")
+            .select("id, is_open, is_open_until, opening_hours")
+            .eq("id", rid)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ).then(
         async ({ data }) => {
           const r = (data as MyRestaurant | null) ?? null;
           if (r && r.is_open && !isOpenNow(r.opening_hours)) {

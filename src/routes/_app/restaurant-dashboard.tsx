@@ -13,6 +13,7 @@ import { Plus, Store, Trash2, ChefHat, Bell, TrendingUp, Tag, MessageSquare } fr
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { isOpenNow, nextCloseAt, formatCloseLabel, type OpeningHours } from "@/lib/opening-hours";
+import { fetchActiveRestaurantId } from "@/lib/active-restaurant";
 
 export const Route = createFileRoute("/_app/restaurant-dashboard")({
   component: RestaurantDashboard,
@@ -69,11 +70,10 @@ function RestaurantDashboard() {
 
   async function load() {
     if (!user) return;
-    const { data: r } = await supabase
-      .from("restaurants")
-      .select("*")
-      .eq("owner_id", user.id)
-      .maybeSingle();
+    const rid = await fetchActiveRestaurantId(user.id);
+    const { data: r } = rid
+      ? await supabase.from("restaurants").select("*").eq("id", rid).maybeSingle()
+      : { data: null };
     const rest = r as Restaurant | null;
     if (rest && rest.is_open && !isOpenNow(rest.opening_hours)) {
       const extendActive = rest.is_open_until && new Date(rest.is_open_until) > new Date();
