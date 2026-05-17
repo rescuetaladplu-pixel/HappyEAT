@@ -216,6 +216,13 @@ function MyRestaurantHub() {
       setRestaurant({ ...restaurant, is_open: false, is_open_until: null });
       toast.success("ปิดร้านชั่วคราว");
       return;
+    const hasPayment = !!restaurant.promptpay_id || !!restaurant.promptpay_qr_url;
+    if (!hasPayment) {
+      toast.error("ยังเปิดร้านไม่ได้", {
+        description: "กรุณาตั้งค่าการรับชำระเงิน (PromptPay หรือ QR ของร้าน) ก่อนเปิดรับออเดอร์",
+        duration: 6000,
+      });
+      return;
     }
     const closeAt = nextCloseAt(restaurant.opening_hours);
     const closeIso = closeAt ? closeAt.toISOString() : null;
