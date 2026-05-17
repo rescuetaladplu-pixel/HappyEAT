@@ -185,7 +185,13 @@ function MyRestaurantSettingsPage() {
     setSaving(true);
     // เก็บข้อมูลทั้งสองโหมดแยกกัน — บันทึกโหมดไหนก็แตะแค่ฟิลด์ของโหมดนั้น + ตั้ง promptpay_mode
     // เพื่อไม่ให้สลับโหมดแล้วลบข้อมูลของอีกโหมดทิ้ง
-    const payload: Record<string, string | null> = {
+    const payload: {
+      promptpay_mode: "id" | "qr_image";
+      promptpay_id?: string | null;
+      promptpay_holder_name?: string | null;
+      promptpay_qr_url?: string | null;
+      promptpay_qr_holder_name?: string | null;
+    } = {
       promptpay_mode: promptpayMode,
     };
     if (promptpayMode === "id") {
