@@ -316,11 +316,20 @@ function HomePage() {
     }
   }
 
-  const filtered = restaurants.filter((r) => {
-    const okCat = category === "ทั้งหมด" || r.category === category;
-    const okSearch = !search || r.name.toLowerCase().includes(search.toLowerCase());
-    return okCat && okSearch;
-  });
+  const filtered = restaurants
+    .filter((r) => {
+      const okCat = category === "ทั้งหมด" || r.category === category;
+      const okSearch = !search || r.name.toLowerCase().includes(search.toLowerCase());
+      return okCat && okSearch;
+    })
+    .map((r) => {
+      const withinHours = isOpenNow(r.opening_hours);
+      const extendActive = !!(r.is_open_until && new Date(r.is_open_until) > new Date());
+      const reallyOpen = r.is_open && (withinHours || extendActive);
+      return { r, reallyOpen };
+    })
+    .sort((a, b) => Number(b.reallyOpen) - Number(a.reallyOpen))
+    .map(({ r }) => r);
 
   // Block หน้าลูกค้าเฉพาะกรณีที่ user ไม่มี role customer เลย (เช่น admin/rider ล้วน)
   // ผู้ใช้ที่มีหลาย role (เช่น customer + restaurant) ยังคงเข้าหน้าลูกค้าได้ปกติ
