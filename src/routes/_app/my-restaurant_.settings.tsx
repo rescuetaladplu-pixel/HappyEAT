@@ -122,9 +122,10 @@ function MyRestaurantSettingsPage() {
   async function saveProfile() {
     if (!restaurant) return;
     setSaving(true);
+    const primary = categories[0] ?? null;
     const { error } = await supabase
       .from("restaurants")
-      .update({ name, description, category, phone, logo_url: logoUrl, cover_url: coverUrl })
+      .update({ name, description, category: primary, categories, phone, logo_url: logoUrl, cover_url: coverUrl })
       .eq("id", restaurant.id);
     setSaving(false);
     if (error) return toast.error(error.message);
