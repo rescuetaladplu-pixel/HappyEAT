@@ -40,6 +40,7 @@ interface Restaurant {
   name: string;
   description: string | null;
   category: string | null;
+  categories: string[] | null;
   phone: string | null;
   address: string | null;
   latitude: number | null;
