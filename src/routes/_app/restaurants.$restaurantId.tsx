@@ -59,7 +59,7 @@ function RestaurantDetail() {
 
   const load = useCallback(async () => {
     const [{ data: r }, { data: c }, { data: m }] = await Promise.all([
-      supabase.from("restaurants").select("*").eq("id", restaurantId).maybeSingle(),
+      supabase.from("restaurants_public").select("*").eq("id", restaurantId).maybeSingle(),
       supabase
         .from("menu_categories")
         .select("*")
