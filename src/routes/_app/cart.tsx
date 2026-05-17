@@ -253,22 +253,21 @@ function CartPage() {
                 <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(item.lineId, item.quantity + 1)}>
                   <Plus className="h-3 w-3" />
                 </Button>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8"
+                  onClick={() => openEditDialog(item)}
+                  disabled={openingEdit === item.lineId}
+                  aria-label="แก้ไขเมนู"
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
                 <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => remove(item.lineId)}>
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
             </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={() => openEditDialog(item)}
-              disabled={openingEdit === item.lineId}
-            >
-              <Pencil className="h-3 w-3 mr-1" />
-              {openingEdit === item.lineId ? "กำลังโหลด..." : "แก้ไขเมนู"}
-            </Button>
           </Card>
         ))}
       </div>
