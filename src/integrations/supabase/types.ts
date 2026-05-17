@@ -436,6 +436,7 @@ export type Database = {
           rejection_reason: string | null
           restaurant_accepted_at: string | null
           restaurant_id: string
+          rider_accepted_at: string | null
           rider_id: string | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
@@ -460,6 +461,7 @@ export type Database = {
           rejection_reason?: string | null
           restaurant_accepted_at?: string | null
           restaurant_id: string
+          rider_accepted_at?: string | null
           rider_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal: number
@@ -484,6 +486,7 @@ export type Database = {
           rejection_reason?: string | null
           restaurant_accepted_at?: string | null
           restaurant_id?: string
+          rider_accepted_at?: string | null
           rider_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
@@ -931,6 +934,7 @@ export type Database = {
         | "delivering"
         | "delivered"
         | "cancelled"
+        | "awaiting_confirmations"
         | "awaiting_restaurant"
         | "awaiting_payment"
         | "awaiting_payment_confirm"
@@ -1072,6 +1076,7 @@ export const Constants = {
         "delivering",
         "delivered",
         "cancelled",
+        "awaiting_confirmations",
         "awaiting_restaurant",
         "awaiting_payment",
         "awaiting_payment_confirm",
