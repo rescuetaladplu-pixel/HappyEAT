@@ -141,9 +141,13 @@ export function PaymentPanel({
       {/* QR display */}
       {isImageMode ? (
         qrImageUrl ? (
-          <div className="flex flex-col items-center bg-white rounded-lg p-3 border">
-            <img src={qrImageUrl} alt="PromptPay QR" className="w-56 h-56 object-contain" />
-          </div>
+          <BrandedQrFromImage
+            imageUrl={qrImageUrl}
+            amount={amount}
+            restaurantName={restaurantName}
+            restaurantLogoUrl={restaurantLogoUrl}
+            holderName={holderName}
+          />
         ) : (
           <div className="text-center text-sm text-destructive py-6">ร้านยังไม่ได้อัปโหลด QR</div>
         )
