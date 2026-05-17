@@ -20,7 +20,6 @@ export const RESTAURANT_CATEGORIES = [
   "อาหารเกาหลี",
   "อาหารจีน",
   "อาหารเวียดนาม",
-  "ฮาลาล",
 ] as const;
 
 export const MAX_RESTAURANT_CATEGORIES = 3;
