@@ -145,6 +145,23 @@ function HomePage() {
 
   useRefetchOnFocus(loadRestaurants);
 
+  // เปิด sheet จัดการที่อยู่อัตโนมัติเมื่อเข้ามาด้วย ?addr=1
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("addr") === "1") {
+      if (!authLoading && !user) {
+        navigate({ to: "/auth" });
+        return;
+      }
+      setAddrOpen(true);
+      setSheetMode(addresses.length === 0 ? "form" : "list");
+      if (addresses.length === 0) resetForm();
+      // ล้าง query เพื่อไม่ให้เปิดซ้ำเวลา refresh
+      window.history.replaceState({}, "", "/home");
+    }
+  }, [authLoading, user, addresses.length, navigate]);
+
   useEffect(() => {
     if (!user) return;
     async function loadAddrs() {
