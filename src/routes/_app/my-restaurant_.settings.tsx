@@ -75,6 +75,10 @@ function MyRestaurantSettingsPage() {
   const [hours, setHours] = useState<OpeningHours>(DEFAULT_HOURS);
   const [promptpayId, setPromptpayId] = useState("");
   const [promptpayHolderName, setPromptpayHolderName] = useState("");
+  const [promptpayMode, setPromptpayMode] = useState<"id" | "qr_image">("id");
+  const [promptpayQrUrl, setPromptpayQrUrl] = useState<string | null>(null);
+  const [uploadingQr, setUploadingQr] = useState(false);
+  const qrRef = useRef<HTMLInputElement>(null);
 
   const logoRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
@@ -100,6 +104,8 @@ function MyRestaurantSettingsPage() {
       setHours({ ...DEFAULT_HOURS, ...(r.opening_hours ?? {}) });
       setPromptpayId(r.promptpay_id ?? "");
       setPromptpayHolderName(r.promptpay_holder_name ?? "");
+      setPromptpayMode((r.promptpay_mode as "id" | "qr_image") ?? "id");
+      setPromptpayQrUrl(r.promptpay_qr_url ?? null);
     }
     setLoading(false);
   }
@@ -150,20 +156,48 @@ function MyRestaurantSettingsPage() {
   async function savePromptpay() {
     if (!restaurant) return;
     const id = promptpayId.replace(/[\s-]/g, "");
-    if (id && !/^\d{10}$|^\d{13}$/.test(id)) {
-      return toast.error("PromptPay ต้องเป็นเบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก");
+    if (promptpayMode === "id") {
+      if (id && !/^\d{10}$|^\d{13}$/.test(id)) {
+        return toast.error("PromptPay ต้องเป็นเบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก");
+      }
+    } else {
+      if (!promptpayQrUrl) {
+        return toast.error("กรุณาอัปโหลดรูป QR ของร้าน");
+      }
     }
     setSaving(true);
     const { error } = await supabase
       .from("restaurants")
       .update({
-        promptpay_id: id || null,
+        promptpay_mode: promptpayMode,
+        promptpay_id: promptpayMode === "id" ? (id || null) : null,
+        promptpay_qr_url: promptpayMode === "qr_image" ? promptpayQrUrl : null,
         promptpay_holder_name: promptpayHolderName.trim() || null,
       })
       .eq("id", restaurant.id);
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("บันทึก PromptPay สำเร็จ");
+  }
+
+  async function uploadQrImage(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) return toast.error("ไฟล์ใหญ่เกิน 5MB");
+    setUploadingQr(true);
+    const ext = file.name.split(".").pop() || "png";
+    const path = `${user.id}/promptpay-qr-${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("restaurant-images")
+      .upload(path, file, { upsert: true, contentType: file.type });
+    if (upErr) {
+      setUploadingQr(false);
+      return toast.error(upErr.message);
+    }
+    const { data } = supabase.storage.from("restaurant-images").getPublicUrl(path);
+    setPromptpayQrUrl(data.publicUrl);
+    setUploadingQr(false);
+    toast.success("อัปโหลด QR แล้ว — อย่าลืมกดบันทึก");
   }
 
   async function uploadImage(e: ChangeEvent<HTMLInputElement>, kind: "logo" | "cover") {
