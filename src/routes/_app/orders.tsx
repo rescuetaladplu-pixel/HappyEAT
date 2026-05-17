@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClipboardList, Star } from "lucide-react";
 import { toast } from "sonner";
 import { STATUS_LABELS, STATUS_VARIANTS, type OrderStatus } from "@/lib/order-status";
@@ -48,6 +49,7 @@ function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"active" | "completed" | "cancelled">("active");
   const [reviewing, setReviewing] = useState<Order | null>(null);
   const [restRating, setRestRating] = useState(5);
   const [riderRating, setRiderRating] = useState(5);
@@ -112,22 +114,46 @@ function OrdersPage() {
     loadOrders();
   }
 
+  const filtered = orders.filter((o) => {
+    if (o.status === "cancelled") return tab === "cancelled";
+    if (o.status === "delivered") return tab === "completed";
+    return tab === "active";
+  });
+  const counts = {
+    active: orders.filter((o) => o.status !== "cancelled" && o.status !== "delivered").length,
+    completed: orders.filter((o) => o.status === "delivered").length,
+    cancelled: orders.filter((o) => o.status === "cancelled").length,
+  };
+
   return (
     <main className="max-w-2xl mx-auto p-4 space-y-3">
       <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
         <h1 className="text-2xl font-bold">{role === "rider" ? "ประวัติงาน" : "ออเดอร์"}</h1>
         {role !== "rider" && <EnablePushButton />}
       </div>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="active">กำลังดำเนินการ ({counts.active})</TabsTrigger>
+          <TabsTrigger value="completed">สำเร็จ ({counts.completed})</TabsTrigger>
+          <TabsTrigger value="cancelled">ยกเลิก ({counts.cancelled})</TabsTrigger>
+        </TabsList>
+      </Tabs>
       {loading ? (
         Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)
-      ) : orders.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <ClipboardList className="h-12 w-12 mx-auto opacity-30 mb-2" />
-          <p>ยังไม่มีออเดอร์</p>
-          <Button asChild variant="link" className="mt-2"><Link to="/home">เริ่มสั่งอาหาร</Link></Button>
+          <p>
+            {tab === "active" && "ไม่มีออเดอร์ที่กำลังดำเนินการ"}
+            {tab === "completed" && "ยังไม่มีออเดอร์ที่สำเร็จ"}
+            {tab === "cancelled" && "ไม่มีออเดอร์ที่ยกเลิก"}
+          </p>
+          {tab === "active" && (
+            <Button asChild variant="link" className="mt-2"><Link to="/home">เริ่มสั่งอาหาร</Link></Button>
+          )}
         </div>
       ) : (
-        orders.map((o) => {
+        filtered.map((o) => {
           const canReview = o.status === "delivered" && o.customer_id === user?.id && !reviewedIds.has(o.id);
           // Default = PromptPay ID (สะดวกสุด). ถ้าร้านไม่ได้ใส่ ID → fallback ไป QR image
           const rMode: "id" | "qr_image" = o.restaurants?.promptpay_id
