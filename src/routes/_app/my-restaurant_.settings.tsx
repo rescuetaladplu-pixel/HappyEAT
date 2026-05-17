@@ -421,19 +421,96 @@ function MyRestaurantSettingsPage() {
                 ระบบไม่หักค่าธรรมเนียม
               </p>
             </div>
-            <div className="space-y-2">
-              <Label>เบอร์โทร / เลขบัตรประชาชนที่ผูก PromptPay</Label>
-              <Input
-                inputMode="numeric"
-                placeholder="0812345678 หรือ 1234567890123"
-                value={promptpayId}
-                onChange={(e) => setPromptpayId(e.target.value)}
-                maxLength={20}
-              />
-              <p className="text-xs text-muted-foreground">
-                เบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก
-              </p>
+
+            {/* Mode picker */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setPromptpayMode("id")}
+                className={`rounded-lg border p-3 text-left text-sm transition ${
+                  promptpayMode === "id"
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:bg-accent"
+                }`}
+              >
+                <p className="font-semibold">กรอก PromptPay ID</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  ระบบสร้าง QR + ใส่ยอดเงินอัตโนมัติ (สะดวกลูกค้าที่สุด)
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPromptpayMode("qr_image")}
+                className={`rounded-lg border p-3 text-left text-sm transition ${
+                  promptpayMode === "qr_image"
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:bg-accent"
+                }`}
+              >
+                <p className="font-semibold">อัปโหลด QR ของร้าน</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  ใช้ QR ที่ร้านมีอยู่แล้ว (ลูกค้าต้องพิมพ์ยอดเอง)
+                </p>
+              </button>
             </div>
+
+            {promptpayMode === "id" ? (
+              <div className="space-y-2">
+                <Label>เบอร์โทร / เลขบัตรประชาชนที่ผูก PromptPay</Label>
+                <Input
+                  inputMode="numeric"
+                  placeholder="0812345678 หรือ 1234567890123"
+                  value={promptpayId}
+                  onChange={(e) => setPromptpayId(e.target.value)}
+                  maxLength={20}
+                />
+                <p className="text-xs text-muted-foreground">
+                  เบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>รูป QR PromptPay ของร้าน</Label>
+                <div className="border rounded-lg bg-muted/30 p-3 flex flex-col items-center gap-2">
+                  {promptpayQrUrl ? (
+                    <img
+                      src={promptpayQrUrl}
+                      alt="QR ร้าน"
+                      className="w-48 h-48 object-contain bg-white rounded"
+                    />
+                  ) : (
+                    <div className="w-48 h-48 flex items-center justify-center text-xs text-muted-foreground">
+                      ยังไม่ได้อัปโหลด
+                    </div>
+                  )}
+                  <input
+                    ref={qrRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={uploadQrImage}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => qrRef.current?.click()}
+                    disabled={uploadingQr}
+                  >
+                    {uploadingQr ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-2" />
+                    )}
+                    {promptpayQrUrl ? "เปลี่ยนรูป QR" : "อัปโหลด QR"}
+                  </Button>
+                </div>
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  ⚠️ QR แบบรูปภาพไม่มียอดเงินฝังอยู่ ลูกค้าต้องพิมพ์ยอดเองในแอปธนาคาร
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>ชื่อบัญชี (แสดงให้ลูกค้าเห็นก่อนโอน)</Label>
               <Input
