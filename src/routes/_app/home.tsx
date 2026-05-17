@@ -689,12 +689,11 @@ function HomePage() {
                         </span>
                         <span>•</span>
                         <span>ค่าส่ง ฿{Number(r.delivery_fee).toFixed(0)}</span>
-                        {r.category && (
-                          <>
-                            <span>•</span>
-                            <span>{r.category}</span>
-                          </>
-                        )}
+                        {((r.categories && r.categories.length > 0) ? r.categories : (r.category ? [r.category] : [])).slice(0, 2).map((c) => (
+                          <span key={c} className="px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground text-[10px]">
+                            {c}
+                          </span>
+                        ))}
                       </div>
                     </div>
                     {r.logo_url && (
