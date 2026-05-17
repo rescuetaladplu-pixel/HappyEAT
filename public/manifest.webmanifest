@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "HappyEat — แอปสั่งอาหาร",
   "short_name": "HappyEat",
   "description": "สั่งอาหารจากร้านโปรดของคุณ ส่งถึงที่หมายอย่างรวดเร็ว",
@@ -9,6 +10,8 @@
   "background_color": "#ffffff",
   "theme_color": "#f97316",
   "lang": "th",
+  "dir": "ltr",
+  "categories": ["food", "lifestyle", "shopping"],
   "icons": [
     {
       "src": "/icon-192.png",
