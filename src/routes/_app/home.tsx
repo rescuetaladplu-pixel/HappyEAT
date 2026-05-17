@@ -57,7 +57,6 @@ interface AddressRow {
   rider_note: string | null;
 }
 
-import { RESTAURANT_CATEGORIES } from "@/lib/restaurant-categories";
 const CATEGORIES = ["ทั้งหมด", ...RESTAURANT_CATEGORIES];
 const PHONE_RE = /^[0-9+\-\s()]{8,20}$/;
 const ADDRESS_SAVE_TIMEOUT_MS = 15000;
