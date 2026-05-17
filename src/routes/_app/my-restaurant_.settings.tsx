@@ -116,6 +116,13 @@ function MyRestaurantSettingsPage() {
       setPromptpayMode((r.promptpay_mode as "id" | "qr_image") ?? "id");
       setPromptpayQrUrl(r.promptpay_qr_url ?? null);
     }
+    if (user) {
+      const { count } = await supabase
+        .from("restaurants")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", user.id);
+      setOwnedCount(count ?? 1);
+    }
     setLoading(false);
   }
 
