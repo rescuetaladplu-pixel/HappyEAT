@@ -578,7 +578,16 @@ function QrFlowActions({ order, onChanged }: { order: Order; onChanged: () => vo
     if (error) return toast.error(error.message);
     if (data === false) return toast.error("ไม่สามารถยืนยันออเดอร์นี้ได้ (อาจถูกยืนยันไปแล้วหรือถูกยกเลิก)");
     toast.success("ยืนยันออเดอร์แล้ว — รอไรเดอร์รับงานก่อนลูกค้าจะจ่ายเงินได้");
-    notify("✅ ร้านยืนยันออเดอร์แล้ว", "รอไรเดอร์รับงาน จากนั้นคุณจะได้สแกน QR ชำระเงิน");
+    // Re-fetch to see if trigger auto-transitioned to awaiting_payment (rider had already claimed)
+    const { data: fresh } = await supabase.from("orders").select("status").eq("id", order.id).maybeSingle();
+    if (fresh?.status === "awaiting_payment") {
+      try {
+        const { sendStatusPush } = await import("@/lib/fcm.functions");
+        await sendStatusPush({ data: { targetUserId: order.customer_id, title: "💳 จ่ายเงินได้แล้ว", body: "ร้านและไรเดอร์ยืนยันแล้ว — เปิดแอปสแกน QR ชำระเงิน", url: "/orders", tag: `order-${order.id}` } });
+      } catch (e) { console.error(e); }
+    } else {
+      notify("✅ ร้านยืนยันออเดอร์แล้ว", "รอไรเดอร์รับงาน จากนั้นคุณจะได้สแกน QR ชำระเงิน");
+    }
     onChanged();
   }
 
