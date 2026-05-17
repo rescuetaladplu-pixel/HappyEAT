@@ -55,11 +55,20 @@ function OrdersPage() {
 
   async function loadOrders() {
     if (!user) return;
-    const { data, error } = await supabase
+    // หน้านี้แสดง "ออเดอร์ของฉัน" เท่านั้น — ฝั่งลูกค้าดูที่ตัวเองสั่ง, ไรเดอร์ดูงานที่ตัวเองรับ
+    // ไม่ปะปนกับออเดอร์ที่เห็นผ่าน RLS เพราะเป็นเจ้าของร้าน/แอดมิน (ร้านมีหน้า /restaurant/orders แยก)
+    let q = supabase
       .from("orders")
       .select("id, status, total, subtotal, created_at, customer_id, rider_id, restaurant_id, payment_method, payment_slip_url, rejection_reason, delivery_otp, restaurants(name, owner_id, logo_url, promptpay_id, promptpay_holder_name, promptpay_qr_holder_name, promptpay_mode, promptpay_qr_url)")
       .order("created_at", { ascending: false })
       .limit(50);
+    if (role === "rider") {
+      q = q.eq("rider_id", user.id);
+    } else {
+      // customer / restaurant owner / admin — เห็นเฉพาะออเดอร์ที่ตัวเองสั่งในหน้านี้
+      q = q.eq("customer_id", user.id);
+    }
+    const { data, error } = await q;
     if (error) toast.error(error.message);
     const list = (data ?? []) as unknown as Order[];
     setOrders(list);
@@ -81,7 +90,7 @@ function OrdersPage() {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, role]);
 
   function openReview(o: Order) {
     setReviewing(o);
