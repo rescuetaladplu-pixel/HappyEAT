@@ -59,29 +59,40 @@ notes, created_at, updated_at
 
 ---
 
-## 3. Order State Machine (ฉบับ payment-first, ไม่มีเงินสดค่าอาหาร)
+## 3. Order State Machine (parallel-confirmation, payment-first)
 
 ```
-[customer create order]
+[customer create order] → status = 'awaiting_confirmations', rider_id = NULL
+        │
+        ├─ ร้านเห็นทันที (tab "ออเดอร์ใหม่")  → กด "ยืนยัน" → RPC restaurant_accept_order()
+        │                                       (เซ็ต restaurant_accepted_at)
+        └─ ไรเดอร์เห็นทันที (pool)             → กด "รับงาน" → RPC rider_claim_order()
+                                                 (เซ็ต rider_id + rider_accepted_at)
+
+   เมื่อ "ทั้งสองฝั่ง" ครบ (restaurant_accepted_at IS NOT NULL AND rider_id IS NOT NULL)
+   → trigger auto_transition_to_payment เปลี่ยน status เป็น 'awaiting_payment' อัตโนมัติ
+   → ฝั่งที่กดเป็นคนสุดท้าย รับผิดชอบส่ง push แจ้งลูกค้า "จ่ายเงินได้แล้ว"
         ↓
-awaiting_restaurant   ← รอร้านเช็คความพร้อม
-        ↓ ร้านรับ                      ↓ ร้านปฏิเสธ → rejected/cancelled
-awaiting_payment      ← ลูกค้าเห็น QR PromptPay
+awaiting_payment           ← ลูกค้าเห็น QR PromptPay
         ↓ ลูกค้า upload สลิป
-awaiting_payment_confirm  ← รอร้านตรวจสลิป (หรือ SlipOK auto)
-        ↓ ร้านยืนยัน                    ↓ ปฏิเสธสลิป → payment_rejected
-preparing             ← ร้านเริ่มทำอาหาร
+awaiting_payment_confirm   ← รอร้านตรวจสลิป
+        ↓ ร้านยืนยัน                ↓ ปฏิเสธสลิป → payment_rejected
+preparing                  ← ร้านเริ่มทำอาหาร  (happyeat ยิง push หาไรเดอร์ที่ผูกแล้ว)
         ↓
-ready                 ← **ไรเดอร์เริ่มเห็น order นี้** (RLS: rider_id IS NULL AND status='ready')
-        ↓ ไรเดอร์กดรับงาน → set rider_id
-picked_up             ← ไรเดอร์รับของจากร้านแล้ว
+ready                      ← อาหารพร้อม
         ↓
-delivering            ← (optional) ระหว่างเดินทาง
-        ↓ ไรเดอร์ส่งถึง + customer ยืนยัน OTP 4 หลัก
-delivered             ← ไรเดอร์รับค่าส่งจาก customer ที่ปลายทาง
+picked_up                  ← ไรเดอร์รับของจากร้านแล้ว (assigned rider UPDATE)
+        ↓
+delivering                 ← (optional) ระหว่างเดินทาง
+        ↓ OTP 4 หลัก ผ่าน RPC confirm_delivery
+delivered                  ← ไรเดอร์รับค่าส่งจาก customer ที่ปลายทาง
 ```
 
-`cancelled` ได้ทุก state **ก่อน** `preparing` (เพราะลูกค้ายังไม่จ่าย/จ่ายแล้วแต่ร้านยังไม่ทำ)
+**Status `awaiting_restaurant` = LEGACY** เก็บไว้สำหรับ order เก่าก่อน 2026-05-17 เท่านั้น order ใหม่จะไม่เข้า state นี้อีก
+
+**Rider release ก่อนจ่าย:** ไรเดอร์ปล่อยงานได้ผ่าน RPC `rider_release_order(_order_id)` เฉพาะตอน status ยัง `awaiting_confirmations` หรือ `awaiting_payment` (ลูกค้ายังไม่จ่ายเงิน) — จะเซ็ต `rider_id=NULL, rider_accepted_at=NULL` กลับ order เข้า pool อีกครั้ง
+
+`cancelled` ได้ทุก state **ก่อน** `preparing` (รวม `awaiting_confirmations` — ลูกค้ายกเลิกได้ระหว่างรอ confirmation)
 
 ---
 
@@ -89,15 +100,19 @@ delivered             ← ไรเดอร์รับค่าส่งจา
 
 | สิ่งที่ทำ | Customer/Restaurant app | Rider app |
 |---|---|---|
-| สร้าง order | ✅ | ❌ |
-| ย้าย status `awaiting_restaurant → awaiting_payment` | ✅ ร้าน | ❌ |
+| สร้าง order (status เริ่มต้น = `awaiting_confirmations`) | ✅ ลูกค้า | ❌ |
+| ร้านยืนยัน → set `restaurant_accepted_at` | ✅ ร้าน (RPC `restaurant_accept_order`) | ❌ |
+| ไรเดอร์รับงาน → set `rider_id`, `rider_accepted_at` | ❌ | ✅ (RPC `rider_claim_order`) |
+| ไรเดอร์ปล่อยงานก่อนจ่าย | ❌ | ✅ (RPC `rider_release_order`) |
+| Auto `awaiting_confirmations → awaiting_payment` | trigger DB ทำให้เอง | trigger DB ทำให้เอง |
+| Push "จ่ายเงินได้แล้ว" หา customer | ✅ ถ้าฝั่งร้านเป็นคน trigger transition | ✅ ถ้าฝั่งไรเดอร์เป็นคน trigger transition |
 | Upload สลิป, ย้ายไป `awaiting_payment_confirm` | ✅ ลูกค้า | ❌ |
-| ยืนยันสลิป → `preparing` | ✅ ร้าน | ❌ |
+| ยืนยันสลิป → `preparing` | ✅ ร้าน (+ ยิง push หาไรเดอร์ที่ผูกแล้ว) | ❌ |
 | `preparing → ready` | ✅ ร้าน | ❌ |
-| รับงาน (set `rider_id`, → `picked_up`) | ❌ | ✅ |
-| GPS update (`delivery_lat/lng` หรือ realtime channel) | ❌ | ✅ |
+| `ready → picked_up` | ❌ | ✅ (assigned rider UPDATE) |
+| GPS update | ❌ | ✅ |
 | `picked_up → delivering` | ❌ | ✅ (UPDATE ตรงๆ) |
-| `delivering → delivered` + OTP verify | ❌ | ✅ **เฉพาะผ่าน RPC `confirm_delivery(order_id, otp_code)`** — UPDATE ตรงๆ ถูก RLS บล็อก |
+| `delivering → delivered` + OTP verify | ❌ | ✅ **เฉพาะผ่าน RPC `confirm_delivery`** |
 | สร้าง review | ✅ ลูกค้า | ❌ |
 | แก้ไข `riders` table | ❌ | ✅ |
 | แก้ไข `restaurants`, `menu_*` | ✅ | ❌ |
@@ -110,10 +125,12 @@ delivered             ← ไรเดอร์รับค่าส่งจา
 - `auth.uid() = customer_id` — ลูกค้าเจ้าของ
 - `auth.uid() = rider_id` — ไรเดอร์ที่รับงานนั้น
 - เจ้าของร้าน (ผ่าน `restaurants.owner_id`)
-- ไรเดอร์ทุกคน เห็น order ที่ `rider_id IS NULL AND status IN ('ready','preparing')` ← **pool งาน**
+- **ไรเดอร์ทุกคน เห็น order ที่ `rider_id IS NULL AND status IN ('awaiting_confirmations','ready','preparing')`** ← pool งานใหม่ (`awaiting_confirmations` เพิ่มเข้ามาเพื่อ flow parallel-confirmation)
 - admin
 
-`Restaurant/rider/customer update orders` อนุญาต customer / เจ้าของร้าน / admin / ไรเดอร์ใดๆ ที่ `rider_id IS NULL` (กดรับงาน → set `rider_id=self, status='picked_up'`) / ไรเดอร์ที่ assigned (เฉพาะ status `picked_up`, `delivering` เท่านั้น — **ห้าม set `delivered` ตรงๆ ต้องเรียก RPC `confirm_delivery`**)
+`Restaurant/rider/customer update orders`: customer / เจ้าของร้าน / admin / ไรเดอร์ใดๆ ที่ `rider_id IS NULL` / ไรเดอร์ที่ assigned (เฉพาะ status `picked_up`, `delivering` — ห้าม set `delivered` ตรงๆ ต้องเรียก RPC `confirm_delivery`)
+
+**Trigger `enforce_orders_update_authorization`** บล็อก rider โดยตรงไม่ให้ UPDATE field ที่ไม่ใช่ของตัวเอง → ใช้ RPC `rider_claim_order` / `rider_release_order` เท่านั้น สำหรับ flow รับ/ปล่อยงานก่อนจ่าย
 
 > **คำเตือน:** ถ้า rider app จะเพิ่ม column ใหม่ใน `orders` ต้องมาขอห้องนี้ run migration + อัปเดต RLS
 
@@ -158,6 +175,7 @@ delivered             ← ไรเดอร์รับค่าส่งจา
 
 | วันที่ | ฝั่งที่เปลี่ยน | สรุป | ใครต้อง action |
 |---|---|---|---|
+| 2026-05-17 | happyeat | **NEW FLOW (parallel confirmation before payment)**: เพิ่ม enum value `awaiting_confirmations` (default status ของ order ใหม่) + column `orders.rider_accepted_at` + RPCs `restaurant_accept_order`, `rider_claim_order`, `rider_release_order` (SECURITY DEFINER) + trigger `auto_transition_to_payment` (เปลี่ยน status เป็น `awaiting_payment` อัตโนมัติเมื่อ `restaurant_accepted_at IS NOT NULL AND rider_id IS NOT NULL`). RLS `Customers view own orders` ขยาย rider pool ให้รวม `awaiting_confirmations`. ฝั่ง happyeat (restaurant.orders): tab "ออเดอร์ใหม่" + ปุ่มยืนยัน + push หา customer ตอน auto-transition + push หาไรเดอร์ที่ผูกแล้วตอน `confirmSlip → preparing`. ฝั่ง happyeat (orders): dual-chip restaurant/rider status + ปุ่มยกเลิก. | **rider app: action ด่วน** — (1) เปลี่ยน pool query รับงานให้รวม `status='awaiting_confirmations' AND rider_id IS NULL` (เดิมเป็น `'ready'/'preparing'`); (2) ปุ่ม "รับงาน" สำหรับ `awaiting_confirmations` ต้องเรียก RPC `supabase.rpc('rider_claim_order', { _order_id })` แทน UPDATE ตรง — return `true` = สำเร็จ, `false` = ถูกคนอื่นรับไปแล้ว/ไรเดอร์ยังไม่ approve; (3) เพิ่มปุ่ม "ปล่อยงาน" สำหรับ status `awaiting_confirmations` / `awaiting_payment` (ตอนรอลูกค้าจ่าย) → เรียก RPC `rider_release_order` — ใช้กรณีไรเดอร์เปลี่ยนใจก่อนงานจริง; (4) หลัง RPC `rider_claim_order` สำเร็จ ให้ re-fetch order — ถ้า status เป็น `awaiting_payment` แล้ว (ร้านยืนยันก่อนหน้า) ต้องเรียก server fn `sendStatusPush({ targetUserId: order.customer_id, title: "💳 จ่ายเงินได้แล้ว", body: "ร้านและไรเดอร์ยืนยันแล้ว — เปิดแอปสแกน QR ชำระเงิน", url: "/orders" })`; (5) เพิ่ม UI สถานะใหม่: "รอลูกค้าจ่ายเงิน" (awaiting_payment/awaiting_payment_confirm) และ "ร้านกำลังทำอาหาร" (preparing) — ไรเดอร์รอ push "ร้านเริ่มทำอาหารแล้ว" จาก happyeat ตอน `preparing` แล้วค่อยออกเดินทางไปร้าน |
 | 2026-05-17 | happyeat | **PLAN (chat ephemeral broadcast)**: ตกลงสถาปัตยกรรม chat ไรเดอร์↔ลูกค้าแบบ ephemeral (ไม่เก็บ DB) ด้วย Realtime broadcast topic `order-chat:{order_id}`. ตอนนี้ยังไม่ implement — ดูรายละเอียดและเงื่อนไขใน §6.1. Finding `realtime_messages_no_rls` ถูก ignore เพราะปัจจุบันใช้แค่ `postgres_changes` (กรองด้วย RLS ของ table). | rider app: ไม่ต้อง action ตอนนี้ — แต่ถ้าจะเริ่มทำ chat **ต้องประสานกับห้องนี้ก่อน** เพื่อ run migration RLS บน `realtime.messages` พร้อมกัน |
 | 2026-05-17 | happyeat | **SECURITY (orders customer column-level lockdown)**: เพิ่ม BEFORE UPDATE trigger `trg_enforce_orders_update_authorization` บน `orders`. ลูกค้า (customer_id = auth.uid()) **แก้ได้เฉพาะ** `notes`, `payment_slip_url`, `payment_submitted_at` และ status transition แค่ `awaiting_payment → awaiting_payment_confirm` กับ cancel ก่อน `preparing`. ฟิลด์เงิน/payment_confirmed_at/rider_id/delivery_otp ลูกค้าแตะไม่ได้. ร้าน/ไรเดอร์ที่ assigned/admin bypass ปกติ. Rider claim งาน (`rider_id NULL → auth.uid()`, status `ready/preparing → picked_up`) ยังทำได้เหมือนเดิม. | rider app: ไม่ต้อง action — flow รับงาน/ส่งงานเดิมยังผ่าน trigger ทั้งหมด ถ้า rider พยายามแก้ฟิลด์อื่นนอกเหนือ status/rider_id (ไม่ควรมีอยู่แล้ว) จะถูกบล็อก |
 | 2026-05-17 | happyeat | **SECURITY (OTP server-side verify)**: สร้าง RPC `confirm_delivery(order_id uuid, otp_code text) RETURNS boolean` (SECURITY DEFINER) — เป็น **ทางเดียว** ที่จะ set `status='delivered'` ได้. ตรวจ OTP ในฐานข้อมูล + เช็ค `rider_id = auth.uid()` + status ปัจจุบันต้อง `picked_up` หรือ `delivering`. แก้ RLS `Restaurant/rider/customer update orders` ให้ไรเดอร์ที่ assigned UPDATE ได้เฉพาะ status `picked_up`/`delivering` — set `delivered` ตรงๆ จะถูกบล็อก. | **rider app: action ด่วน** — (1) ลบ `delivery_otp` ออกจากทุก SELECT query ใน orders (ไรเดอร์ไม่ต้องรู้ OTP อีกต่อไป), (2) เปลี่ยน flow ยืนยันส่ง: กรอก OTP 4 หลัก → เรียก `supabase.rpc('confirm_delivery', { order_id, otp_code })` → ถ้า `data === true` ถือว่าสำเร็จ ถ้า `false` แจ้ง "OTP ไม่ถูกต้อง", (3) ลบการเทียบ OTP ฝั่ง client ทิ้งทั้งหมด, (4) **อย่าพยายาม UPDATE status='delivered' ตรงๆ** — จะถูก RLS บล็อก |
