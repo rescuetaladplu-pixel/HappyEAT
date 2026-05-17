@@ -8,18 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Star, UtensilsCrossed, Minus, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Plus, Star, UtensilsCrossed, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { isOpenNow, nextOpenLabel, type OpeningHours } from "@/lib/opening-hours";
 
