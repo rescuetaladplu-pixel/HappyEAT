@@ -311,9 +311,12 @@ function MyRestaurantSettingsPage() {
           <Card className="p-5 space-y-4">
             <div className="space-y-2">
               <Label>ภาพหน้าปก</Label>
-              <div className="relative h-32 w-full rounded-lg bg-muted overflow-hidden">
+              <div className="relative aspect-[3/1] w-full rounded-lg bg-muted overflow-hidden">
                 {coverUrl && <img src={coverUrl} alt="cover" className="w-full h-full object-cover" />}
               </div>
+              <p className="text-xs text-muted-foreground">
+                ระบบจะตัดรูปเป็นสัดส่วน 3:1 อัตโนมัติเพื่อให้แสดงเหมือนกันทุกอุปกรณ์
+              </p>
               <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={(e) => uploadImage(e, "cover")} />
               <Button variant="outline" size="sm" onClick={() => coverRef.current?.click()}>
                 <Upload className="h-4 w-4 mr-2" /> อัปโหลดภาพปก
