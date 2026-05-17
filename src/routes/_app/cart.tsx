@@ -18,8 +18,10 @@ export const Route = createFileRoute("/_app/cart")({
 
 function CartPage() {
   const { user } = useAuth();
-  const { items, total, setQty, remove, clear, restaurantId } = useCart();
+  const { items, total, setQty, remove, updateNote, clear, restaurantId } = useCart();
   const navigate = useNavigate();
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
