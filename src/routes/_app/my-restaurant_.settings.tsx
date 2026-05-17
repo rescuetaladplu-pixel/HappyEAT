@@ -650,7 +650,10 @@ function MyRestaurantSettingsPage() {
             )}
             <Button onClick={savePromptpay} disabled={saving} className="w-full">
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {applyToAll && ownedCount > 1 ? `บันทึก QR Code (ทั้ง ${ownedCount} ร้าน)` : "บันทึก QR Code"}
+              {(() => {
+                const base = promptpayMode === "id" ? "บันทึก PromptPay" : "บันทึก QR Code";
+                return applyToAll && ownedCount > 1 ? `${base} (ทั้ง ${ownedCount} ร้าน)` : base;
+              })()}
             </Button>
           </Card>
         </TabsContent>
