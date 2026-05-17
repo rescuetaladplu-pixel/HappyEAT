@@ -122,7 +122,24 @@ delivered             ← ไรเดอร์รับค่าส่งจา
 ## 6. Realtime channels
 
 - `orders` table อยู่ใน publication `supabase_realtime` แล้ว
-- ทั้ง 2 แอป subscribe ได้ — RLS จะกรอง row ให้เอง
+- ทั้ง 2 แอป subscribe ได้ — RLS จะกรอง row ให้เอง (เพราะใช้ `postgres_changes` เท่านั้น)
+- **ห้าม** ใช้ `broadcast` / `presence` จนกว่าจะเพิ่ม RLS บน `realtime.messages` ก่อน (ดู §6.1)
+
+### 6.1 แผนรองรับ chat ไรเดอร์ ↔ ลูกค้า (ยังไม่ implement)
+
+ตัดสินใจแล้วว่าจะทำเป็น **ephemeral broadcast** (ฟรี 100%, ไม่แตะ DB):
+- Topic: `order-chat:{order_id}` — 1 channel ต่อ 1 ออเดอร์
+- ใช้ `.send({ type: 'broadcast', event: 'message', payload: { text, sender } })`
+- ไม่มี table เก็บข้อความ — ออฟไลน์ = พลาด, งานจบ (`delivered`/`cancelled`) = channel unsubscribe ข้อความหายหมด
+- เหตุผลที่ไม่เก็บประวัติ: OTP 4 หลักคือหลักฐาน two-party confirmation อยู่แล้ว, แชทเป็นแค่เครื่องมือสื่อสารระหว่างทาง
+
+**ก่อนเปิด chat ต้องทำพร้อมกัน:**
+1. Migration เพิ่ม RLS บน `realtime.messages`: SELECT/INSERT policy ที่ extract `order_id` จาก topic (`split_part(topic, ':', 2)::uuid`) แล้วเช็คว่า `auth.uid()` อยู่ใน `orders.customer_id` หรือ `orders.rider_id` ของ order นั้น
+2. ฝั่ง happyeat: หน้า `_app/orders.$orderId.tsx` เพิ่ม chat panel
+3. ฝั่ง HappyRider: หน้า order detail เพิ่ม chat panel เดียวกัน
+4. Auto-unsubscribe เมื่อ status เป็น `delivered`/`cancelled`
+
+จนกว่าจะถึงตอนนั้น — finding `realtime_messages_no_rls` ถูก ignore เพราะตอนนี้ใช้แค่ `postgres_changes` ซึ่งกรองด้วย RLS ของ table อยู่แล้ว
 
 ---
 
