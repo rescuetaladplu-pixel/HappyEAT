@@ -504,6 +504,21 @@ function MyRestaurantHub() {
             );
           })()}
 
+          {!restaurant.promptpay_id && !restaurant.promptpay_qr_url && (
+            <Link
+              to="/my-restaurant/settings"
+              className="mt-3 flex items-start gap-3 rounded-xl border-2 border-destructive/40 bg-destructive/10 px-4 py-3 hover:bg-destructive/15 transition-colors"
+            >
+              <span className="text-xl shrink-0">⚠️</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-destructive">ยังเปิดร้านไม่ได้ — ต้องตั้งค่าการรับชำระเงินก่อน</p>
+                <p className="text-xs text-destructive/80 mt-0.5">
+                  เพิ่มเลข PromptPay หรืออัปโหลด QR ของร้าน เพื่อให้ลูกค้าโอนชำระค่าอาหารได้ → แตะที่นี่เพื่อตั้งค่า
+                </p>
+              </div>
+            </Link>
+          )}
+
           {restaurant.description && (
             <p className="text-sm text-muted-foreground mt-3">{restaurant.description}</p>
           )}
