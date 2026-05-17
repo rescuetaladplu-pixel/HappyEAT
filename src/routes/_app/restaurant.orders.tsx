@@ -196,6 +196,7 @@ function RestaurantOrdersPage() {
   useEffect(() => {
     if (!user) return;
     let active = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
     (async () => {
       const rid = await fetchActiveRestaurantId(user.id);
       if (!active) return;
@@ -205,17 +206,20 @@ function RestaurantOrdersPage() {
       }
       setRestaurantId(rid);
       await load(rid);
-      const ch = supabase
-        .channel(`rest-orders-${rid}`)
+      if (!active) return;
+      channel = supabase
+        .channel(`rest-orders-${rid}-${Math.random().toString(36).slice(2, 8)}`)
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "orders", filter: `restaurant_id=eq.${rid}` },
           () => load(rid),
         )
         .subscribe();
-      return () => { supabase.removeChannel(ch); };
     })();
-    return () => { active = false; };
+    return () => {
+      active = false;
+      if (channel) supabase.removeChannel(channel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 

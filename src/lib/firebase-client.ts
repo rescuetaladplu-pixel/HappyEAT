@@ -13,7 +13,7 @@ const firebaseConfig = {
 
 // VAPID key is public (web push identifier) — safe to keep client-side.
 // It came from server secret originally but the browser must know it to call getToken.
-const VAPID_KEY = "BCYlDV9Y82dqaC8Q2B_yf411Iu7PWlYp6lTyIW8bQUQ4I3FlUPbsS4qURNMd5nG82Mm9HCuD48HYp6Y7dJbjH1o";
+const VAPID_KEY = "BKbNdqmd2cQlN-AtXj9oo4maKuuLTo3O7SYvV57R0s8ETpZr6Htwdv6_w9kp1kMFDkSXIzxdDVHUYtpUhL6vzzo";
 
 function getFirebaseApp() {
   return getApps().length ? getApp() : initializeApp(firebaseConfig);
