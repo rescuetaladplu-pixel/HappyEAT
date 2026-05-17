@@ -14,6 +14,7 @@ import { Store, Upload, MapPin, Clock, Loader2, ArrowLeft, QrCode } from "lucide
 import { toast } from "sonner";
 import { LocationPicker } from "@/components/restaurant/LocationPicker";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
+import { RESTAURANT_CATEGORIES, MAX_RESTAURANT_CATEGORIES } from "@/lib/restaurant-categories";
 
 export const Route = createFileRoute("/_app/my-restaurant_/settings")({
   component: MyRestaurantSettingsPage,
