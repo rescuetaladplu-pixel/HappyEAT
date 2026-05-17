@@ -682,7 +682,7 @@ function HomePage() {
             return (
               <Link key={r.id} to="/restaurants/$restaurantId" params={{ restaurantId: r.id }}>
                 <Card className="overflow-hidden p-0 hover:shadow-md transition">
-                  <div className="h-40 bg-gradient-to-br from-accent to-secondary relative">
+                  <div className="aspect-[3/1] bg-gradient-to-br from-accent to-secondary relative">
                     {r.cover_url || r.image_url ? (
                       <img
                         src={r.cover_url || r.image_url || ""}

@@ -181,7 +181,7 @@ function RestaurantDetail() {
 
   return (
     <main className="max-w-2xl mx-auto pb-24">
-      <div className="relative aspect-[2/1] bg-gradient-to-br from-accent to-secondary">
+      <div className="relative aspect-[3/1] bg-gradient-to-br from-accent to-secondary">
         {cover ? (
           <img src={cover} alt={restaurant.name} className="w-full h-full object-cover" />
         ) : (

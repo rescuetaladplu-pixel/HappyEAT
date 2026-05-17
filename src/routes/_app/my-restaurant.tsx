@@ -401,7 +401,7 @@ function MyRestaurantHub() {
 
       {/* Overview Card */}
       <Card className="p-0 overflow-hidden mx-4">
-        <div className="h-40 w-full bg-muted">
+        <div className="aspect-[3/1] w-full bg-muted">
           {restaurant.cover_url ? (
             <img src={restaurant.cover_url} alt="cover" className="w-full h-full object-cover" />
           ) : (
