@@ -20,7 +20,17 @@ import {
 import { LocationPicker } from "@/components/restaurant/LocationPicker";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
 import { RESTAURANT_CATEGORIES } from "@/lib/restaurant-categories";
-import { Search, MapPin, Star, UtensilsCrossed, ChevronRight, Plus, Trash2, Check, ArrowLeft } from "lucide-react";
+import {
+  Search,
+  MapPin,
+  Star,
+  UtensilsCrossed,
+  ChevronRight,
+  Plus,
+  Trash2,
+  Check,
+  ArrowLeft,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
@@ -221,7 +231,11 @@ function HomePage() {
     setAddrOpen(false);
     toast.success(`ใช้ที่อยู่: ${target.label}`);
     try {
-      await supabase.from("addresses").update({ is_default: false }).eq("user_id", user.id).neq("id", id);
+      await supabase
+        .from("addresses")
+        .update({ is_default: false })
+        .eq("user_id", user.id)
+        .neq("id", id);
       await supabase.from("addresses").update({ is_default: true }).eq("id", id);
     } catch {
       toast.error("สลับที่อยู่ไม่สำเร็จ");
@@ -293,7 +307,9 @@ function HomePage() {
         .eq("user_id", activeUser.id)
         .neq("id", saved.id);
       setAddresses((prev) => {
-        const others = prev.filter((a) => a.id !== saved.id).map((a) => ({ ...a, is_default: false }));
+        const others = prev
+          .filter((a) => a.id !== saved.id)
+          .map((a) => ({ ...a, is_default: false }));
         return [saved, ...others].slice(0, MAX_ADDRESSES);
       });
       setSheetMode("list");
@@ -312,7 +328,8 @@ function HomePage() {
 
   const filtered = restaurants
     .filter((r) => {
-      const cats = r.categories && r.categories.length > 0 ? r.categories : (r.category ? [r.category] : []);
+      const cats =
+        r.categories && r.categories.length > 0 ? r.categories : r.category ? [r.category] : [];
       const okCat = category === "ทั้งหมด" || cats.includes(category);
       const okSearch = !search || r.name.toLowerCase().includes(search.toLowerCase());
       return okCat && okSearch;
@@ -362,7 +379,9 @@ function HomePage() {
                   <MapPin className="h-3 w-3" /> ส่งไปยัง
                 </p>
                 <p className="text-sm font-semibold truncate">
-                  {currentAddr ? `${currentAddr.label} · ${currentAddr.address}` : "เพิ่มที่อยู่จัดส่ง"}
+                  {currentAddr
+                    ? `${currentAddr.label} · ${currentAddr.address}`
+                    : "เพิ่มที่อยู่จัดส่ง"}
                 </p>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -374,14 +393,21 @@ function HomePage() {
                 {sheetMode === "form" && addresses.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => { setSheetMode("list"); resetForm(); }}
+                    onClick={() => {
+                      setSheetMode("list");
+                      resetForm();
+                    }}
                     className="p-1 -ml-1 rounded hover:bg-secondary"
                     aria-label="กลับ"
                   >
                     <ArrowLeft className="h-4 w-4" />
                   </button>
                 )}
-                {sheetMode === "list" ? "เลือกที่อยู่จัดส่ง" : editingId ? "แก้ไขที่อยู่" : "เพิ่มที่อยู่ใหม่"}
+                {sheetMode === "list"
+                  ? "เลือกที่อยู่จัดส่ง"
+                  : editingId
+                    ? "แก้ไขที่อยู่"
+                    : "เพิ่มที่อยู่ใหม่"}
               </SheetTitle>
             </SheetHeader>
 
@@ -414,7 +440,9 @@ function HomePage() {
                         </div>
                         <p className="text-xs text-muted-foreground line-clamp-2">{a.address}</p>
                         {a.phone_primary && (
-                          <p className="text-xs text-muted-foreground mt-0.5">โทร: {a.phone_primary}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            โทร: {a.phone_primary}
+                          </p>
                         )}
                       </button>
                       <div className="flex flex-col gap-1">
@@ -440,12 +468,9 @@ function HomePage() {
                   </Card>
                 ))}
                 {addresses.length < MAX_ADDRESSES && (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={openNewForm}
-                  >
-                    <Plus className="h-4 w-4 mr-2" /> เพิ่มที่อยู่ใหม่ ({addresses.length}/{MAX_ADDRESSES})
+                  <Button variant="outline" className="w-full" onClick={openNewForm}>
+                    <Plus className="h-4 w-4 mr-2" /> เพิ่มที่อยู่ใหม่ ({addresses.length}/
+                    {MAX_ADDRESSES})
                   </Button>
                 )}
                 {addresses.length >= MAX_ADDRESSES && (
@@ -691,11 +716,21 @@ function HomePage() {
                         </span>
                         <span>•</span>
                         <span>ค่าส่ง ฿{Number(r.delivery_fee).toFixed(0)}</span>
-                        {((r.categories && r.categories.length > 0) ? r.categories : (r.category ? [r.category] : [])).slice(0, 2).map((c) => (
-                          <span key={c} className="px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground text-[10px]">
-                            {c}
-                          </span>
-                        ))}
+                        {(r.categories && r.categories.length > 0
+                          ? r.categories
+                          : r.category
+                            ? [r.category]
+                            : []
+                        )
+                          .slice(0, 2)
+                          .map((c) => (
+                            <span
+                              key={c}
+                              className="px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground text-[10px]"
+                            >
+                              {c}
+                            </span>
+                          ))}
                       </div>
                     </div>
                     {r.logo_url && (
