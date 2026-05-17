@@ -324,24 +324,45 @@ function MyRestaurantSettingsPage() {
         </TabsContent>
 
         <TabsContent value="hours">
-          <Card className="p-5 space-y-3">
+          <Card className="p-4 sm:p-5 space-y-2">
             {DAYS.map((d) => {
               const h = hours[d.key] ?? { open: "09:00", close: "21:00", closed: false };
               return (
-                <div key={d.key} className="flex items-center gap-3">
-                  <span className="w-20 text-sm">{d.label}</span>
-                  <Switch
-                    checked={!h.closed}
-                    onCheckedChange={(v) => setHours({ ...hours, [d.key]: { ...h, closed: !v } })}
-                  />
+                <div
+                  key={d.key}
+                  className="flex items-center gap-2 sm:gap-3 py-2 border-b border-border/50 last:border-0"
+                >
+                  <div className="flex items-center gap-2 w-[88px] shrink-0">
+                    <Switch
+                      checked={!h.closed}
+                      onCheckedChange={(v) =>
+                        setHours({ ...hours, [d.key]: { ...h, closed: !v } })
+                      }
+                    />
+                    <span className="text-sm font-medium">{d.label}</span>
+                  </div>
                   {h.closed ? (
-                    <span className="text-sm text-muted-foreground flex-1">ปิด</span>
+                    <span className="text-sm text-muted-foreground flex-1 text-right">ปิด</span>
                   ) : (
-                    <>
-                      <Input type="time" value={h.open} onChange={(e) => setHours({ ...hours, [d.key]: { ...h, open: e.target.value } })} className="flex-1" />
-                      <span>-</span>
-                      <Input type="time" value={h.close} onChange={(e) => setHours({ ...hours, [d.key]: { ...h, close: e.target.value } })} className="flex-1" />
-                    </>
+                    <div className="flex items-center gap-1 flex-1 min-w-0">
+                      <Input
+                        type="time"
+                        value={h.open}
+                        onChange={(e) =>
+                          setHours({ ...hours, [d.key]: { ...h, open: e.target.value } })
+                        }
+                        className="flex-1 min-w-0 px-2 text-sm text-center [&::-webkit-calendar-picker-indicator]:hidden"
+                      />
+                      <span className="text-muted-foreground text-xs">–</span>
+                      <Input
+                        type="time"
+                        value={h.close}
+                        onChange={(e) =>
+                          setHours({ ...hours, [d.key]: { ...h, close: e.target.value } })
+                        }
+                        className="flex-1 min-w-0 px-2 text-sm text-center [&::-webkit-calendar-picker-indicator]:hidden"
+                      />
+                    </div>
                   )}
                 </div>
               );
