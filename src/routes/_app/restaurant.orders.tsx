@@ -29,6 +29,7 @@ export const Route = createFileRoute("/_app/restaurant/orders")({
 
 type OrderStatus =
   | "pending"
+  | "awaiting_confirmations"
   | "awaiting_restaurant"
   | "awaiting_payment"
   | "awaiting_payment_confirm"
@@ -60,11 +61,15 @@ interface Order {
   customer_id: string;
   payment_method: string;
   payment_slip_url: string | null;
+  rider_id: string | null;
+  rider_accepted_at: string | null;
+  restaurant_accepted_at: string | null;
   order_items: OrderItem[];
 }
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "ใหม่",
+  awaiting_confirmations: "รอยืนยัน (ก่อนจ่าย)",
   awaiting_restaurant: "รอรับ (QR)",
   awaiting_payment: "รอลูกค้าจ่าย",
   awaiting_payment_confirm: "รอตรวจสลิป",
@@ -85,7 +90,7 @@ const NEXT: Partial<Record<OrderStatus, OrderStatus>> = {
 };
 
 const TABS: { key: string; label: string; statuses: OrderStatus[] }[] = [
-  { key: "new", label: "ใหม่", statuses: ["pending", "awaiting_restaurant"] },
+  { key: "new", label: "ใหม่ (รอยืนยัน)", statuses: ["pending", "awaiting_confirmations", "awaiting_restaurant"] },
   { key: "payment", label: "รอจ่าย/ตรวจสลิป", statuses: ["awaiting_payment", "awaiting_payment_confirm"] },
   { key: "cooking", label: "กำลังทำ", statuses: ["accepted", "preparing"] },
   { key: "ready", label: "พร้อมส่ง", statuses: ["ready"] },
