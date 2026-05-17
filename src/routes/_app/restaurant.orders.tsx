@@ -155,7 +155,7 @@ function RestaurantOrdersPage() {
   async function load(rid: string) {
     const { data, error } = await supabase
       .from("orders")
-      .select("id, status, total, subtotal, delivery_fee, delivery_address, notes, created_at, customer_id, payment_method, payment_slip_url, order_items(id, name, price, quantity, notes)")
+      .select("id, status, total, subtotal, delivery_fee, delivery_address, notes, created_at, customer_id, payment_method, payment_slip_url, rider_id, rider_accepted_at, restaurant_accepted_at, order_items(id, name, price, quantity, notes)")
       .eq("restaurant_id", rid)
       .order("created_at", { ascending: false })
       .limit(100);
@@ -165,11 +165,16 @@ function RestaurantOrdersPage() {
     }
     const list = (data ?? []) as unknown as Order[];
 
-    const pendingCount = list.filter((o) => o.status === "pending").length;
+    // "ใหม่" = ทุกออเดอร์ที่ร้านยังไม่กดยืนยัน (ทั้ง flow ใหม่ awaiting_confirmations และ legacy pending/awaiting_restaurant)
+    const isNew = (o: Order) =>
+      o.status === "pending"
+      || o.status === "awaiting_restaurant"
+      || (o.status === "awaiting_confirmations" && !o.restaurant_accepted_at);
+    const pendingCount = list.filter(isNew).length;
 
     if (initRef.current) {
       const newPending = list.filter(
-        (o) => o.status === "pending" && !knownIdsRef.current.has(o.id),
+        (o) => isNew(o) && !knownIdsRef.current.has(o.id),
       );
       if (newPending.length > 0) {
         toast.success(`มีออเดอร์ใหม่ ${newPending.length} รายการ!`);
