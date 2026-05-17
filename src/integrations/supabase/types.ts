@@ -922,6 +922,9 @@ export type Database = {
         }
         Returns: boolean
       }
+      restaurant_accept_order: { Args: { _order_id: string }; Returns: boolean }
+      rider_claim_order: { Args: { _order_id: string }; Returns: boolean }
+      rider_release_order: { Args: { _order_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "customer" | "restaurant" | "rider" | "admin"
