@@ -16,15 +16,11 @@ function AppLayout() {
     { to: "/home", icon: Home, label: "หน้าแรก" },
     { to: "/cart", icon: ShoppingBag, label: "ตะกร้า", badge: count },
     { to: "/orders", icon: ClipboardList, label: "ออเดอร์" },
+    { to: "/my-restaurant", icon: Store, label: "ร้านของฉัน" },
     { to: "/profile", icon: User, label: "ฉัน" },
   ];
 
-  const restaurantNav = [
-    { to: "/home", icon: Home, label: "หน้าแรก" },
-    { to: "/my-restaurant", icon: Store, label: "ร้านของฉัน" },
-    { to: "/orders", icon: ClipboardList, label: "ออเดอร์" },
-    { to: "/profile", icon: User, label: "ฉัน" },
-  ];
+  const restaurantNav = customerNav;
 
   const riderNav = [
     { to: "/rider-dashboard", icon: Bike, label: "งาน" },
