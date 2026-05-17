@@ -2,6 +2,7 @@
 
 export type OrderStatus =
   | "pending"
+  | "awaiting_confirmations"
   | "awaiting_restaurant"
   | "awaiting_payment"
   | "awaiting_payment_confirm"
@@ -16,6 +17,7 @@ export type OrderStatus =
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "รอร้านยืนยัน",
+  awaiting_confirmations: "รอร้าน + ไรเดอร์ยืนยัน",
   awaiting_restaurant: "รอร้านเช็คความพร้อม",
   awaiting_payment: "รอชำระเงิน",
   awaiting_payment_confirm: "รอร้านตรวจสลิป",
@@ -34,6 +36,7 @@ export const STATUS_VARIANTS: Record<
   "default" | "secondary" | "destructive" | "outline"
 > = {
   pending: "secondary",
+  awaiting_confirmations: "secondary",
   awaiting_restaurant: "secondary",
   awaiting_payment: "default",
   awaiting_payment_confirm: "default",
