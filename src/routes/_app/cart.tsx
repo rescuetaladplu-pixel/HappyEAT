@@ -199,13 +199,32 @@ function CartPage() {
     }
 
     clear();
-    toast.success("ส่งคำขอแล้ว! รอร้านยืนยันความพร้อม");
+    toast.success("ส่งคำขอแล้ว! รอร้าน + ไรเดอร์ยืนยัน");
 
-    // Fire-and-forget push to the restaurant owner.
-    // We don't await — order is already saved; push is best-effort.
-    sendOrderPush({ data: { orderId: order.id, restaurantId } }).catch((e) => {
-      console.error("sendOrderPush failed", e);
-    });
+    // Fire-and-forget push to restaurant owner and nearby riders simultaneously
+    (async () => {
+      try {
+        const { sendOrderPush, notifyRidersOrderReady } = await import("@/lib/fcm.functions");
+        const { data: r } = await supabase
+          .from("restaurants")
+          .select("name, delivery_fee, latitude, longitude")
+          .eq("id", restaurantId)
+          .maybeSingle();
+        await Promise.all([
+          sendOrderPush({ data: { orderId: order.id, restaurantId } }),
+          notifyRidersOrderReady({ data: {
+            orderId: order.id,
+            restaurantId,
+            restaurantName: r?.name ?? undefined,
+            restaurantLat: r?.latitude != null ? Number(r.latitude) : undefined,
+            restaurantLng: r?.longitude != null ? Number(r.longitude) : undefined,
+            deliveryFee: r?.delivery_fee ? Number(r.delivery_fee) : undefined,
+          } }),
+        ]);
+      } catch (e) {
+        console.error("dispatch push failed", e);
+      }
+    })();
 
     navigate({ to: "/orders" });
   }
