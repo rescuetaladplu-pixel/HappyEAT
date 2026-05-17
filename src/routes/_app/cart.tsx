@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Minus, Plus, Trash2, ShoppingBag, QrCode } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, QrCode, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { sendOrderPush } from "@/lib/fcm.functions";
 
@@ -18,8 +18,10 @@ export const Route = createFileRoute("/_app/cart")({
 
 function CartPage() {
   const { user } = useAuth();
-  const { items, total, setQty, remove, clear, restaurantId } = useCart();
+  const { items, total, setQty, remove, updateNote, clear, restaurantId } = useCart();
   const navigate = useNavigate();
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -212,31 +214,93 @@ function CartPage() {
       <h1 className="text-2xl font-bold">ตะกร้าของคุณ</h1>
 
       <div className="space-y-2">
-        {items.map((item) => (
-          <Card key={item.lineId} className="p-3 flex items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-medium">{item.name}</h3>
-              {item.addons.length > 0 && (
-                <p className="text-xs text-muted-foreground line-clamp-2">
-                  {item.addons.map((a) => a.optionName).join(", ")}
-                </p>
+        {items.map((item) => {
+          const isEditing = editingNoteId === item.lineId;
+          return (
+            <Card key={item.lineId} className="p-3 space-y-2">
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium">{item.name}</h3>
+                  {item.addons.length > 0 && (
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {item.addons.map((a) => a.optionName).join(", ")}
+                    </p>
+                  )}
+                  <p className="text-sm text-muted-foreground">฿{item.unitPrice.toFixed(0)}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(item.lineId, item.quantity - 1)}>
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <span className="w-6 text-center font-medium">{item.quantity}</span>
+                  <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(item.lineId, item.quantity + 1)}>
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => remove(item.lineId)}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+
+              {isEditing ? (
+                <div className="space-y-2 rounded-md bg-secondary/40 p-2">
+                  <Textarea
+                    value={noteDraft}
+                    onChange={(e) => setNoteDraft(e.target.value)}
+                    placeholder="เช่น ไม่ใส่ผัก เผ็ดน้อย หวานน้อย"
+                    rows={2}
+                    className="text-sm"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button size="sm" variant="ghost" onClick={() => setEditingNoteId(null)}>
+                      <X className="h-3 w-3 mr-1" /> ยกเลิก
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        updateNote(item.lineId, noteDraft);
+                        setEditingNoteId(null);
+                      }}
+                    >
+                      <Check className="h-3 w-3 mr-1" /> บันทึก
+                    </Button>
+                  </div>
+                </div>
+              ) : item.note ? (
+                <div className="flex items-start justify-between gap-2 rounded-md bg-secondary/40 px-2 py-1.5">
+                  <p className="text-xs text-foreground/80 flex-1">
+                    <span className="font-medium">โน้ต:</span> {item.note}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => { setNoteDraft(item.note ?? ""); setEditingNoteId(item.lineId); }}
+                    className="text-xs text-primary inline-flex items-center gap-1 shrink-0"
+                  >
+                    <Pencil className="h-3 w-3" /> แก้ไข
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setNoteDraft(""); setEditingNoteId(item.lineId); }}
+                  className="text-xs text-primary inline-flex items-center gap-1"
+                >
+                  <Pencil className="h-3 w-3" /> เพิ่มโน้ตถึงร้าน
+                </button>
               )}
-              <p className="text-sm text-muted-foreground">฿{item.unitPrice.toFixed(0)}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(item.lineId, item.quantity - 1)}>
-                <Minus className="h-3 w-3" />
-              </Button>
-              <span className="w-6 text-center font-medium">{item.quantity}</span>
-              <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(item.lineId, item.quantity + 1)}>
-                <Plus className="h-3 w-3" />
-              </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => remove(item.lineId)}>
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
-          </Card>
-        ))}
+
+              {item.addons.length > 0 && restaurantId && (
+                <Link
+                  to="/restaurants/$restaurantId"
+                  params={{ restaurantId }}
+                  className="text-xs text-muted-foreground underline inline-block"
+                >
+                  เปลี่ยนตัวเลือก (ไปที่ร้าน)
+                </Link>
+              )}
+            </Card>
+          );
+        })}
       </div>
 
       <Card className="p-4 space-y-3">
