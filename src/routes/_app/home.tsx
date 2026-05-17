@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sheet";
 import { LocationPicker } from "@/components/restaurant/LocationPicker";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
+import { RESTAURANT_CATEGORIES } from "@/lib/restaurant-categories";
 import { Search, MapPin, Star, UtensilsCrossed, ChevronRight, Plus, Trash2, Check, ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -32,6 +33,7 @@ interface Restaurant {
   name: string;
   description: string | null;
   category: string | null;
+  categories: string[] | null;
   image_url: string | null;
   cover_url: string | null;
   logo_url: string | null;
@@ -55,15 +57,7 @@ interface AddressRow {
   rider_note: string | null;
 }
 
-const CATEGORIES = [
-  "ทั้งหมด",
-  "ตามสั่ง",
-  "ก๋วยเตี๋ยว",
-  "ส้มตำ",
-  "เครื่องดื่ม",
-  "ของหวาน",
-  "ฟาสต์ฟู้ด",
-];
+const CATEGORIES = ["ทั้งหมด", ...RESTAURANT_CATEGORIES];
 const PHONE_RE = /^[0-9+\-\s()]{8,20}$/;
 const ADDRESS_SAVE_TIMEOUT_MS = 15000;
 
@@ -116,7 +110,7 @@ function HomePage() {
         supabase
           .from("restaurants")
           .select(
-            "id, name, description, category, image_url, cover_url, logo_url, rating, delivery_fee, is_open, is_open_until, opening_hours",
+            "id, name, description, category, categories, image_url, cover_url, logo_url, rating, delivery_fee, is_open, is_open_until, opening_hours",
           )
           .eq("is_approved", true)
           .order("rating", { ascending: false }),
@@ -318,7 +312,8 @@ function HomePage() {
 
   const filtered = restaurants
     .filter((r) => {
-      const okCat = category === "ทั้งหมด" || r.category === category;
+      const cats = r.categories && r.categories.length > 0 ? r.categories : (r.category ? [r.category] : []);
+      const okCat = category === "ทั้งหมด" || cats.includes(category);
       const okSearch = !search || r.name.toLowerCase().includes(search.toLowerCase());
       return okCat && okSearch;
     })
@@ -694,12 +689,11 @@ function HomePage() {
                         </span>
                         <span>•</span>
                         <span>ค่าส่ง ฿{Number(r.delivery_fee).toFixed(0)}</span>
-                        {r.category && (
-                          <>
-                            <span>•</span>
-                            <span>{r.category}</span>
-                          </>
-                        )}
+                        {((r.categories && r.categories.length > 0) ? r.categories : (r.category ? [r.category] : [])).slice(0, 2).map((c) => (
+                          <span key={c} className="px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground text-[10px]">
+                            {c}
+                          </span>
+                        ))}
                       </div>
                     </div>
                     {r.logo_url && (

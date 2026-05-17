@@ -14,6 +14,7 @@ import { Store, Upload, MapPin, Clock, Loader2, ArrowLeft, QrCode } from "lucide
 import { toast } from "sonner";
 import { LocationPicker } from "@/components/restaurant/LocationPicker";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
+import { RESTAURANT_CATEGORIES, MAX_RESTAURANT_CATEGORIES } from "@/lib/restaurant-categories";
 
 export const Route = createFileRoute("/_app/my-restaurant_/settings")({
   component: MyRestaurantSettingsPage,
@@ -39,6 +40,7 @@ interface Restaurant {
   name: string;
   description: string | null;
   category: string | null;
+  categories: string[] | null;
   phone: string | null;
   address: string | null;
   latitude: number | null;
@@ -66,6 +68,7 @@ function MyRestaurantSettingsPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -95,6 +98,7 @@ function MyRestaurantSettingsPage() {
       setName(r.name ?? "");
       setDescription(r.description ?? "");
       setCategory(r.category ?? "");
+      setCategories(Array.isArray(r.categories) ? r.categories : (r.category ? [r.category] : []));
       setPhone(r.phone ?? "");
       setAddress(r.address ?? "");
       setLogoUrl(r.logo_url);
@@ -118,9 +122,10 @@ function MyRestaurantSettingsPage() {
   async function saveProfile() {
     if (!restaurant) return;
     setSaving(true);
+    const primary = categories[0] ?? null;
     const { error } = await supabase
       .from("restaurants")
-      .update({ name, description, category, phone, logo_url: logoUrl, cover_url: coverUrl })
+      .update({ name, description, category: primary, categories, phone, logo_url: logoUrl, cover_url: coverUrl })
       .eq("id", restaurant.id);
     setSaving(false);
     if (error) return toast.error(error.message);
@@ -297,8 +302,40 @@ function MyRestaurantSettingsPage() {
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>หมวดหมู่</Label>
-              <Input value={category} onChange={(e) => setCategory(e.target.value)} />
+              <div className="flex items-center justify-between">
+                <Label>หมวดหมู่ร้าน (เลือกได้สูงสุด {MAX_RESTAURANT_CATEGORIES})</Label>
+                <span className="text-xs text-muted-foreground">{categories.length}/{MAX_RESTAURANT_CATEGORIES}</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {RESTAURANT_CATEGORIES.map((c) => {
+                  const selected = categories.includes(c);
+                  const disabled = !selected && categories.length >= MAX_RESTAURANT_CATEGORIES;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => {
+                        setCategories((prev) =>
+                          prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c],
+                        );
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-sm border transition ${
+                        selected
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : disabled
+                            ? "bg-muted text-muted-foreground border-border opacity-50 cursor-not-allowed"
+                            : "bg-background text-foreground border-border hover:bg-accent"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  );
+                })}
+              </div>
+              {categories.length === 0 && (
+                <p className="text-xs text-muted-foreground">เลือกอย่างน้อย 1 หมวดเพื่อให้ลูกค้าค้นหาร้านเจอง่ายขึ้น</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>เบอร์โทรศัพท์</Label>
