@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -479,7 +480,13 @@ function ItemEditDialog({
   const isNew = !item.id;
   const [name, setName] = useState(item.name);
   const [description, setDescription] = useState(item.description ?? "");
-  const [allergenInfo, setAllergenInfo] = useState(item.allergen_info ?? "");
+  const NO_ALLERGEN_SENTINEL = "ไม่มีข้อมูลแจ้ง";
+  const [allergenInfo, setAllergenInfo] = useState(
+    item.allergen_info && item.allergen_info !== NO_ALLERGEN_SENTINEL ? item.allergen_info : "",
+  );
+  const [noAllergenInfo, setNoAllergenInfo] = useState(
+    item.allergen_info === NO_ALLERGEN_SENTINEL,
+  );
   const [price, setPrice] = useState(String(item.price ?? ""));
   const [imageUrl, setImageUrl] = useState<string | null>(item.image_url);
   const [categoryId, setCategoryId] = useState<string | null>(item.category_id);
@@ -993,12 +1000,15 @@ function ItemEditDialog({
         return toast.error(`ราคาตัวเลือก "${v.name}" ไม่ถูกต้อง`);
       }
     }
+    if (!noAllergenInfo && !allergenInfo.trim()) {
+      return toast.error('กรุณากรอกข้อมูลสำหรับผู้แพ้อาหาร หรือติ๊ก "ไม่มีข้อมูลแจ้ง"');
+    }
     setSaving(true);
     const payload = {
       restaurant_id: restaurantId,
       name: name.trim(),
       description: description.trim() || null,
-      allergen_info: allergenInfo.trim() || null,
+      allergen_info: noAllergenInfo ? NO_ALLERGEN_SENTINEL : allergenInfo.trim(),
       price: priceNum,
       image_url: imageUrl,
       category_id: categoryId,
@@ -1078,15 +1088,24 @@ function ItemEditDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>ข้อมูลสำหรับผู้แพ้อาหาร</Label>
+            <Label>ข้อมูลสำหรับผู้แพ้อาหาร *</Label>
             <Textarea
               value={allergenInfo}
               onChange={(e) => setAllergenInfo(e.target.value)}
               rows={2}
               placeholder="เช่น มีถั่ว, นม, ไข่, กลูเตน, อาหารทะเล"
+              disabled={noAllergenInfo}
             />
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox
+                checked={noAllergenInfo}
+                onCheckedChange={(v) => setNoAllergenInfo(v === true)}
+              />
+              <span>ไม่มีข้อมูลแจ้ง / ไม่มีวัตถุดิบที่อาจก่อให้เกิดอาการแพ้</span>
+            </label>
             <p className="text-xs text-muted-foreground">
               ระบุวัตถุดิบที่อาจก่อให้เกิดอาการแพ้ ข้อมูลนี้จะแสดงให้ลูกค้าเห็นชัดเจน
+              หากไม่มีข้อมูลแจ้ง กรุณาติ๊กช่องด้านบนเพื่อยืนยัน
             </p>
           </div>
 
