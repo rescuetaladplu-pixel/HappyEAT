@@ -122,7 +122,24 @@ delivered             ← ไรเดอร์รับค่าส่งจา
 ## 6. Realtime channels
 
 - `orders` table อยู่ใน publication `supabase_realtime` แล้ว
-- ทั้ง 2 แอป subscribe ได้ — RLS จะกรอง row ให้เอง
+- ทั้ง 2 แอป subscribe ได้ — RLS จะกรอง row ให้เอง (เพราะใช้ `postgres_changes` เท่านั้น)
+- **ห้าม** ใช้ `broadcast` / `presence` จนกว่าจะเพิ่ม RLS บน `realtime.messages` ก่อน (ดู §6.1)
+
+### 6.1 แผนรองรับ chat ไรเดอร์ ↔ ลูกค้า (ยังไม่ implement)
+
+ตัดสินใจแล้วว่าจะทำเป็น **ephemeral broadcast** (ฟรี 100%, ไม่แตะ DB):
+- Topic: `order-chat:{order_id}` — 1 channel ต่อ 1 ออเดอร์
+- ใช้ `.send({ type: 'broadcast', event: 'message', payload: { text, sender } })`
+- ไม่มี table เก็บข้อความ — ออฟไลน์ = พลาด, งานจบ (`delivered`/`cancelled`) = channel unsubscribe ข้อความหายหมด
+- เหตุผลที่ไม่เก็บประวัติ: OTP 4 หลักคือหลักฐาน two-party confirmation อยู่แล้ว, แชทเป็นแค่เครื่องมือสื่อสารระหว่างทาง
+
+**ก่อนเปิด chat ต้องทำพร้อมกัน:**
+1. Migration เพิ่ม RLS บน `realtime.messages`: SELECT/INSERT policy ที่ extract `order_id` จาก topic (`split_part(topic, ':', 2)::uuid`) แล้วเช็คว่า `auth.uid()` อยู่ใน `orders.customer_id` หรือ `orders.rider_id` ของ order นั้น
+2. ฝั่ง happyeat: หน้า `_app/orders.$orderId.tsx` เพิ่ม chat panel
+3. ฝั่ง HappyRider: หน้า order detail เพิ่ม chat panel เดียวกัน
+4. Auto-unsubscribe เมื่อ status เป็น `delivered`/`cancelled`
+
+จนกว่าจะถึงตอนนั้น — finding `realtime_messages_no_rls` ถูก ignore เพราะตอนนี้ใช้แค่ `postgres_changes` ซึ่งกรองด้วย RLS ของ table อยู่แล้ว
 
 ---
 
@@ -141,6 +158,7 @@ delivered             ← ไรเดอร์รับค่าส่งจา
 
 | วันที่ | ฝั่งที่เปลี่ยน | สรุป | ใครต้อง action |
 |---|---|---|---|
+| 2026-05-17 | happyeat | **PLAN (chat ephemeral broadcast)**: ตกลงสถาปัตยกรรม chat ไรเดอร์↔ลูกค้าแบบ ephemeral (ไม่เก็บ DB) ด้วย Realtime broadcast topic `order-chat:{order_id}`. ตอนนี้ยังไม่ implement — ดูรายละเอียดและเงื่อนไขใน §6.1. Finding `realtime_messages_no_rls` ถูก ignore เพราะปัจจุบันใช้แค่ `postgres_changes` (กรองด้วย RLS ของ table). | rider app: ไม่ต้อง action ตอนนี้ — แต่ถ้าจะเริ่มทำ chat **ต้องประสานกับห้องนี้ก่อน** เพื่อ run migration RLS บน `realtime.messages` พร้อมกัน |
 | 2026-05-17 | happyeat | **SECURITY (orders customer column-level lockdown)**: เพิ่ม BEFORE UPDATE trigger `trg_enforce_orders_update_authorization` บน `orders`. ลูกค้า (customer_id = auth.uid()) **แก้ได้เฉพาะ** `notes`, `payment_slip_url`, `payment_submitted_at` และ status transition แค่ `awaiting_payment → awaiting_payment_confirm` กับ cancel ก่อน `preparing`. ฟิลด์เงิน/payment_confirmed_at/rider_id/delivery_otp ลูกค้าแตะไม่ได้. ร้าน/ไรเดอร์ที่ assigned/admin bypass ปกติ. Rider claim งาน (`rider_id NULL → auth.uid()`, status `ready/preparing → picked_up`) ยังทำได้เหมือนเดิม. | rider app: ไม่ต้อง action — flow รับงาน/ส่งงานเดิมยังผ่าน trigger ทั้งหมด ถ้า rider พยายามแก้ฟิลด์อื่นนอกเหนือ status/rider_id (ไม่ควรมีอยู่แล้ว) จะถูกบล็อก |
 | 2026-05-17 | happyeat | **SECURITY (OTP server-side verify)**: สร้าง RPC `confirm_delivery(order_id uuid, otp_code text) RETURNS boolean` (SECURITY DEFINER) — เป็น **ทางเดียว** ที่จะ set `status='delivered'` ได้. ตรวจ OTP ในฐานข้อมูล + เช็ค `rider_id = auth.uid()` + status ปัจจุบันต้อง `picked_up` หรือ `delivering`. แก้ RLS `Restaurant/rider/customer update orders` ให้ไรเดอร์ที่ assigned UPDATE ได้เฉพาะ status `picked_up`/`delivering` — set `delivered` ตรงๆ จะถูกบล็อก. | **rider app: action ด่วน** — (1) ลบ `delivery_otp` ออกจากทุก SELECT query ใน orders (ไรเดอร์ไม่ต้องรู้ OTP อีกต่อไป), (2) เปลี่ยน flow ยืนยันส่ง: กรอก OTP 4 หลัก → เรียก `supabase.rpc('confirm_delivery', { order_id, otp_code })` → ถ้า `data === true` ถือว่าสำเร็จ ถ้า `false` แจ้ง "OTP ไม่ถูกต้อง", (3) ลบการเทียบ OTP ฝั่ง client ทิ้งทั้งหมด, (4) **อย่าพยายาม UPDATE status='delivered' ตรงๆ** — จะถูก RLS บล็อก |
 | 2026-05-17 | happyeat | **SECURITY (rider self-approval bypass)**: เอา `is_approved: true` ออกจาก client insert ใน `rider-dashboard.tsx` + แก้ RLS `Riders insert own` บังคับ `is_approved=false AND is_online=false` ตอน insert, และ `Riders update own` ห้ามไรเดอร์เปลี่ยน `is_approved` ของตัวเอง (เฉพาะ admin). ไรเดอร์ใหม่ต้องรอ admin อนุมัติก่อนรับงานได้. | rider app: ถ้ามี code insert/update `riders.is_approved` ฝั่งไรเดอร์ ต้องลบทิ้ง — จะถูก RLS บล็อก |
