@@ -96,7 +96,8 @@ delivered             ← ไรเดอร์รับค่าส่งจา
 | `preparing → ready` | ✅ ร้าน | ❌ |
 | รับงาน (set `rider_id`, → `picked_up`) | ❌ | ✅ |
 | GPS update (`delivery_lat/lng` หรือ realtime channel) | ❌ | ✅ |
-| `picked_up → delivering → delivered` + OTP verify | ❌ | ✅ |
+| `picked_up → delivering` | ❌ | ✅ (UPDATE ตรงๆ) |
+| `delivering → delivered` + OTP verify | ❌ | ✅ **เฉพาะผ่าน RPC `confirm_delivery(order_id, otp_code)`** — UPDATE ตรงๆ ถูก RLS บล็อก |
 | สร้าง review | ✅ ลูกค้า | ❌ |
 | แก้ไข `riders` table | ❌ | ✅ |
 | แก้ไข `restaurants`, `menu_*` | ✅ | ❌ |
@@ -112,7 +113,7 @@ delivered             ← ไรเดอร์รับค่าส่งจา
 - ไรเดอร์ทุกคน เห็น order ที่ `rider_id IS NULL AND status IN ('ready','preparing')` ← **pool งาน**
 - admin
 
-`Restaurant/rider/customer update orders` อนุญาต customer / rider ที่ assigned / เจ้าของร้าน / ไรเดอร์ใดๆ ที่ `rider_id IS NULL` (สำหรับการกดรับงาน)
+`Restaurant/rider/customer update orders` อนุญาต customer / เจ้าของร้าน / admin / ไรเดอร์ใดๆ ที่ `rider_id IS NULL` (กดรับงาน → set `rider_id=self, status='picked_up'`) / ไรเดอร์ที่ assigned (เฉพาะ status `picked_up`, `delivering` เท่านั้น — **ห้าม set `delivered` ตรงๆ ต้องเรียก RPC `confirm_delivery`**)
 
 > **คำเตือน:** ถ้า rider app จะเพิ่ม column ใหม่ใน `orders` ต้องมาขอห้องนี้ run migration + อัปเดต RLS
 
@@ -140,6 +141,8 @@ delivered             ← ไรเดอร์รับค่าส่งจา
 
 | วันที่ | ฝั่งที่เปลี่ยน | สรุป | ใครต้อง action |
 |---|---|---|---|
+| 2026-05-17 | happyeat | **SECURITY (OTP server-side verify)**: สร้าง RPC `confirm_delivery(order_id uuid, otp_code text) RETURNS boolean` (SECURITY DEFINER) — เป็น **ทางเดียว** ที่จะ set `status='delivered'` ได้. ตรวจ OTP ในฐานข้อมูล + เช็ค `rider_id = auth.uid()` + status ปัจจุบันต้อง `picked_up` หรือ `delivering`. แก้ RLS `Restaurant/rider/customer update orders` ให้ไรเดอร์ที่ assigned UPDATE ได้เฉพาะ status `picked_up`/`delivering` — set `delivered` ตรงๆ จะถูกบล็อก. | **rider app: action ด่วน** — (1) ลบ `delivery_otp` ออกจากทุก SELECT query ใน orders (ไรเดอร์ไม่ต้องรู้ OTP อีกต่อไป), (2) เปลี่ยน flow ยืนยันส่ง: กรอก OTP 4 หลัก → เรียก `supabase.rpc('confirm_delivery', { order_id, otp_code })` → ถ้า `data === true` ถือว่าสำเร็จ ถ้า `false` แจ้ง "OTP ไม่ถูกต้อง", (3) ลบการเทียบ OTP ฝั่ง client ทิ้งทั้งหมด, (4) **อย่าพยายาม UPDATE status='delivered' ตรงๆ** — จะถูก RLS บล็อก |
+| 2026-05-17 | happyeat | **SECURITY (rider self-approval bypass)**: เอา `is_approved: true` ออกจาก client insert ใน `rider-dashboard.tsx` + แก้ RLS `Riders insert own` บังคับ `is_approved=false AND is_online=false` ตอน insert, และ `Riders update own` ห้ามไรเดอร์เปลี่ยน `is_approved` ของตัวเอง (เฉพาะ admin). ไรเดอร์ใหม่ต้องรอ admin อนุมัติก่อนรับงานได้. | rider app: ถ้ามี code insert/update `riders.is_approved` ฝั่งไรเดอร์ ต้องลบทิ้ง — จะถูก RLS บล็อก |
 | 2026-05-17 | happyeat | **FIX (storage RLS — payment-slips read)**: policy `Slip read by order parties` เดิมเขียนผิด เทียบ `storage.foldername(r.name)` (= ชื่อร้าน) แทน `storage.foldername(objects.name)` (= path ไฟล์) ทำให้เจ้าของร้าน/ลูกค้า/แอดมิน createSignedUrl สลิปไม่ได้ → หน้า "ตรวจสลิป" ค้างที่ "กำลังโหลด...". แก้แล้ว. | rider app: ไม่ต้อง action |
 | 2026-05-17 | happyeat | **NEW (separate holder name per QR mode)**: เพิ่ม `restaurants.promptpay_qr_holder_name text` — เก็บชื่อบัญชีสำหรับโหมด `qr_image` แยกจาก `promptpay_holder_name` (โหมด `id`) เพื่อกันข้อมูลทับกันเวลาร้านสลับโหมด. หน้า orders เลือก field ตาม `promptpay_mode` ก่อนส่งให้ `PaymentPanel`. | rider app: ไม่ต้อง action (ไรเดอร์ไม่เกี่ยวกับ payment QR) |
 | 2026-05-17 | happyeat | **NEW (restaurant payment QR options)**: เพิ่ม `restaurants.promptpay_mode text default 'id'` (`id` \| `qr_image`) + `restaurants.promptpay_qr_url text`. ร้านเลือกได้ว่าจะให้ระบบ generate QR จากเบอร์ PromptPay (โหมดเดิม — มียอดเงินฝัง) หรืออัปโหลดรูป QR ของตัวเอง (static — ลูกค้าต้องพิมพ์ยอดเอง). หน้า checkout/orders เช็คโหมดเพื่อเลือก validation + UI. | rider app: ไม่ต้อง action (ไรเดอร์ไม่เกี่ยวกับเงินค่าอาหาร — รับเฉพาะค่าส่งปลายทางตามเดิม) |
