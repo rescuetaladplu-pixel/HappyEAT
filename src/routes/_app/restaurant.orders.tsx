@@ -640,6 +640,8 @@ function QrFlowActions({ order, onChanged }: { order: Order; onChanged: () => vo
           <a href={slipUrl} target="_blank" rel="noreferrer" className="block">
             <img src={slipUrl} alt="slip" className="max-h-72 w-full object-contain rounded border bg-white" />
           </a>
+        ) : slipError ? (
+          <p className="text-xs text-destructive bg-destructive/10 rounded p-2">โหลดสลิปไม่สำเร็จ: {slipError}</p>
         ) : (
           <Loader2InlineLoader />
         )}
