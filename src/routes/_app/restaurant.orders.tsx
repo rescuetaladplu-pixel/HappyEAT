@@ -29,6 +29,7 @@ export const Route = createFileRoute("/_app/restaurant/orders")({
 
 type OrderStatus =
   | "pending"
+  | "awaiting_confirmations"
   | "awaiting_restaurant"
   | "awaiting_payment"
   | "awaiting_payment_confirm"
@@ -60,11 +61,15 @@ interface Order {
   customer_id: string;
   payment_method: string;
   payment_slip_url: string | null;
+  rider_id: string | null;
+  rider_accepted_at: string | null;
+  restaurant_accepted_at: string | null;
   order_items: OrderItem[];
 }
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "ใหม่",
+  awaiting_confirmations: "รอยืนยัน (ก่อนจ่าย)",
   awaiting_restaurant: "รอรับ (QR)",
   awaiting_payment: "รอลูกค้าจ่าย",
   awaiting_payment_confirm: "รอตรวจสลิป",
@@ -85,7 +90,7 @@ const NEXT: Partial<Record<OrderStatus, OrderStatus>> = {
 };
 
 const TABS: { key: string; label: string; statuses: OrderStatus[] }[] = [
-  { key: "new", label: "ใหม่", statuses: ["pending", "awaiting_restaurant"] },
+  { key: "new", label: "ใหม่ (รอยืนยัน)", statuses: ["pending", "awaiting_confirmations", "awaiting_restaurant"] },
   { key: "payment", label: "รอจ่าย/ตรวจสลิป", statuses: ["awaiting_payment", "awaiting_payment_confirm"] },
   { key: "cooking", label: "กำลังทำ", statuses: ["accepted", "preparing"] },
   { key: "ready", label: "พร้อมส่ง", statuses: ["ready"] },
@@ -150,7 +155,7 @@ function RestaurantOrdersPage() {
   async function load(rid: string) {
     const { data, error } = await supabase
       .from("orders")
-      .select("id, status, total, subtotal, delivery_fee, delivery_address, notes, created_at, customer_id, payment_method, payment_slip_url, order_items(id, name, price, quantity, notes)")
+      .select("id, status, total, subtotal, delivery_fee, delivery_address, notes, created_at, customer_id, payment_method, payment_slip_url, rider_id, rider_accepted_at, restaurant_accepted_at, order_items(id, name, price, quantity, notes)")
       .eq("restaurant_id", rid)
       .order("created_at", { ascending: false })
       .limit(100);
@@ -160,11 +165,16 @@ function RestaurantOrdersPage() {
     }
     const list = (data ?? []) as unknown as Order[];
 
-    const pendingCount = list.filter((o) => o.status === "pending").length;
+    // "ใหม่" = ทุกออเดอร์ที่ร้านยังไม่กดยืนยัน (ทั้ง flow ใหม่ awaiting_confirmations และ legacy pending/awaiting_restaurant)
+    const isNew = (o: Order) =>
+      o.status === "pending"
+      || o.status === "awaiting_restaurant"
+      || (o.status === "awaiting_confirmations" && !o.restaurant_accepted_at);
+    const pendingCount = list.filter(isNew).length;
 
     if (initRef.current) {
       const newPending = list.filter(
-        (o) => o.status === "pending" && !knownIdsRef.current.has(o.id),
+        (o) => isNew(o) && !knownIdsRef.current.has(o.id),
       );
       if (newPending.length > 0) {
         toast.success(`มีออเดอร์ใหม่ ${newPending.length} รายการ!`);
@@ -237,7 +247,7 @@ function RestaurantOrdersPage() {
       stopAlertLoop();
     } else {
       // If there are still pending orders, resume looping
-      const hasPending = orders.some((o) => o.status === "pending");
+      const hasPending = orders.some((o) => o.status === "pending" || o.status === "awaiting_restaurant" || (o.status === "awaiting_confirmations" && !o.restaurant_accepted_at));
       if (hasPending) {
         mutedUntilActionRef.current = false;
         startAlertLoop();
@@ -562,6 +572,18 @@ function QrFlowActions({ order, onChanged }: { order: Order; onChanged: () => vo
 
   async function acceptOrder() {
     setBusy(true);
+    // New flow: use RPC. Trigger auto-transitions to awaiting_payment when rider also claimed.
+    const { data, error } = await supabase.rpc("restaurant_accept_order", { _order_id: order.id });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    if (data === false) return toast.error("ไม่สามารถยืนยันออเดอร์นี้ได้ (อาจถูกยืนยันไปแล้วหรือถูกยกเลิก)");
+    toast.success("ยืนยันออเดอร์แล้ว — รอไรเดอร์รับงานก่อนลูกค้าจะจ่ายเงินได้");
+    notify("✅ ร้านยืนยันออเดอร์แล้ว", "รอไรเดอร์รับงาน จากนั้นคุณจะได้สแกน QR ชำระเงิน");
+    onChanged();
+  }
+
+  async function acceptOrderLegacy() {
+    setBusy(true);
     const { error } = await supabase
       .from("orders")
       .update({ status: "awaiting_payment", restaurant_accepted_at: new Date().toISOString() })
@@ -612,12 +634,45 @@ function QrFlowActions({ order, onChanged }: { order: Order; onChanged: () => vo
     onChanged();
   }
 
+  if (order.status === "awaiting_confirmations") {
+    const restAccepted = !!order.restaurant_accepted_at;
+    const riderClaimed = !!order.rider_id;
+    return (
+      <div className="space-y-2 border-2 border-primary/40 rounded p-2 bg-primary/5">
+        <p className="text-xs font-medium">📋 ออเดอร์ใหม่ — รอยืนยันก่อนลูกค้าจ่ายเงิน</p>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className={`p-2 rounded border ${restAccepted ? "bg-green-50 border-green-300 text-green-700" : "bg-secondary/50"}`}>
+            {restAccepted ? "✓ ร้านยืนยันแล้ว" : "⏳ รอร้านยืนยัน"}
+          </div>
+          <div className={`p-2 rounded border ${riderClaimed ? "bg-green-50 border-green-300 text-green-700" : "bg-secondary/50"}`}>
+            {riderClaimed ? "✓ ได้ไรเดอร์แล้ว" : "🔍 กำลังหาไรเดอร์"}
+          </div>
+        </div>
+        {!restAccepted && (
+          <div className="flex gap-2">
+            <Button className="flex-1" disabled={busy} onClick={acceptOrder}>
+              ✅ ยืนยันออเดอร์ (ตรวจรายการแล้ว)
+            </Button>
+            <Button variant="outline" className="text-destructive" disabled={busy} onClick={rejectOrder}>
+              ปฏิเสธ
+            </Button>
+          </div>
+        )}
+        {restAccepted && !riderClaimed && (
+          <p className="text-xs text-center text-muted-foreground bg-secondary/50 rounded p-2">
+            ⏳ ยืนยันแล้ว — รอไรเดอร์รับงาน เมื่อได้ไรเดอร์ ลูกค้าจะได้สแกน QR จ่ายเงินทันที
+          </p>
+        )}
+      </div>
+    );
+  }
+
   if (order.status === "awaiting_restaurant") {
     return (
       <div className="space-y-2 border rounded p-2 bg-secondary/30">
-        <p className="text-xs font-medium">📋 ลูกค้าเสนอออเดอร์ (จ่ายด้วย QR) — ตรวจรายการแล้วกดรับ</p>
+        <p className="text-xs font-medium">📋 (ออเดอร์เดิม) ลูกค้าเสนอออเดอร์ — ตรวจรายการแล้วกดรับ</p>
         <div className="flex gap-2">
-          <Button className="flex-1" disabled={busy} onClick={acceptOrder}>
+          <Button className="flex-1" disabled={busy} onClick={acceptOrderLegacy}>
             ✅ รับออเดอร์ พร้อมทำ
           </Button>
           <Button variant="outline" className="text-destructive" disabled={busy} onClick={rejectOrder}>

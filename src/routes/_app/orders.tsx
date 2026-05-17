@@ -185,10 +185,28 @@ function OrdersPage() {
                 <span className="text-muted-foreground">#{o.id.slice(0, 8)}</span>
                 <span className="font-semibold text-primary">฿{Number(o.total).toFixed(0)}</span>
               </div>
-              {o.status === "awaiting_restaurant" && o.customer_id === user?.id && (
-                <div className="bg-secondary/50 rounded p-2 text-xs flex items-center justify-between">
-                  <span>⏳ รอร้านเช็คความพร้อม...</span>
-                  <Button size="sm" variant="ghost" className="text-destructive h-7" onClick={cancelOrder}>ยกเลิก</Button>
+              {(o.status === "awaiting_confirmations" || o.status === "awaiting_restaurant") && o.customer_id === user?.id && (
+                <div className="bg-secondary/50 rounded p-2 text-xs space-y-2">
+                  {o.status === "awaiting_confirmations" ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className={`p-2 rounded border ${o.restaurants ? "bg-background" : ""}`}>
+                          ⏳ รอร้านยืนยัน
+                        </div>
+                        <div className={`p-2 rounded border ${o.rider_id ? "bg-green-50 border-green-300 text-green-700" : "bg-background"}`}>
+                          {o.rider_id ? "✓ ได้ไรเดอร์แล้ว" : "🔍 กำลังหาไรเดอร์"}
+                        </div>
+                      </div>
+                      <p className="text-muted-foreground">
+                        รอนานเป็นพิเศษ? โทรสอบถามร้านได้โดยตรง หรือยกเลิกออเดอร์
+                      </p>
+                    </>
+                  ) : (
+                    <span>⏳ รอร้านเช็คความพร้อม...</span>
+                  )}
+                  <div className="flex justify-end">
+                    <Button size="sm" variant="ghost" className="text-destructive h-7" onClick={cancelOrder}>ยกเลิกออเดอร์</Button>
+                  </div>
                 </div>
               )}
               {showPayment && o.restaurants && (
