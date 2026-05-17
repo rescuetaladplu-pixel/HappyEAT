@@ -111,6 +111,40 @@ function MyRestaurantHub() {
   // Picker view toggle (default true if multiple restaurants)
   const [showPicker, setShowPicker] = useState(false);
 
+  // Pending order counts per restaurant (active = not delivered/cancelled)
+  const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (owned.length === 0) {
+      setPendingCounts({});
+      return;
+    }
+    const ids = owned.map((r) => r.id);
+    let cancelled = false;
+    async function load() {
+      const { data } = await supabase
+        .from("orders")
+        .select("restaurant_id, status")
+        .in("restaurant_id", ids)
+        .not("status", "in", "(delivered,cancelled)");
+      if (cancelled) return;
+      const counts: Record<string, number> = {};
+      for (const row of (data ?? []) as { restaurant_id: string }[]) {
+        counts[row.restaurant_id] = (counts[row.restaurant_id] ?? 0) + 1;
+      }
+      setPendingCounts(counts);
+    }
+    load();
+    const ch = supabase
+      .channel("my-rest-pending")
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => load())
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(ch);
+    };
+  }, [owned]);
+
   // Create form
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
@@ -288,6 +322,14 @@ function MyRestaurantHub() {
                 <p className="text-xs text-muted-foreground truncate">
                   {r.category ?? "-"} · {r.is_open ? "เปิดอยู่" : "ปิด"}
                 </p>
+                {pendingCounts[r.id] ? (
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    <Badge className="text-[10px] h-5 px-1.5">
+                      <Bell className="h-3 w-3 mr-1" />
+                      ค้าง {pendingCounts[r.id]} ออเดอร์
+                    </Badge>
+                  </div>
+                ) : null}
               </div>
               {r.id === activeId && <Check className="h-4 w-4 text-primary shrink-0" />}
             </button>
@@ -341,8 +383,17 @@ function MyRestaurantHub() {
             <p className="text-[11px] text-muted-foreground">ร้านที่กำลังจัดการ</p>
             <p className="font-semibold text-sm truncate">{restaurant.name}</p>
           </div>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-            {owned.length > 1 ? `${owned.length} ร้าน` : ""}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+            {(() => {
+              const totalPending = Object.values(pendingCounts).reduce((a, b) => a + b, 0);
+              return totalPending > 0 ? (
+                <Badge className="text-[10px] h-5 px-1.5">
+                  <Bell className="h-3 w-3 mr-1" />
+                  {totalPending}
+                </Badge>
+              ) : null;
+            })()}
+            {owned.length > 1 ? <span>{owned.length} ร้าน</span> : null}
             <ChevronRight className="h-4 w-4" />
           </div>
         </button>
