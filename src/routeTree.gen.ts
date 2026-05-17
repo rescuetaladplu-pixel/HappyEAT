@@ -19,6 +19,7 @@ import { Route as AppOrdersRouteImport } from './routes/_app/orders'
 import { Route as AppMyRestaurantRouteImport } from './routes/_app/my-restaurant'
 import { Route as AppHomeRouteImport } from './routes/_app/home'
 import { Route as AppCartRouteImport } from './routes/_app/cart'
+import { Route as AppAddressesRouteImport } from './routes/_app/addresses'
 import { Route as AppAdminIndexRouteImport } from './routes/_app/admin.index'
 import { Route as AppRestaurantsRestaurantIdRouteImport } from './routes/_app/restaurants.$restaurantId'
 import { Route as AppRestaurantReviewsRouteImport } from './routes/_app/restaurant.reviews'
@@ -78,6 +79,11 @@ const AppHomeRoute = AppHomeRouteImport.update({
 const AppCartRoute = AppCartRouteImport.update({
   id: '/cart',
   path: '/cart',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAddressesRoute = AppAddressesRouteImport.update({
+  id: '/addresses',
+  path: '/addresses',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
@@ -141,6 +147,7 @@ const AppAdminEatRoute = AppAdminEatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/addresses': typeof AppAddressesRoute
   '/cart': typeof AppCartRoute
   '/home': typeof AppHomeRoute
   '/my-restaurant': typeof AppMyRestaurantRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/addresses': typeof AppAddressesRoute
   '/cart': typeof AppCartRoute
   '/home': typeof AppHomeRoute
   '/my-restaurant': typeof AppMyRestaurantRoute
@@ -187,6 +195,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_app/addresses': typeof AppAddressesRoute
   '/_app/cart': typeof AppCartRoute
   '/_app/home': typeof AppHomeRoute
   '/_app/my-restaurant': typeof AppMyRestaurantRoute
@@ -211,6 +220,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/addresses'
     | '/cart'
     | '/home'
     | '/my-restaurant'
@@ -233,6 +243,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/addresses'
     | '/cart'
     | '/home'
     | '/my-restaurant'
@@ -256,6 +267,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/auth'
+    | '/_app/addresses'
     | '/_app/cart'
     | '/_app/home'
     | '/_app/my-restaurant'
@@ -354,6 +366,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCartRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/addresses': {
+      id: '/_app/addresses'
+      path: '/addresses'
+      fullPath: '/addresses'
+      preLoaderRoute: typeof AppAddressesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/': {
       id: '/_app/admin/'
       path: '/admin'
@@ -435,6 +454,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppAddressesRoute: typeof AppAddressesRoute
   AppCartRoute: typeof AppCartRoute
   AppHomeRoute: typeof AppHomeRoute
   AppMyRestaurantRoute: typeof AppMyRestaurantRoute
@@ -456,6 +476,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAddressesRoute: AppAddressesRoute,
   AppCartRoute: AppCartRoute,
   AppHomeRoute: AppHomeRoute,
   AppMyRestaurantRoute: AppMyRestaurantRoute,

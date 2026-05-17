@@ -242,7 +242,7 @@ function CartPage() {
       <Card className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">ที่อยู่จัดส่ง</h2>
-          <a href="/home?addr=1" className="text-xs text-primary underline">จัดการที่อยู่</a>
+          <Link to="/addresses" search={{ from: "/cart" }} className="text-xs text-primary underline">จัดการที่อยู่</Link>
         </div>
         {savedAddrs.length > 0 ? (
           <div className="space-y-2">
@@ -275,7 +275,7 @@ function CartPage() {
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            ยังไม่มีที่อยู่บันทึกไว้ — <Link to="/home" className="text-primary underline">เพิ่มที่อยู่จัดส่ง</Link>
+            ยังไม่มีที่อยู่บันทึกไว้ — <Link to="/addresses" search={{ from: "/cart", new: true }} className="text-primary underline">เพิ่มที่อยู่จัดส่ง</Link>
           </p>
         )}
         <div className="space-y-2">
