@@ -118,7 +118,7 @@ export function BrandedQrFromImage({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] uppercase tracking-wider opacity-80 leading-tight">PromptPay • HappyEat</p>
+          <p className="text-[10px] uppercase tracking-wider opacity-80 leading-tight">ชำระโดยตรงให้ร้าน</p>
           <p className="text-sm font-bold truncate leading-tight">{restaurantName ?? "ร้านอาหาร"}</p>
         </div>
         <div className="text-right">

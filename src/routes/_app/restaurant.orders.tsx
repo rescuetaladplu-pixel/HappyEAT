@@ -517,15 +517,25 @@ function RestaurantOrdersPage() {
 
 function QrFlowActions({ order, onChanged }: { order: Order; onChanged: () => void }) {
   const [slipUrl, setSlipUrl] = useState<string | null>(null);
+  const [slipError, setSlipError] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (order.status === "awaiting_payment_confirm" && order.payment_slip_url) {
+      setSlipUrl(null);
+      setSlipError(null);
       supabase.storage
         .from("payment-slips")
         .createSignedUrl(order.payment_slip_url, 300)
-        .then(({ data }) => setSlipUrl(data?.signedUrl ?? null));
+        .then(({ data, error }) => {
+          if (error || !data?.signedUrl) {
+            console.error("[slip] createSignedUrl failed", error);
+            setSlipError(error?.message ?? "โหลดสลิปไม่สำเร็จ");
+          } else {
+            setSlipUrl(data.signedUrl);
+          }
+        });
     }
   }, [order.status, order.payment_slip_url]);
 
@@ -630,6 +640,8 @@ function QrFlowActions({ order, onChanged }: { order: Order; onChanged: () => vo
           <a href={slipUrl} target="_blank" rel="noreferrer" className="block">
             <img src={slipUrl} alt="slip" className="max-h-72 w-full object-contain rounded border bg-white" />
           </a>
+        ) : slipError ? (
+          <p className="text-xs text-destructive bg-destructive/10 rounded p-2">โหลดสลิปไม่สำเร็จ: {slipError}</p>
         ) : (
           <Loader2InlineLoader />
         )}
