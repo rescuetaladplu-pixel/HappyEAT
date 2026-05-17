@@ -312,7 +312,8 @@ function HomePage() {
 
   const filtered = restaurants
     .filter((r) => {
-      const okCat = category === "ทั้งหมด" || r.category === category;
+      const cats = r.categories && r.categories.length > 0 ? r.categories : (r.category ? [r.category] : []);
+      const okCat = category === "ทั้งหมด" || cats.includes(category);
       const okSearch = !search || r.name.toLowerCase().includes(search.toLowerCase());
       return okCat && okSearch;
     })
