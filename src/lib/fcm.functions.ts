@@ -241,9 +241,9 @@ export const notifyRidersOrderReady = createServerFn({ method: "POST" })
 
     if (!riders || riders.length === 0) return { sent: 0, picked: 0 };
 
-    // Rank by ACTUAL DRIVING DISTANCE using Google Distance Matrix.
-    // Pre-filter to up to 10 candidates by straight-line distance to cap API cost,
-    // then resolve driving distance and pick the nearest NEAREST_RIDER_COUNT.
+    // Rank by ACTUAL DRIVING DISTANCE using OSRM (free, OpenStreetMap-based).
+    // Pre-filter to up to 10 candidates by straight-line distance to cap request size,
+    // then resolve driving distance via OSRM `table` service and pick the nearest 3.
     let picked: string[];
     if (pickupLat != null && pickupLng != null) {
       const withCoords = riders
@@ -262,31 +262,32 @@ export const notifyRidersOrderReady = createServerFn({ method: "POST" })
         .map((r) => r.id);
 
       let ranked: string[] = [];
-      const gmapsKey = process.env.GOOGLE_MAPS_API_KEY;
-      if (gmapsKey && withCoords.length > 0) {
+      if (withCoords.length > 0) {
         try {
-          const origin = `${pickupLat},${pickupLng}`;
-          const destinations = withCoords.map((r) => `${r.lat},${r.lng}`).join("|");
-          const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${encodeURIComponent(destinations)}&mode=driving&key=${gmapsKey}`;
-          const res = await fetch(url);
+          // OSRM table service: origin = index 0, destinations = index 1..N
+          // Coords format: lng,lat (OSRM convention)
+          const coords = [
+            `${pickupLng},${pickupLat}`,
+            ...withCoords.map((r) => `${r.lng},${r.lat}`),
+          ].join(";");
+          const destIdx = withCoords.map((_, i) => i + 1).join(";");
+          const url = `https://router.project-osrm.org/table/v1/driving/${coords}?sources=0&destinations=${destIdx}&annotations=distance`;
+          const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
           const json: any = await res.json();
-          const elements = json?.rows?.[0]?.elements ?? [];
-          const withDriving = withCoords.map((r, i) => {
-            const el = elements[i];
-            const meters = el?.status === "OK" ? Number(el.distance?.value ?? Number.POSITIVE_INFINITY) : Number.POSITIVE_INFINITY;
-            return { id: r.id, meters, straightKm: r.straightKm };
-          });
+          const distances: (number | null)[] = json?.distances?.[0] ?? [];
+          const withDriving = withCoords.map((r, i) => ({
+            id: r.id,
+            meters: distances[i] != null ? Number(distances[i]) : Number.POSITIVE_INFINITY,
+            straightKm: r.straightKm,
+          }));
           withDriving.sort((a, b) => a.meters - b.meters || a.straightKm - b.straightKm);
           ranked = withDriving.map((r) => r.id);
         } catch (e) {
-          console.error("Distance Matrix failed, falling back to straight-line:", e);
+          console.error("OSRM routing failed, falling back to straight-line:", e);
           ranked = withCoords.map((r) => r.id);
         }
-      } else {
-        ranked = withCoords.map((r) => r.id);
       }
 
-      // Fill remaining slots with no-coord riders if needed
       picked = [...ranked, ...noCoords].slice(0, NEAREST_RIDER_COUNT);
     } else {
       picked = riders.slice(0, NEAREST_RIDER_COUNT).map((r) => r.id);
