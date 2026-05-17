@@ -4,15 +4,23 @@ import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Upload, QrCode, Copy, CheckCircle2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Upload, QrCode, Copy, CheckCircle2, AlertTriangle, Store } from "lucide-react";
 import { toast } from "sonner";
 import { sendStatusPush } from "@/lib/fcm.functions";
 
 interface Props {
   orderId: string;
   amount: number;
-  promptpayId: string;
+  /** 'id' = generate QR from PromptPay number; 'qr_image' = use restaurant-uploaded QR image */
+  mode?: "id" | "qr_image";
+  /** Required when mode = 'id' */
+  promptpayId?: string | null;
+  /** Required when mode = 'qr_image' */
+  qrImageUrl?: string | null;
   holderName: string | null;
+  restaurantName?: string | null;
+  restaurantLogoUrl?: string | null;
   restaurantOwnerId: string;
   onSubmitted: () => void;
 }
@@ -20,8 +28,12 @@ interface Props {
 export function PaymentPanel({
   orderId,
   amount,
+  mode = "id",
   promptpayId,
+  qrImageUrl,
   holderName,
+  restaurantName,
+  restaurantLogoUrl,
   restaurantOwnerId,
   onSubmitted,
 }: Props) {
@@ -32,13 +44,14 @@ export function PaymentPanel({
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (mode !== "id" || !promptpayId) return;
     try {
       const payload = generatePayload(promptpayId, { amount });
       QRCode.toDataURL(payload, { width: 320, margin: 1 }).then(setQrDataUrl);
     } catch (e) {
       console.error("QR generation failed", e);
     }
-  }, [promptpayId, amount]);
+  }, [promptpayId, amount, mode]);
 
   function onPick(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -84,19 +97,56 @@ export function PaymentPanel({
     onSubmitted();
   }
 
+  function copyAmount() {
+    navigator.clipboard.writeText(amount.toFixed(2));
+    toast.success("คัดลอกยอดเงินแล้ว");
+  }
+
   function copyId() {
+    if (!promptpayId) return;
     navigator.clipboard.writeText(promptpayId);
     toast.success("คัดลอกแล้ว");
   }
 
+  const isImageMode = mode === "qr_image";
+
   return (
-    <Card className="p-4 space-y-3 border-primary/40">
-      <div className="flex items-center gap-2">
-        <QrCode className="h-5 w-5 text-primary" />
-        <h3 className="font-semibold">ชำระเงินด้วย PromptPay</h3>
+    <Card className="p-4 space-y-3 border-primary/40 overflow-hidden">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <QrCode className="h-5 w-5 text-primary" />
+          <h3 className="font-semibold">ชำระเงินด้วย PromptPay</h3>
+        </div>
+        <Badge variant="secondary" className="text-[10px]">ผ่าน HappyEat</Badge>
       </div>
 
-      {qrDataUrl ? (
+      {/* Restaurant header for branded frame */}
+      {(restaurantName || restaurantLogoUrl) && (
+        <div className="flex items-center gap-2 bg-secondary/40 rounded-lg p-2">
+          <div className="h-9 w-9 rounded-full bg-background overflow-hidden flex items-center justify-center shrink-0">
+            {restaurantLogoUrl ? (
+              <img src={restaurantLogoUrl} alt={restaurantName ?? "ร้าน"} className="w-full h-full object-cover" />
+            ) : (
+              <Store className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground leading-tight">โอนเข้าบัญชีร้าน</p>
+            <p className="text-sm font-semibold truncate">{restaurantName ?? "—"}</p>
+          </div>
+        </div>
+      )}
+
+      {/* QR display */}
+      {isImageMode ? (
+        qrImageUrl ? (
+          <div className="flex flex-col items-center bg-white rounded-lg p-3 border">
+            <img src={qrImageUrl} alt="PromptPay QR" className="w-56 h-56 object-contain" />
+          </div>
+        ) : (
+          <div className="text-center text-sm text-destructive py-6">ร้านยังไม่ได้อัปโหลด QR</div>
+        )
+      ) : qrDataUrl ? (
         <div className="flex flex-col items-center bg-white rounded-lg p-3">
           <img src={qrDataUrl} alt="PromptPay QR" className="w-56 h-56" />
         </div>
@@ -106,24 +156,43 @@ export function PaymentPanel({
         </div>
       )}
 
-      <div className="text-sm space-y-1">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">ยอดที่ต้องโอน</span>
-          <span className="font-semibold text-primary text-lg">฿{amount.toFixed(2)}</span>
+      {/* Amount — big and clear, with copy */}
+      <button
+        onClick={copyAmount}
+        className="w-full bg-primary/10 border border-primary/30 rounded-lg p-3 flex items-center justify-between hover:bg-primary/15 transition"
+      >
+        <span className="text-sm text-muted-foreground">ยอดที่ต้องโอน</span>
+        <span className="flex items-center gap-2 text-2xl font-bold text-primary">
+          ฿{amount.toFixed(2)} <Copy className="h-4 w-4 opacity-60" />
+        </span>
+      </button>
+
+      {/* Warning only for image mode (amount not embedded in QR) */}
+      {isImageMode && (
+        <div className="flex gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-lg p-2 text-xs text-amber-900 dark:text-amber-200">
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+          <span>
+            QR นี้เป็นแบบคงที่ — โปรด <b>พิมพ์ยอด ฿{amount.toFixed(2)}</b> ในแอปธนาคารด้วยตนเองก่อนกดโอน
+          </span>
         </div>
-        <div className="flex items-center justify-between">
+      )}
+
+      {/* PromptPay number row for id mode */}
+      {!isImageMode && promptpayId && (
+        <div className="text-sm flex items-center justify-between">
           <span className="text-muted-foreground">PromptPay</span>
           <button onClick={copyId} className="flex items-center gap-1 font-mono">
             {promptpayId} <Copy className="h-3 w-3" />
           </button>
         </div>
-        {holderName && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">ชื่อบัญชี</span>
-            <span>{holderName}</span>
-          </div>
-        )}
-      </div>
+      )}
+
+      {holderName && (
+        <div className="text-sm flex justify-between">
+          <span className="text-muted-foreground">ชื่อบัญชี</span>
+          <span>{holderName}</span>
+        </div>
+      )}
 
       <div className="border-t pt-3 space-y-2">
         <p className="text-sm font-medium">อัปโหลดสลิปการโอน</p>

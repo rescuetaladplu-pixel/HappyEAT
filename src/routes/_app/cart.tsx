@@ -105,11 +105,12 @@ function CartPage() {
     }
     supabase
       .from("restaurants")
-      .select("promptpay_id")
+      .select("promptpay_id, promptpay_mode, promptpay_qr_url")
       .eq("id", restaurantId)
       .maybeSingle()
       .then(({ data }) => {
-        const has = !!data?.promptpay_id;
+        const mode = (data?.promptpay_mode ?? "id") as "id" | "qr_image";
+        const has = mode === "qr_image" ? !!data?.promptpay_qr_url : !!data?.promptpay_id;
         setRestaurantHasPromptpay(has);
       });
   }, [restaurantId]);

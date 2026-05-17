@@ -1,87 +1,48 @@
 
-## ภาพรวม
+## เป้าหมาย
+ให้ร้านที่มี QR PromptPay ของตัวเองอยู่แล้ว (เช่นพิมพ์มาจากแอปธนาคาร) สามารถอัปโหลดรูป QR เข้ามาใช้ได้เลย โดยไม่ต้องกรอกเบอร์/เลขบัตร แล้วตอนลูกค้าจะจ่าย ระบบจะนำ QR ของร้านมาแสดงในกรอบหน้าจอของ HappyEat พร้อมโลโก้+ชื่อร้าน+ยอดเงิน
 
-หน้า `/admin` ปัจจุบันรวมทุกอย่างไว้หน้าเดียว (stat 2 กลุ่ม + จัดการแอดมิน + ตารางผู้ใช้รวม). จะแยกเป็น **landing แอดมิน** + **2 หน้าย่อย** (Eat / Rider) เพื่อให้แต่ละฝั่งมีระบบจัดการเฉพาะของตัวเอง
+## สิ่งที่ต้องเข้าใจก่อน (ข้อจำกัด)
+- **QR ที่ร้านอัปโหลดเป็น QR "คงที่" (static)** — ในตัว QR ไม่มียอดเงิน ลูกค้าต้องพิมพ์ยอดเองในแอปธนาคาร
+- ต่างจากโหมดเดิม (กรอก PromptPay ID) ที่ระบบ generate QR พร้อมยอดให้อัตโนมัติ → ลูกค้าสแกนแล้วยอดขึ้นเลย
+- ดังนั้นจะให้ร้าน **เลือกได้ 2 โหมด**:
+  1. **โหมด PromptPay ID** (เดิม) — ระบบสร้าง QR + ยอดอัตโนมัติ ✅ สะดวกลูกค้าที่สุด
+  2. **โหมดอัปโหลด QR** (ใหม่) — ร้านอัปโหลดรูป QR เอง ลูกค้าต้องพิมพ์ยอดเอง พร้อมเตือนยอดเงินชัด ๆ
 
-```text
-/admin                     → Landing: 2 การ์ดใหญ่ "จัดการฝั่ง Eat" / "จัดการฝั่ง Rider" + แถวสถิติสรุปทั้งระบบ
-  ├── /admin/eat           → Dashboard ฝั่ง Eat
-  └── /admin/rider         → Dashboard ฝั่ง Rider
-  └── (ส่วนกลาง) สร้างแอดมิน + รายชื่อแอดมิน ย้ายไปอยู่ใน /admin landing (เพราะใช้ร่วมกัน)
-```
+## แผนการทำงาน
 
----
+### 1. Database (1 migration)
+เพิ่มคอลัมน์ที่ตาราง `restaurants`:
+- `promptpay_qr_url text` — path/URL รูป QR ที่ร้านอัปโหลด
+- `promptpay_mode text default 'id'` — `'id'` หรือ `'qr_image'` บอกว่าร้านใช้โหมดไหน
 
-## 1. `/admin` (Landing)
+### 2. หน้าตั้งค่าร้าน (`my-restaurant_.settings.tsx` แท็บ "ชำระเงิน")
+- มีปุ่ม toggle/tab เลือก 2 โหมด: "ใช้ PromptPay ID" / "อัปโหลด QR ของร้าน"
+- โหมด ID: เหมือนเดิม (เบอร์/เลขบัตร + ชื่อบัญชี)
+- โหมดอัปโหลด QR:
+  - ปุ่มอัปโหลดรูป (เก็บที่ bucket `restaurant-images` โฟลเดอร์ `promptpay/`)
+  - preview รูปที่อัปโหลด
+  - ช่อง "ชื่อบัญชี" (optional) แสดงให้ลูกค้าเห็น
+  - แจ้งเตือน: "QR นี้เป็นแบบคงที่ ลูกค้าต้องพิมพ์ยอดเงินเอง"
+- ปุ่มบันทึก
 
-- Header: "แดชบอร์ดแอดมิน"
-- แถวสถิติรวม 4 ตัว (compact): ออเดอร์รวม, ร้านค้า, ไรเดอร์, ผู้ใช้ทั้งหมด
-- **2 การ์ดทางเข้าใหญ่** (grid 2 คอลัมน์ บนเดสก์ทอป / สแต็ก บนมือถือ):
-  - 🍔 **จัดการฝั่ง Eat** — preview stat 3 ตัว (ออเดอร์วันนี้, ร้านรออนุมัติ, ลูกค้า) → ปุ่ม "เข้าจัดการ" → `/admin/eat`
-  - 🛵 **จัดการฝั่ง Rider** — preview stat 3 ตัว (ไรเดอร์ออนไลน์, รออนุมัติ, กำลังส่ง) → ปุ่ม "เข้าจัดการ" → `/admin/rider`
-- การ์ด "สร้างแอดมินใหม่" + "รายชื่อแอดมิน" คงไว้ที่ landing (เพราะเป็น meta-admin ไม่แยกฝั่ง)
+### 3. หน้าจ่ายเงินของลูกค้า (`PaymentPanel.tsx`)
+- โหลดค่า `promptpay_mode` จาก order/restaurant
+- ถ้า `id` → render QR generate เหมือนเดิม
+- ถ้า `qr_image` → render รูป QR ของร้านในกรอบ "หน้าจอ HappyEat":
+  - ส่วนหัว: โลโก้ร้าน + ชื่อร้าน
+  - กลาง: รูป QR
+  - ใต้ QR: **ยอดเงินตัวใหญ่เด่นชัด** + ปุ่ม copy ยอด
+  - เตือนสีแดง: "⚠️ กรุณาพิมพ์ยอด ฿XXX.XX ในแอปธนาคารด้วยตนเอง"
+  - ส่วนล่าง: อัปโหลดสลิป (เหมือนเดิม)
+- ส่วนการ์ดตกแต่ง (border-primary, gradient header, badge "ชำระผ่าน HappyEat") เพื่อให้ดูเป็น UI ของแพลตฟอร์มไม่ใช่แค่รูป QR ลอย ๆ
 
-## 2. `/admin/eat` (Dashboard ฝั่ง Eat)
-
-ปุ่มย้อนกลับ → `/admin`
-
-### สถิติ
-- ออเดอร์รวมทั้งหมด / วันนี้ / สัปดาห์นี้
-- ออเดอร์แยก status: `awaiting_restaurant`, `awaiting_payment_confirm`, `preparing`, `ready`, `delivered`, `cancelled`
-- ร้านค้าทั้งหมด / รออนุมัติ (`is_approved=false`) / เปิดอยู่ตอนนี้ (`is_open=true`)
-- ลูกค้าทั้งหมด
-
-### ระบบจัดการ
-- **ร้านรออนุมัติ** — รายการ `restaurants where is_approved=false` พร้อมปุ่ม "อนุมัติ" / "ปฏิเสธ" (delete)
-- **ตารางร้านค้าทั้งหมด** — ค้นหา + filter (อนุมัติแล้ว / เปิดอยู่ / ปิด) + ปุ่ม "ดูร้าน", "ปิดใช้งาน"
-- **ตารางผู้ใช้ฝั่ง Eat** — เฉพาะ role `customer` หรือ `restaurant` (filter จากตารางผู้ใช้รวมเดิม) พร้อมปุ่ม ยืนยันอีเมล / รีเซ็ตรหัสผ่าน เหมือนเดิม
-- **ออเดอร์ล่าสุด** (10 รายการ) — ดู status, ลูกค้า, ร้าน, ยอด (read-only)
-
-## 3. `/admin/rider` (Dashboard ฝั่ง Rider)
-
-ปุ่มย้อนกลับ → `/admin`
-
-### สถิติ
-- ไรเดอร์ทั้งหมด (`user_roles.role='rider'`)
-- ออนไลน์ตอนนี้ / รออนุมัติ / กำลังส่ง (`orders status in picked_up/delivering`)
-- งานในคิว (`orders rider_id is null and status='ready'`)
-- ส่งสำเร็จวันนี้
-
-### ระบบจัดการ
-- **ไรเดอร์รออนุมัติ** — `riders where is_approved=false` join profile → ปุ่ม "อนุมัติ" (update `is_approved=true`) / "ปฏิเสธ"
-- **ไรเดอร์ออนไลน์** — list แสดง ชื่อ + เบอร์ + เวลา last update (ถ้ามี `current_lat/lng`)
-- **ตารางไรเดอร์ทั้งหมด** — ค้นหา + filter (อนุมัติแล้ว / ออนไลน์ / รออนุมัติ) + ปุ่ม ยืนยันอีเมล / รีเซ็ตรหัสผ่าน / **ระงับสิทธิ์** (set `is_approved=false`)
-- **งานที่กำลังส่ง** — `orders` ที่ `rider_id not null and status in picked_up/delivering` พร้อมชื่อไรเดอร์, ร้าน, ลูกค้า (read-only, ช่วยมอนิเตอร์)
-
----
-
-## รายละเอียดทางเทคนิค
-
-### ไฟล์ที่จะแก้/เพิ่ม
-- `src/routes/_app/admin.tsx` — เปลี่ยนเป็น landing (เก็บ stat สรุป + 2 การ์ดทางเข้า + แอดมิน management เดิม)
-- `src/routes/_app/admin.eat.tsx` — **ใหม่** dashboard ฝั่ง Eat
-- `src/routes/_app/admin.rider.tsx` — **ใหม่** dashboard ฝั่ง Rider
-- `src/lib/admin.functions.ts` — เพิ่ม server fn:
-  - `approveRestaurant({ id })`, `rejectRestaurant({ id })`
-  - `approveRider({ id })`, `suspendRider({ id })`
-  - `listRestaurantsForAdmin()` — รวม flag pending
-  - `listRidersForAdmin()` — join profile + email จาก auth
-  - `listRecentOrders({ limit })`
-  - ใช้ `requireSupabaseAuth` + เช็ค `has_role(userId,'admin')` ก่อนทำงานทุก fn
-
-### Routing
-- ใช้ flat naming `admin.eat.tsx` / `admin.rider.tsx` ตาม TanStack convention
-- guard: เช็ค `role === "admin"` ในทุก component (เหมือนปัจจุบัน) ก่อน render
-
-### ไม่ต้องทำ
-- ไม่ต้อง migration (schema มีพอแล้ว)
-- ไม่กระทบ `SHARED_CONTRACT.md` (ไม่แตะ schema/state/RLS)
-- ไม่กระทบฝั่ง HappyRider
-
----
+### 4. จุดที่ต้องเช็คเพิ่ม
+- หน้าที่อ่าน `promptpay_id` ปัจจุบัน (cart, checkout, order detail) ต้องอ่าน `promptpay_mode` + `promptpay_qr_url` ด้วย
+- Validation: ถ้าร้านเลือกโหมด `qr_image` แต่ยังไม่อัปโหลด → กันไม่ให้ลูกค้า checkout (เหมือนกรณีไม่ตั้ง PromptPay ID)
+- Storage RLS: รูป QR ควรอยู่ใน bucket public `restaurant-images` เพื่อให้ลูกค้าโหลดได้ (ไม่มี data ลับ — แค่ payload PromptPay เปล่า)
 
 ## คำถามก่อนเริ่ม
+ก่อนลงมือ ผมอยากเช็คประเด็นเดียวครับ — เรื่อง **ยอดเงินไม่ฝังใน QR ของร้าน** (ลูกค้าต้องพิมพ์ยอดเอง) เป็นเรื่อง trade-off ที่หลีกเลี่ยงไม่ได้ของ QR แบบรูปภาพ (เพราะเราไม่รู้ payload PromptPay ของร้านในรูปนั้น)
 
-1. **"ปฏิเสธ" ร้าน/ไรเดอร์** = ลบจริงจาก DB หรือแค่ set flag (เก็บประวัติไว้)? ตอนนี้ schema ไม่มี `is_rejected` — ทางง่ายคือ **ลบ** ออก ผู้ใช้สมัครใหม่ได้
-2. **"ระงับสิทธิ์ไรเดอร์"** = set `is_approved=false` (เลิกเห็นงาน) พอไหม หรืออยากเพิ่ม flag `is_banned` แยก (ต้อง migration)?
-3. **ฝั่ง Eat ต้องมี "ระงับร้าน"** ด้วยไหม (set `is_approved=false` → ลูกค้ามองไม่เห็น)?
+→ คุณ ok กับการให้ร้านเลือกได้ 2 โหมด (ID = สะดวกลูกค้า / รูป QR = สะดวกร้าน) แบบนี้ใช่มั้ยครับ? หรือต้องการให้บังคับใช้โหมดอัปโหลด QR อย่างเดียวไปเลย?

@@ -592,6 +592,8 @@ export type Database = {
           phone: string | null
           promptpay_holder_name: string | null
           promptpay_id: string | null
+          promptpay_mode: string
+          promptpay_qr_url: string | null
           rating: number
           updated_at: string
         }
@@ -616,6 +618,8 @@ export type Database = {
           phone?: string | null
           promptpay_holder_name?: string | null
           promptpay_id?: string | null
+          promptpay_mode?: string
+          promptpay_qr_url?: string | null
           rating?: number
           updated_at?: string
         }
@@ -640,6 +644,8 @@ export type Database = {
           phone?: string | null
           promptpay_holder_name?: string | null
           promptpay_id?: string | null
+          promptpay_mode?: string
+          promptpay_qr_url?: string | null
           rating?: number
           updated_at?: string
         }
