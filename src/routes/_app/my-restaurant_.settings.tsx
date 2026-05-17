@@ -205,14 +205,58 @@ function MyRestaurantSettingsPage() {
     toast.success("อัปโหลด QR แล้ว — อย่าลืมกดบันทึก");
   }
 
+  async function cropToAspect(file: File, aspect: number, maxW: number): Promise<Blob> {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const im = new Image();
+        im.onload = () => resolve(im);
+        im.onerror = reject;
+        im.src = url;
+      });
+      const srcAspect = img.width / img.height;
+      let sx = 0, sy = 0, sw = img.width, sh = img.height;
+      if (srcAspect > aspect) {
+        // ภาพกว้างเกิน → ตัดด้านข้าง
+        sw = img.height * aspect;
+        sx = (img.width - sw) / 2;
+      } else {
+        // ภาพสูงเกิน → ตัดด้านบนล่าง
+        sh = img.width / aspect;
+        sy = (img.height - sh) / 2;
+      }
+      const targetW = Math.min(maxW, Math.round(sw));
+      const targetH = Math.round(targetW / aspect);
+      const canvas = document.createElement("canvas");
+      canvas.width = targetW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
+      return await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("crop failed"))), "image/jpeg", 0.9);
+      });
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
   async function uploadImage(e: ChangeEvent<HTMLInputElement>, kind: "logo" | "cover") {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-    const ext = file.name.split(".").pop();
+    let blob: Blob = file;
+    let ext = file.name.split(".").pop() || "jpg";
+    if (kind === "cover") {
+      try {
+        blob = await cropToAspect(file, 3 / 1, 1500);
+        ext = "jpg";
+      } catch (err) {
+        return toast.error("ครอปรูปไม่สำเร็จ");
+      }
+    }
     const path = `${user.id}/${kind}-${Date.now()}.${ext}`;
     const { error: upErr } = await supabase.storage
       .from("restaurant-images")
-      .upload(path, file, { upsert: true });
+      .upload(path, blob, { upsert: true, contentType: blob.type || file.type });
     if (upErr) return toast.error(upErr.message);
     const { data } = supabase.storage.from("restaurant-images").getPublicUrl(path);
     if (kind === "logo") setLogoUrl(data.publicUrl);
