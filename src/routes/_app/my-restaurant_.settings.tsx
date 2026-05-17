@@ -49,6 +49,8 @@ interface Restaurant {
   opening_hours: OpeningHours;
   promptpay_id: string | null;
   promptpay_holder_name: string | null;
+  promptpay_mode: "id" | "qr_image" | null;
+  promptpay_qr_url: string | null;
 }
 
 const DEFAULT_HOURS: OpeningHours = Object.fromEntries(
