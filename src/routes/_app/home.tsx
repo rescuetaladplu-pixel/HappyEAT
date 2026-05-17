@@ -328,7 +328,9 @@ function HomePage() {
 
   // Block หน้าลูกค้าเฉพาะกรณีที่ user ไม่มี role customer เลย (เช่น admin/rider ล้วน)
   // ผู้ใช้ที่มีหลาย role (เช่น customer + restaurant) ยังคงเข้าหน้าลูกค้าได้ปกติ
-  if (role && role !== "customer" && !roles.includes("customer")) {
+  const isRestaurantOnly = role === "restaurant" && roles.length === 1 && roles[0] === "restaurant";
+
+  if (role && role !== "customer" && !roles.includes("customer") && !isRestaurantOnly) {
     const dest =
       role === "restaurant"
         ? "/restaurant-dashboard"
