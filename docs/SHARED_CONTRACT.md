@@ -113,7 +113,7 @@ delivered             ← ไรเดอร์รับค่าส่งจา
 - ไรเดอร์ทุกคน เห็น order ที่ `rider_id IS NULL AND status IN ('ready','preparing')` ← **pool งาน**
 - admin
 
-`Restaurant/rider/customer update orders` อนุญาต customer / rider ที่ assigned / เจ้าของร้าน / ไรเดอร์ใดๆ ที่ `rider_id IS NULL` (สำหรับการกดรับงาน)
+`Restaurant/rider/customer update orders` อนุญาต customer / เจ้าของร้าน / admin / ไรเดอร์ใดๆ ที่ `rider_id IS NULL` (กดรับงาน → set `rider_id=self, status='picked_up'`) / ไรเดอร์ที่ assigned (เฉพาะ status `picked_up`, `delivering` เท่านั้น — **ห้าม set `delivered` ตรงๆ ต้องเรียก RPC `confirm_delivery`**)
 
 > **คำเตือน:** ถ้า rider app จะเพิ่ม column ใหม่ใน `orders` ต้องมาขอห้องนี้ run migration + อัปเดต RLS
 
