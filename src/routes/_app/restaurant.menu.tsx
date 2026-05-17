@@ -1000,12 +1000,15 @@ function ItemEditDialog({
         return toast.error(`ราคาตัวเลือก "${v.name}" ไม่ถูกต้อง`);
       }
     }
+    if (!noAllergenInfo && !allergenInfo.trim()) {
+      return toast.error('กรุณากรอกข้อมูลสำหรับผู้แพ้อาหาร หรือติ๊ก "ไม่มีข้อมูลแจ้ง"');
+    }
     setSaving(true);
     const payload = {
       restaurant_id: restaurantId,
       name: name.trim(),
       description: description.trim() || null,
-      allergen_info: allergenInfo.trim() || null,
+      allergen_info: noAllergenInfo ? NO_ALLERGEN_SENTINEL : allergenInfo.trim(),
       price: priceNum,
       image_url: imageUrl,
       category_id: categoryId,
