@@ -819,6 +819,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      confirm_delivery: {
+        Args: { order_id: string; otp_code: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
