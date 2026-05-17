@@ -383,8 +383,17 @@ function MyRestaurantHub() {
             <p className="text-[11px] text-muted-foreground">ร้านที่กำลังจัดการ</p>
             <p className="font-semibold text-sm truncate">{restaurant.name}</p>
           </div>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-            {owned.length > 1 ? `${owned.length} ร้าน` : ""}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+            {(() => {
+              const totalPending = Object.values(pendingCounts).reduce((a, b) => a + b, 0);
+              return totalPending > 0 ? (
+                <Badge className="text-[10px] h-5 px-1.5">
+                  <Bell className="h-3 w-3 mr-1" />
+                  {totalPending}
+                </Badge>
+              ) : null;
+            })()}
+            {owned.length > 1 ? <span>{owned.length} ร้าน</span> : null}
             <ChevronRight className="h-4 w-4" />
           </div>
         </button>
