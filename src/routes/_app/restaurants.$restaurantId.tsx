@@ -45,23 +45,6 @@ interface MenuItem {
   category_id: string | null;
   sort_order: number;
 }
-interface AddonGroup {
-  id: string;
-  name: string;
-  is_required: boolean;
-  min_select: number;
-  max_select: number;
-  sort_order: number;
-  pricing_mode: "addon" | "variant";
-}
-interface AddonOption {
-  id: string;
-  group_id: string;
-  name: string;
-  price_delta: number;
-  is_available: boolean;
-  sort_order: number;
-}
 
 function RestaurantDetail() {
   const { restaurantId } = Route.useParams();
