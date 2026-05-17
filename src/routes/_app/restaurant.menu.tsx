@@ -1088,15 +1088,24 @@ function ItemEditDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>ข้อมูลสำหรับผู้แพ้อาหาร</Label>
+            <Label>ข้อมูลสำหรับผู้แพ้อาหาร *</Label>
             <Textarea
               value={allergenInfo}
               onChange={(e) => setAllergenInfo(e.target.value)}
               rows={2}
               placeholder="เช่น มีถั่ว, นม, ไข่, กลูเตน, อาหารทะเล"
+              disabled={noAllergenInfo}
             />
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox
+                checked={noAllergenInfo}
+                onCheckedChange={(v) => setNoAllergenInfo(v === true)}
+              />
+              <span>ไม่มีข้อมูลแจ้ง / ไม่มีวัตถุดิบที่อาจก่อให้เกิดอาการแพ้</span>
+            </label>
             <p className="text-xs text-muted-foreground">
               ระบุวัตถุดิบที่อาจก่อให้เกิดอาการแพ้ ข้อมูลนี้จะแสดงให้ลูกค้าเห็นชัดเจน
+              หากไม่มีข้อมูลแจ้ง กรุณาติ๊กช่องด้านบนเพื่อยืนยัน
             </p>
           </div>
 
