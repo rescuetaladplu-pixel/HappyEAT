@@ -657,7 +657,7 @@ function QrFlowActions({ order, onChanged }: { order: Order; onChanged: () => vo
         />
         <div className="flex gap-2">
           <Button className="flex-1" disabled={busy} onClick={confirmSlip}>
-            ✅ ยืนยันรับเงิน เริ่มทำ
+            ✅ ยืนยันรับเงิน เริ่มทำอาหารทันที
           </Button>
           <Button variant="outline" className="text-destructive" disabled={busy} onClick={rejectSlip}>
             ❌ ปฏิเสธสลิป
