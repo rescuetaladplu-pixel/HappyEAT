@@ -51,6 +51,7 @@ interface Restaurant {
   opening_hours: OpeningHours;
   promptpay_id: string | null;
   promptpay_holder_name: string | null;
+  promptpay_qr_holder_name: string | null;
   promptpay_mode: "id" | "qr_image" | null;
   promptpay_qr_url: string | null;
 }
@@ -78,6 +79,7 @@ function MyRestaurantSettingsPage() {
   const [hours, setHours] = useState<OpeningHours>(DEFAULT_HOURS);
   const [promptpayId, setPromptpayId] = useState("");
   const [promptpayHolderName, setPromptpayHolderName] = useState("");
+  const [promptpayQrHolderName, setPromptpayQrHolderName] = useState("");
   const [promptpayMode, setPromptpayMode] = useState<"id" | "qr_image">("id");
   const [promptpayQrUrl, setPromptpayQrUrl] = useState<string | null>(null);
   const [uploadingQr, setUploadingQr] = useState(false);
@@ -108,6 +110,7 @@ function MyRestaurantSettingsPage() {
       setHours({ ...DEFAULT_HOURS, ...(r.opening_hours ?? {}) });
       setPromptpayId(r.promptpay_id ?? "");
       setPromptpayHolderName(r.promptpay_holder_name ?? "");
+      setPromptpayQrHolderName(r.promptpay_qr_holder_name ?? "");
       setPromptpayMode((r.promptpay_mode as "id" | "qr_image") ?? "id");
       setPromptpayQrUrl(r.promptpay_qr_url ?? null);
     }
@@ -177,7 +180,8 @@ function MyRestaurantSettingsPage() {
         promptpay_mode: promptpayMode,
         promptpay_id: promptpayMode === "id" ? (id || null) : null,
         promptpay_qr_url: promptpayMode === "qr_image" ? promptpayQrUrl : null,
-        promptpay_holder_name: promptpayHolderName.trim() || null,
+        promptpay_holder_name: promptpayMode === "id" ? (promptpayHolderName.trim() || null) : null,
+        promptpay_qr_holder_name: promptpayMode === "qr_image" ? (promptpayQrHolderName.trim() || null) : null,
       })
       .eq("id", restaurant.id);
     setSaving(false);
@@ -599,10 +603,17 @@ function MyRestaurantSettingsPage() {
               <Label>ชื่อบัญชี (แสดงให้ลูกค้าเห็นก่อนโอน)</Label>
               <Input
                 placeholder="เช่น สมชาย ใจดี"
-                value={promptpayHolderName}
-                onChange={(e) => setPromptpayHolderName(e.target.value)}
+                value={promptpayMode === "id" ? promptpayHolderName : promptpayQrHolderName}
+                onChange={(e) =>
+                  promptpayMode === "id"
+                    ? setPromptpayHolderName(e.target.value)
+                    : setPromptpayQrHolderName(e.target.value)
+                }
                 maxLength={100}
               />
+              <p className="text-xs text-muted-foreground">
+                ชื่อบัญชีเก็บแยกตามโหมด — สลับโหมดแล้วจะไม่ทับกัน
+              </p>
             </div>
             <Button onClick={savePromptpay} disabled={saving} className="w-full">
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
