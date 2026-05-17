@@ -247,7 +247,7 @@ function RestaurantOrdersPage() {
       stopAlertLoop();
     } else {
       // If there are still pending orders, resume looping
-      const hasPending = orders.some((o) => o.status === "pending");
+      const hasPending = orders.some((o) => o.status === "pending" || o.status === "awaiting_restaurant" || (o.status === "awaiting_confirmations" && !o.restaurant_accepted_at));
       if (hasPending) {
         mutedUntilActionRef.current = false;
         startAlertLoop();
