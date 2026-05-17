@@ -113,15 +113,12 @@ export function PaymentPanel({
 
   return (
     <Card className="p-4 space-y-3 border-primary/40 overflow-hidden">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <QrCode className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">ชำระเงินด้วย PromptPay</h3>
-        </div>
-        <Badge variant="secondary" className="text-[10px]">ผ่าน HappyEat</Badge>
+      <div className="flex items-center gap-2">
+        <QrCode className="h-5 w-5 text-primary" />
+        <h3 className="font-semibold">ชำระเงินด้วย PromptPay</h3>
       </div>
 
-      {/* Restaurant header for branded frame */}
+      {/* Restaurant header — เน้นว่าโอนตรงให้ร้าน ไม่ผ่านแพลตฟอร์ม */}
       {(restaurantName || restaurantLogoUrl) && (
         <div className="flex items-center gap-2 bg-secondary/40 rounded-lg p-2">
           <div className="h-9 w-9 rounded-full bg-background overflow-hidden flex items-center justify-center shrink-0">
@@ -132,7 +129,7 @@ export function PaymentPanel({
             )}
           </div>
           <div className="min-w-0">
-            <p className="text-xs text-muted-foreground leading-tight">โอนเข้าบัญชีร้าน</p>
+            <p className="text-xs text-muted-foreground leading-tight">ชำระโดยตรงให้กับร้าน</p>
             <p className="text-sm font-semibold truncate">{restaurantName ?? "—"}</p>
           </div>
         </div>
