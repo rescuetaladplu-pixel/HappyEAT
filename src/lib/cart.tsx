@@ -25,6 +25,7 @@ interface CartContextValue {
   add: (item: Omit<CartItem, "quantity" | "lineId" | "unitPrice"> & { quantity?: number }) => void;
   remove: (lineId: string) => void;
   setQty: (lineId: string, qty: number) => void;
+  updateNote: (lineId: string, note: string) => void;
   clear: () => void;
   total: number;
   count: number;
