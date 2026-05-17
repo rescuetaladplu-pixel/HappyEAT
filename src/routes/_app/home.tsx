@@ -399,219 +399,53 @@ function HomePage() {
           </SheetTrigger>
           <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto">
             <SheetHeader>
-              <SheetTitle className="flex items-center gap-2">
-                {sheetMode === "form" && addresses.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSheetMode("list");
-                      resetForm();
-                    }}
-                    className="p-1 -ml-1 rounded hover:bg-secondary"
-                    aria-label="กลับ"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </button>
-                )}
-                {sheetMode === "list"
-                  ? "เลือกที่อยู่จัดส่ง"
-                  : editingId
-                    ? "แก้ไขที่อยู่"
-                    : "เพิ่มที่อยู่ใหม่"}
-              </SheetTitle>
+              <SheetTitle>เลือกที่อยู่จัดส่ง</SheetTitle>
             </SheetHeader>
 
-            {sheetMode === "list" ? (
-              <div className="space-y-2 py-4">
-                {addresses.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    ยังไม่มีที่อยู่บันทึกไว้
-                  </p>
-                )}
-                {addresses.map((a) => (
-                  <Card
-                    key={a.id}
-                    className={`p-3 transition ${a.is_default ? "border-primary ring-1 ring-primary" : ""}`}
+            <div className="space-y-2 py-4">
+              {addresses.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  ยังไม่มีที่อยู่บันทึกไว้
+                </p>
+              )}
+              {addresses.map((a) => (
+                <Card
+                  key={a.id}
+                  className={`p-3 transition ${a.is_default ? "border-primary ring-1 ring-primary" : ""}`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => selectAddress(a.id)}
+                    className="w-full text-left"
                   >
-                    <div className="flex items-start gap-3">
-                      <button
-                        type="button"
-                        onClick={() => selectAddress(a.id)}
-                        className="flex-1 min-w-0 text-left"
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <MapPin className="h-4 w-4 text-primary shrink-0" />
-                          <span className="font-semibold truncate">{a.label}</span>
-                          {a.is_default && (
-                            <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                              <Check className="h-2.5 w-2.5" /> ใช้อยู่
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2">{a.address}</p>
-                        {a.phone_primary && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            โทร: {a.phone_primary}
-                          </p>
-                        )}
-                      </button>
-                      <div className="flex flex-col gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 px-2 text-xs"
-                          onClick={() => openEditForm(a)}
-                        >
-                          แก้ไข
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive"
-                          onClick={() => deleteAddress(a.id)}
-                          aria-label="ลบ"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <MapPin className="h-4 w-4 text-primary shrink-0" />
+                      <span className="font-semibold truncate">{a.label}</span>
+                      {a.is_default && (
+                        <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                          <Check className="h-2.5 w-2.5" /> ใช้อยู่
+                        </span>
+                      )}
                     </div>
-                  </Card>
-                ))}
-                {addresses.length < MAX_ADDRESSES && (
-                  <Button variant="outline" className="w-full" onClick={openNewForm}>
-                    <Plus className="h-4 w-4 mr-2" /> เพิ่มที่อยู่ใหม่ ({addresses.length}/
-                    {MAX_ADDRESSES})
-                  </Button>
-                )}
-                {addresses.length >= MAX_ADDRESSES && (
-                  <p className="text-xs text-muted-foreground text-center">
-                    บันทึกครบ {MAX_ADDRESSES} ที่อยู่แล้ว — ลบรายการเพื่อเพิ่มใหม่
-                  </p>
-                )}
-              </div>
-            ) : (
-              <>
-                <div className="space-y-3 py-4">
-                  <div className="space-y-2">
-                    <Label>ค้นหาสถานที่</Label>
-                    <PlaceAutocomplete
-                      onSelect={(p) => {
-                        setAddrText(p.address);
-                        if (p.lat !== null) setLat(p.lat);
-                        if (p.lng !== null) setLng(p.lng);
-                        // ใช้ชื่อสถานที่เป็นชื่อที่อยู่อัตโนมัติ
-                        if (p.name) setAddrLabel(p.name);
-                      }}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="addr-label">ชื่อที่อยู่ (แก้ไขได้)</Label>
-                    <Input
-                      id="addr-label"
-                      placeholder="เช่น บ้าน, ที่ทำงาน, โรงแรมฮิลตัน"
-                      maxLength={50}
-                      value={addrLabel}
-                      onChange={(e) => setAddrLabel(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="addr-text">ที่อยู่ (แก้ไขเพิ่มเติมได้ เช่น เลขห้อง/ชั้น)</Label>
-                    <Textarea
-                      id="addr-text"
-                      placeholder="บ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด"
-                      maxLength={500}
-                      value={addrText}
-                      onChange={(e) => setAddrText(e.target.value)}
-                      rows={3}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>ปักหมุดบนแผนที่ (คลิกเพื่อเลือกตำแหน่ง)</Label>
-                    <LocationPicker
-                      lat={lat}
-                      lng={lng}
-                      onChange={(la, ln) => {
-                        setLat(la);
-                        setLng(ln);
-                      }}
-                    />
-                    {lat !== null && lng !== null && (
-                      <p className="text-xs text-muted-foreground">
-                        พิกัด: {lat.toFixed(5)}, {lng.toFixed(5)}
+                    <p className="text-xs text-muted-foreground line-clamp-2">{a.address}</p>
+                    {a.phone_primary && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        โทร: {a.phone_primary}
                       </p>
                     )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      type="button"
-                      onClick={() => {
-                        if (!navigator.geolocation) return toast.error("เบราว์เซอร์ไม่รองรับ GPS");
-                        navigator.geolocation.getCurrentPosition(
-                          (pos) => {
-                            setLat(pos.coords.latitude);
-                            setLng(pos.coords.longitude);
-                          },
-                          () => toast.error("ไม่สามารถดึงตำแหน่งได้"),
-                        );
-                      }}
-                    >
-                      <MapPin className="h-4 w-4 mr-2" /> ใช้ตำแหน่งปัจจุบัน
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="contact-name">ชื่อผู้รับ</Label>
-                    <Input
-                      id="contact-name"
-                      placeholder="ชื่อผู้รับสินค้า"
-                      maxLength={100}
-                      value={contactName}
-                      onChange={(e) => setContactName(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone-primary">เบอร์ติดต่อหลัก *</Label>
-                    <Input
-                      id="phone-primary"
-                      type="tel"
-                      inputMode="tel"
-                      placeholder="08x-xxx-xxxx"
-                      maxLength={20}
-                      value={phonePrimary}
-                      onChange={(e) => setPhonePrimary(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone-secondary">เบอร์ติดต่อสำรอง</Label>
-                    <Input
-                      id="phone-secondary"
-                      type="tel"
-                      inputMode="tel"
-                      placeholder="ไม่บังคับ"
-                      maxLength={20}
-                      value={phoneSecondary}
-                      onChange={(e) => setPhoneSecondary(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="rider-note">โน้ตถึงไรเดอร์</Label>
-                    <Textarea
-                      id="rider-note"
-                      placeholder="เช่น ตึก B ชั้น 3 โทรก่อนถึง"
-                      maxLength={300}
-                      value={riderNote}
-                      onChange={(e) => setRiderNote(e.target.value)}
-                      rows={2}
-                    />
-                  </div>
-                </div>
-                <SheetFooter>
-                  <Button onClick={saveAddress} disabled={savingAddr} className="w-full">
-                    {savingAddr ? "กำลังบันทึก..." : "บันทึก"}
-                  </Button>
-                </SheetFooter>
-              </>
-            )}
+                  </button>
+                </Card>
+              ))}
+              <Link
+                to="/addresses"
+                search={{ from: "/home", new: addresses.length === 0 }}
+                onClick={() => setAddrOpen(false)}
+                className="flex items-center justify-center gap-2 w-full border rounded-lg py-2.5 text-sm font-medium hover:bg-secondary/50 transition"
+              >
+                <Plus className="h-4 w-4" />
+                {addresses.length === 0 ? "เพิ่มที่อยู่จัดส่ง" : "จัดการที่อยู่ทั้งหมด"}
+              </Link>
+            </div>
           </SheetContent>
         </Sheet>
         <h1 className="text-2xl font-bold leading-tight">หิวอะไรวันนี้?</h1>
