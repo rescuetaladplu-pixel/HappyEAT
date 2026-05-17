@@ -154,7 +154,7 @@ function CartPage() {
         total: grandTotal,
         notes,
         payment_method: "promptpay_qr",
-        status: "awaiting_restaurant",
+        status: "awaiting_confirmations",
       })
       .select()
       .single();
