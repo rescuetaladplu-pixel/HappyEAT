@@ -429,9 +429,7 @@ function HomePage() {
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-2">{a.address}</p>
                     {a.phone_primary && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        โทร: {a.phone_primary}
-                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">โทร: {a.phone_primary}</p>
                     )}
                   </button>
                 </Card>
