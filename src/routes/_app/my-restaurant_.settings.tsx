@@ -568,7 +568,7 @@ function MyRestaurantSettingsPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                <Label>รูป QR PromptPay ของร้าน</Label>
+                <Label>บันทึก QR Payment</Label>
                 <div className="border rounded-lg bg-muted/30 p-3 flex flex-col items-center gap-2">
                   {promptpayQrUrl ? (
                     <img
