@@ -99,6 +99,8 @@ interface Restaurant {
   delivery_fee: number;
   rating: number;
   opening_hours: OpeningHours;
+  promptpay_id: string | null;
+  promptpay_qr_url: string | null;
 }
 
 function MyRestaurantHub() {
@@ -161,12 +163,20 @@ function MyRestaurantHub() {
       .eq("id", id)
       .maybeSingle();
     const r = (data as unknown as Restaurant | null) ?? null;
-    if (r && r.is_open && !isOpenNow(r.opening_hours)) {
-      const extendActive = r.is_open_until && new Date(r.is_open_until) > new Date();
-      if (!extendActive) {
+    if (r) {
+      const hasPayment = !!r.promptpay_id || !!r.promptpay_qr_url;
+      // ออฟไลน์อัตโนมัติถ้ายังไม่ตั้งค่าการรับชำระเงิน
+      if (r.is_open && !hasPayment) {
         await supabase.from("restaurants").update({ is_open: false, is_open_until: null }).eq("id", r.id);
         r.is_open = false;
         r.is_open_until = null;
+      } else if (r.is_open && !isOpenNow(r.opening_hours)) {
+        const extendActive = r.is_open_until && new Date(r.is_open_until) > new Date();
+        if (!extendActive) {
+          await supabase.from("restaurants").update({ is_open: false, is_open_until: null }).eq("id", r.id);
+          r.is_open = false;
+          r.is_open_until = null;
+        }
       }
     }
     setRestaurant(r);
