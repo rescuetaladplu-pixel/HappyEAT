@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Minus, Plus, Trash2, ShoppingBag, QrCode, Pencil } from "lucide-react";
 import { toast } from "sonner";
-import { sendOrderPush } from "@/lib/fcm.functions";
+// sendOrderPush + notifyRidersOrderReady imported lazily after order insert
 import { ItemPickerDialog, PickerMenuItem } from "@/components/ItemPickerDialog";
 import type { CartItem } from "@/lib/cart";
 
