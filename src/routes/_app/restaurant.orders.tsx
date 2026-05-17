@@ -634,12 +634,45 @@ function QrFlowActions({ order, onChanged }: { order: Order; onChanged: () => vo
     onChanged();
   }
 
+  if (order.status === "awaiting_confirmations") {
+    const restAccepted = !!order.restaurant_accepted_at;
+    const riderClaimed = !!order.rider_id;
+    return (
+      <div className="space-y-2 border-2 border-primary/40 rounded p-2 bg-primary/5">
+        <p className="text-xs font-medium">📋 ออเดอร์ใหม่ — รอยืนยันก่อนลูกค้าจ่ายเงิน</p>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className={`p-2 rounded border ${restAccepted ? "bg-green-50 border-green-300 text-green-700" : "bg-secondary/50"}`}>
+            {restAccepted ? "✓ ร้านยืนยันแล้ว" : "⏳ รอร้านยืนยัน"}
+          </div>
+          <div className={`p-2 rounded border ${riderClaimed ? "bg-green-50 border-green-300 text-green-700" : "bg-secondary/50"}`}>
+            {riderClaimed ? "✓ ได้ไรเดอร์แล้ว" : "🔍 กำลังหาไรเดอร์"}
+          </div>
+        </div>
+        {!restAccepted && (
+          <div className="flex gap-2">
+            <Button className="flex-1" disabled={busy} onClick={acceptOrder}>
+              ✅ ยืนยันออเดอร์ (ตรวจรายการแล้ว)
+            </Button>
+            <Button variant="outline" className="text-destructive" disabled={busy} onClick={rejectOrder}>
+              ปฏิเสธ
+            </Button>
+          </div>
+        )}
+        {restAccepted && !riderClaimed && (
+          <p className="text-xs text-center text-muted-foreground bg-secondary/50 rounded p-2">
+            ⏳ ยืนยันแล้ว — รอไรเดอร์รับงาน เมื่อได้ไรเดอร์ ลูกค้าจะได้สแกน QR จ่ายเงินทันที
+          </p>
+        )}
+      </div>
+    );
+  }
+
   if (order.status === "awaiting_restaurant") {
     return (
       <div className="space-y-2 border rounded p-2 bg-secondary/30">
-        <p className="text-xs font-medium">📋 ลูกค้าเสนอออเดอร์ (จ่ายด้วย QR) — ตรวจรายการแล้วกดรับ</p>
+        <p className="text-xs font-medium">📋 (ออเดอร์เดิม) ลูกค้าเสนอออเดอร์ — ตรวจรายการแล้วกดรับ</p>
         <div className="flex gap-2">
-          <Button className="flex-1" disabled={busy} onClick={acceptOrder}>
+          <Button className="flex-1" disabled={busy} onClick={acceptOrderLegacy}>
             ✅ รับออเดอร์ พร้อมทำ
           </Button>
           <Button variant="outline" className="text-destructive" disabled={busy} onClick={rejectOrder}>
