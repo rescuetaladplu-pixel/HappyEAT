@@ -260,7 +260,7 @@ function MyRestaurantSettingsPage() {
           <TabsTrigger value="profile"><Store className="h-4 w-4 mr-1" />โปรไฟล์</TabsTrigger>
           <TabsTrigger value="location"><MapPin className="h-4 w-4 mr-1" />ที่อยู่</TabsTrigger>
           <TabsTrigger value="hours"><Clock className="h-4 w-4 mr-1" />เวลา</TabsTrigger>
-          <TabsTrigger value="payment"><QrCode className="h-4 w-4 mr-1" />ชำระเงิน</TabsTrigger>
+          <TabsTrigger value="payment"><QrCode className="h-4 w-4 mr-1" />การรับชำระเงิน</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
