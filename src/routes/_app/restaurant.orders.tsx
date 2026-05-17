@@ -424,6 +424,22 @@ function RestaurantOrdersPage() {
         {counts.new > 0 && <Badge className="ml-2">{counts.new} ใหม่</Badge>}
       </div>
 
+      <Card className="p-3 bg-primary/5 border-primary/30 space-y-2">
+        <p className="text-sm font-semibold text-primary">ℹ️ ขั้นตอนการรับออเดอร์</p>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          แท็บ <span className="font-medium text-foreground">"ใหม่"</span> เป็นเพียงการให้ร้านตรวจสอบรายการเพื่อ
+          <span className="font-medium text-foreground">ยืนยันความพร้อม</span> เท่านั้น —
+          ลูกค้ายัง<span className="font-medium text-foreground">ไม่ได้ชำระเงิน</span> จนกว่าร้านจะกดรับ
+        </p>
+        <ol className="text-xs space-y-1 list-decimal list-inside text-foreground/80">
+          <li><span className="font-medium">ใหม่</span> → ร้านตรวจรายการ แล้วกด <span className="text-primary font-medium">"รับออเดอร์ พร้อมทำ"</span> (ยังไม่เริ่มทำ)</li>
+          <li><span className="font-medium">รอจ่าย/ตรวจสลิป</span> → ลูกค้าสแกน QR จ่ายค่าอาหาร แล้วส่งสลิปให้ร้านตรวจ</li>
+          <li><span className="font-medium">กำลังทำ</span> → ร้านยืนยันรับเงินแล้ว เริ่มทำอาหารได้เลย</li>
+          <li><span className="font-medium">พร้อมส่ง → กำลังส่ง → เสร็จแล้ว</span> → ไรเดอร์รับของและจัดส่ง</li>
+        </ol>
+      </Card>
+
+
       <Tabs defaultValue="new">
         <TabsList className="w-full overflow-x-auto flex justify-start">
           {TABS.map((t) => (
