@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Upload, QrCode, Copy, CheckCircle2, AlertTriangle, Store } from "lucide-react";
 import { toast } from "sonner";
 import { sendStatusPush } from "@/lib/fcm.functions";
+import { BrandedQrFromImage } from "@/components/BrandedQrFromImage";
 
 interface Props {
   orderId: string;
