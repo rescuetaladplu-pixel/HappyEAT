@@ -103,7 +103,7 @@ function AuthPage() {
           <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground">
             <UtensilsCrossed className="h-6 w-6" />
           </div>
-          <span className="text-2xl font-bold text-foreground">FoodDash</span>
+          <span className="text-2xl font-bold text-foreground">HappyEat</span>
         </Link>
 
         <Card>

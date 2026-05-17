@@ -1,6 +1,6 @@
 {
-  "name": "FoodDash — แอปสั่งอาหาร",
-  "short_name": "FoodDash",
+  "name": "HappyEat — แอปสั่งอาหาร",
+  "short_name": "HappyEat",
   "description": "สั่งอาหารจากร้านโปรดของคุณ ส่งถึงที่หมายอย่างรวดเร็ว",
   "start_url": "/home",
   "scope": "/",
