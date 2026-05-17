@@ -267,7 +267,7 @@ function CartPage() {
               disabled={openingEdit === item.lineId}
             >
               <Pencil className="h-3 w-3 mr-1" />
-              {openingEdit === item.lineId ? "กำลังโหลด..." : "แก้ไขเมนู (ตัวเลือก / โน้ต / จำนวน)"}
+              {openingEdit === item.lineId ? "กำลังโหลด..." : "แก้ไขเมนู"}
             </Button>
           </Card>
         ))}
