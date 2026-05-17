@@ -111,6 +111,40 @@ function MyRestaurantHub() {
   // Picker view toggle (default true if multiple restaurants)
   const [showPicker, setShowPicker] = useState(false);
 
+  // Pending order counts per restaurant (active = not delivered/cancelled)
+  const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (owned.length === 0) {
+      setPendingCounts({});
+      return;
+    }
+    const ids = owned.map((r) => r.id);
+    let cancelled = false;
+    async function load() {
+      const { data } = await supabase
+        .from("orders")
+        .select("restaurant_id, status")
+        .in("restaurant_id", ids)
+        .not("status", "in", "(delivered,cancelled)");
+      if (cancelled) return;
+      const counts: Record<string, number> = {};
+      for (const row of (data ?? []) as { restaurant_id: string }[]) {
+        counts[row.restaurant_id] = (counts[row.restaurant_id] ?? 0) + 1;
+      }
+      setPendingCounts(counts);
+    }
+    load();
+    const ch = supabase
+      .channel("my-rest-pending")
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => load())
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(ch);
+    };
+  }, [owned]);
+
   // Create form
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
