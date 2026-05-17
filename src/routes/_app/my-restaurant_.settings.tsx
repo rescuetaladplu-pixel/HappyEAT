@@ -196,7 +196,7 @@ function MyRestaurantSettingsPage() {
       : await q.eq("id", restaurant.id);
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success(applyToAll ? `บันทึกแล้วทั้ง ${ownedCount} ร้าน` : "บันทึก PromptPay สำเร็จ");
+    toast.success(applyToAll ? `บันทึกแล้วทั้ง ${ownedCount} ร้าน` : "บันทึก QR Code สำเร็จ");
   }
 
   async function uploadQrImage(e: ChangeEvent<HTMLInputElement>) {
@@ -639,7 +639,7 @@ function MyRestaurantSettingsPage() {
             )}
             <Button onClick={savePromptpay} disabled={saving} className="w-full">
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {applyToAll && ownedCount > 1 ? `บันทึก PromptPay (ทั้ง ${ownedCount} ร้าน)` : "บันทึก PromptPay"}
+              {applyToAll && ownedCount > 1 ? `บันทึก QR Code (ทั้ง ${ownedCount} ร้าน)` : "บันทึก QR Code"}
             </Button>
           </Card>
         </TabsContent>
