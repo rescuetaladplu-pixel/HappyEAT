@@ -468,7 +468,12 @@ function AdminRiderPage() {
           {deliveries.map((o) => {
             const rider = riders.find((r) => r.id === o.rider_id);
             return (
-              <div key={o.id} className="flex justify-between items-center border-b last:border-0 py-2 text-sm gap-3">
+              <Link
+                key={o.id}
+                to="/admin/orders/$orderId"
+                params={{ orderId: o.id }}
+                className="flex justify-between items-center border-b last:border-0 py-2 text-sm gap-3 hover:bg-muted/40 -mx-2 px-2 rounded"
+              >
                 <div className="min-w-0 flex-1">
                   <p className="font-medium truncate">{o.restaurants?.name ?? "—"}</p>
                   <p className="text-xs text-muted-foreground truncate">
@@ -478,7 +483,7 @@ function AdminRiderPage() {
                 <Badge variant={STATUS_VARIANTS[o.status as OrderStatus] ?? "default"} className="text-xs">
                   {STATUS_LABELS[o.status as OrderStatus] ?? o.status}
                 </Badge>
-              </div>
+              </Link>
             );
           })}
           {deliveries.length === 0 && (
