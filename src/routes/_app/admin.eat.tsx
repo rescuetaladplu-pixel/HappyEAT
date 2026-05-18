@@ -631,3 +631,26 @@ function Stat({ label, value, highlight }: { label: string; value: number; highl
     </Card>
   );
 }
+
+function StatLink({
+  to,
+  search,
+  label,
+  value,
+  highlight,
+}: {
+  to: string;
+  search?: Record<string, string>;
+  label: string;
+  value: number;
+  highlight?: boolean;
+}) {
+  return (
+    <Link to={to} search={search as any} className="block">
+      <Card className="p-4 text-center hover:border-primary hover:shadow-sm transition cursor-pointer">
+        <p className={`text-2xl font-bold ${highlight ? "text-amber-600" : "text-primary"}`}>{value}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
+      </Card>
+    </Link>
+  );
+}
