@@ -74,8 +74,10 @@ const ACTION_STATUSES: OrderStatus[] = [
 
 function AdminOrdersPage() {
   const { role } = useAuth();
+  const searchParams = Route.useSearch();
+  const initialStatus = (searchParams.status as OrderStatus | undefined) ?? "all";
   const [orders, setOrders] = useState<OrderRow[]>([]);
-  const [status, setStatus] = useState<"all" | OrderStatus>("all");
+  const [status, setStatus] = useState<"all" | OrderStatus>(initialStatus);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<OrderRow | null>(null);
