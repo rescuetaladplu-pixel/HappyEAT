@@ -34,6 +34,7 @@ import {
   approveRider,
   suspendRider,
   listActiveDeliveries,
+  deleteUserAccount,
 } from "@/lib/admin.functions";
 import { STATUS_LABELS, STATUS_VARIANTS, type OrderStatus } from "@/lib/order-status";
 
@@ -97,6 +98,7 @@ function AdminRiderPage() {
   const confirmEmailFn = useServerFn(confirmUserEmail);
   const resetPwFn = useServerFn(resetUserPassword);
   const activeFn = useServerFn(listActiveDeliveries);
+  const deleteUserFn = useServerFn(deleteUserAccount);
 
   async function loadStats() {
     const today = new Date();
@@ -208,6 +210,18 @@ function AdminRiderPage() {
       toast.error(e?.message ?? "ไม่สำเร็จ");
     } finally {
       setSavingPw(false);
+    }
+  }
+
+  async function handleDeleteRider(r: RiderRow) {
+    if (!confirm(`ลบบัญชีไรเดอร์ ${displayName(r) || r.email} ถาวร?`)) return;
+    try {
+      await deleteUserFn({ data: { userId: r.id } });
+      toast.success("ลบบัญชีแล้ว");
+      loadRiders();
+      loadStats();
+    } catch (e: any) {
+      toast.error(e?.message ?? "ไม่สำเร็จ");
     }
   }
 
@@ -419,6 +433,15 @@ function AdminRiderPage() {
                         title="ตั้งรหัสผ่านใหม่"
                       >
                         <KeyRound className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive"
+                        onClick={() => handleDeleteRider(r)}
+                        title="ลบบัญชี"
+                      >
+                        ลบ
                       </Button>
                     </div>
                   </td>

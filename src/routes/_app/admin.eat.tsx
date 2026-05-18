@@ -37,6 +37,7 @@ import {
   suspendRestaurant,
   deleteRestaurant,
   listRecentOrders,
+  deleteUserAccount,
 } from "@/lib/admin.functions";
 import { STATUS_LABELS, STATUS_VARIANTS, type OrderStatus } from "@/lib/order-status";
 
@@ -126,6 +127,7 @@ function AdminEatPage() {
   const suspendFn = useServerFn(suspendRestaurant);
   const deleteFn = useServerFn(deleteRestaurant);
   const recentOrdersFn = useServerFn(listRecentOrders);
+  const deleteUserFn = useServerFn(deleteUserAccount);
 
   async function loadStats() {
     const today = new Date();
@@ -271,6 +273,17 @@ function AdminEatPage() {
       toast.error(e?.message ?? "ตั้งรหัสผ่านไม่สำเร็จ");
     } finally {
       setSavingPw(false);
+    }
+  }
+
+  async function handleDeleteUser(u: UserRow) {
+    if (!confirm(`ลบบัญชี ${u.email ?? displayName(u)} ถาวร? ข้อมูลทั้งหมดของผู้ใช้นี้จะถูกลบ`)) return;
+    try {
+      await deleteUserFn({ data: { userId: u.user_id } });
+      toast.success("ลบบัญชีแล้ว");
+      loadUsers();
+    } catch (e: any) {
+      toast.error(e?.message ?? "ไม่สำเร็จ");
     }
   }
 
@@ -530,6 +543,14 @@ function AdminEatPage() {
                           }}
                         >
                           <KeyRound className="h-3.5 w-3.5 mr-1" /> รหัสผ่าน
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive"
+                          onClick={() => handleDeleteUser(u)}
+                        >
+                          ลบบัญชี
                         </Button>
                       </div>
                     </td>

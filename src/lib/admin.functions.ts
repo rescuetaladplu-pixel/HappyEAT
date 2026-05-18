@@ -219,9 +219,20 @@ export const listRidersForAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.userId);
+    // Only users that actually hold the 'rider' role — exclude admins
+    // who may have stray rows in the `riders` table.
+    const { data: roleRows, error: roleErr } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "rider");
+    if (roleErr) throw new Error(roleErr.message);
+    const riderIds = new Set((roleRows ?? []).map((r: any) => r.user_id as string));
+    if (riderIds.size === 0) return [];
+
     const { data: riders, error } = await supabaseAdmin
       .from("riders")
       .select("id, is_approved, is_online, vehicle_type, license_plate, rating, current_lat, current_lng, created_at")
+      .in("id", Array.from(riderIds))
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     const ids = (riders ?? []).map((r) => r.id);
@@ -302,4 +313,122 @@ export const listActiveDeliveries = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
+  });
+
+const ORDER_STATUSES = [
+  "awaiting_confirmations",
+  "awaiting_restaurant",
+  "awaiting_payment",
+  "awaiting_payment_confirm",
+  "payment_rejected",
+  "preparing",
+  "ready",
+  "picked_up",
+  "delivering",
+  "delivered",
+  "cancelled",
+] as const;
+
+export const listAllOrders = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        status: z.enum(ORDER_STATUSES).nullable().optional(),
+        search: z.string().trim().max(120).optional(),
+        limit: z.number().int().min(1).max(200).default(100),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    let q = supabaseAdmin
+      .from("orders")
+      .select(
+        "id, status, total, subtotal, delivery_fee, discount, payment_method, delivery_address, created_at, customer_id, restaurant_id, rider_id, restaurants(name)",
+      )
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (data.status) q = q.eq("status", data.status);
+    const { data: orders, error } = await q;
+    if (error) throw new Error(error.message);
+    let rows = orders ?? [];
+    if (data.search) {
+      const s = data.search.toLowerCase();
+      rows = rows.filter(
+        (o: any) =>
+          o.id.toLowerCase().includes(s) ||
+          (o.restaurants?.name ?? "").toLowerCase().includes(s) ||
+          (o.delivery_address ?? "").toLowerCase().includes(s),
+      );
+    }
+    return rows;
+  });
+
+export const adminUpdateOrderStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        orderId: z.string().uuid(),
+        status: z.enum(ORDER_STATUSES),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin
+      .from("orders")
+      .update({ status: data.status, updated_at: new Date().toISOString() })
+      .eq("id", data.orderId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const adminCancelOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        orderId: z.string().uuid(),
+        reason: z.string().trim().max(500).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin
+      .from("orders")
+      .update({
+        status: "cancelled",
+        rejection_reason: data.reason ?? "ยกเลิกโดยแอดมิน",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.orderId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteUserAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ userId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    if (data.userId === context.userId) {
+      throw new Error("ลบบัญชีตัวเองไม่ได้");
+    }
+    // Block deleting other admins to avoid lockout / accidents
+    const { data: adminRow } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id")
+      .eq("user_id", data.userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (adminRow) throw new Error("ลบบัญชีแอดมินคนอื่นไม่ได้");
+
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
