@@ -30,8 +30,8 @@ import { Route as AppRestaurantMenuRouteImport } from './routes/_app/restaurant.
 import { Route as AppRestaurantAnalyticsRouteImport } from './routes/_app/restaurant.analytics'
 import { Route as AppMyRestaurantSettingsRouteImport } from './routes/_app/my-restaurant_.settings'
 import { Route as AppAdminRiderRouteImport } from './routes/_app/admin.rider'
-import { Route as AppAdminOrdersRouteImport } from './routes/_app/admin.orders'
 import { Route as AppAdminEatRouteImport } from './routes/_app/admin.eat'
+import { Route as AppAdminOrdersIndexRouteImport } from './routes/_app/admin.orders.index'
 import { Route as AppAdminUsersUserIdRouteImport } from './routes/_app/admin.users.$userId'
 import { Route as AppAdminOrdersOrderIdRouteImport } from './routes/_app/admin.orders.$orderId'
 
@@ -141,14 +141,14 @@ const AppAdminRiderRoute = AppAdminRiderRouteImport.update({
   path: '/admin/rider',
   getParentRoute: () => AppRoute,
 } as any)
-const AppAdminOrdersRoute = AppAdminOrdersRouteImport.update({
-  id: '/admin/orders',
-  path: '/admin/orders',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppAdminEatRoute = AppAdminEatRouteImport.update({
   id: '/admin/eat',
   path: '/admin/eat',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminOrdersIndexRoute = AppAdminOrdersIndexRouteImport.update({
+  id: '/admin/orders/',
+  path: '/admin/orders/',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAdminUsersUserIdRoute = AppAdminUsersUserIdRouteImport.update({
@@ -157,9 +157,9 @@ const AppAdminUsersUserIdRoute = AppAdminUsersUserIdRouteImport.update({
   getParentRoute: () => AppRoute,
 } as any)
 const AppAdminOrdersOrderIdRoute = AppAdminOrdersOrderIdRouteImport.update({
-  id: '/$orderId',
-  path: '/$orderId',
-  getParentRoute: () => AppAdminOrdersRoute,
+  id: '/admin/orders/$orderId',
+  path: '/admin/orders/$orderId',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -174,7 +174,6 @@ export interface FileRoutesByFullPath {
   '/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/rider-dashboard': typeof AppRiderDashboardRoute
   '/admin/eat': typeof AppAdminEatRoute
-  '/admin/orders': typeof AppAdminOrdersRouteWithChildren
   '/admin/rider': typeof AppAdminRiderRoute
   '/my-restaurant/settings': typeof AppMyRestaurantSettingsRoute
   '/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
@@ -187,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AppAdminIndexRoute
   '/admin/orders/$orderId': typeof AppAdminOrdersOrderIdRoute
   '/admin/users/$userId': typeof AppAdminUsersUserIdRoute
+  '/admin/orders/': typeof AppAdminOrdersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -200,7 +200,6 @@ export interface FileRoutesByTo {
   '/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/rider-dashboard': typeof AppRiderDashboardRoute
   '/admin/eat': typeof AppAdminEatRoute
-  '/admin/orders': typeof AppAdminOrdersRouteWithChildren
   '/admin/rider': typeof AppAdminRiderRoute
   '/my-restaurant/settings': typeof AppMyRestaurantSettingsRoute
   '/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
@@ -213,6 +212,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AppAdminIndexRoute
   '/admin/orders/$orderId': typeof AppAdminOrdersOrderIdRoute
   '/admin/users/$userId': typeof AppAdminUsersUserIdRoute
+  '/admin/orders': typeof AppAdminOrdersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -228,7 +228,6 @@ export interface FileRoutesById {
   '/_app/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/_app/rider-dashboard': typeof AppRiderDashboardRoute
   '/_app/admin/eat': typeof AppAdminEatRoute
-  '/_app/admin/orders': typeof AppAdminOrdersRouteWithChildren
   '/_app/admin/rider': typeof AppAdminRiderRoute
   '/_app/my-restaurant_/settings': typeof AppMyRestaurantSettingsRoute
   '/_app/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
@@ -241,6 +240,7 @@ export interface FileRoutesById {
   '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/admin/orders/$orderId': typeof AppAdminOrdersOrderIdRoute
   '/_app/admin/users/$userId': typeof AppAdminUsersUserIdRoute
+  '/_app/admin/orders/': typeof AppAdminOrdersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -256,7 +256,6 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard'
     | '/rider-dashboard'
     | '/admin/eat'
-    | '/admin/orders'
     | '/admin/rider'
     | '/my-restaurant/settings'
     | '/restaurant/analytics'
@@ -269,6 +268,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/admin/orders/$orderId'
     | '/admin/users/$userId'
+    | '/admin/orders/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -282,7 +282,6 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard'
     | '/rider-dashboard'
     | '/admin/eat'
-    | '/admin/orders'
     | '/admin/rider'
     | '/my-restaurant/settings'
     | '/restaurant/analytics'
@@ -295,6 +294,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin/orders/$orderId'
     | '/admin/users/$userId'
+    | '/admin/orders'
   id:
     | '__root__'
     | '/'
@@ -309,7 +309,6 @@ export interface FileRouteTypes {
     | '/_app/restaurant-dashboard'
     | '/_app/rider-dashboard'
     | '/_app/admin/eat'
-    | '/_app/admin/orders'
     | '/_app/admin/rider'
     | '/_app/my-restaurant_/settings'
     | '/_app/restaurant/analytics'
@@ -322,6 +321,7 @@ export interface FileRouteTypes {
     | '/_app/admin/'
     | '/_app/admin/orders/$orderId'
     | '/_app/admin/users/$userId'
+    | '/_app/admin/orders/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -479,18 +479,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRiderRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/admin/orders': {
-      id: '/_app/admin/orders'
-      path: '/admin/orders'
-      fullPath: '/admin/orders'
-      preLoaderRoute: typeof AppAdminOrdersRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/admin/eat': {
       id: '/_app/admin/eat'
       path: '/admin/eat'
       fullPath: '/admin/eat'
       preLoaderRoute: typeof AppAdminEatRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/orders/': {
+      id: '/_app/admin/orders/'
+      path: '/admin/orders'
+      fullPath: '/admin/orders/'
+      preLoaderRoute: typeof AppAdminOrdersIndexRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/admin/users/$userId': {
@@ -502,25 +502,13 @@ declare module '@tanstack/react-router' {
     }
     '/_app/admin/orders/$orderId': {
       id: '/_app/admin/orders/$orderId'
-      path: '/$orderId'
+      path: '/admin/orders/$orderId'
       fullPath: '/admin/orders/$orderId'
       preLoaderRoute: typeof AppAdminOrdersOrderIdRouteImport
-      parentRoute: typeof AppAdminOrdersRoute
+      parentRoute: typeof AppRoute
     }
   }
 }
-
-interface AppAdminOrdersRouteChildren {
-  AppAdminOrdersOrderIdRoute: typeof AppAdminOrdersOrderIdRoute
-}
-
-const AppAdminOrdersRouteChildren: AppAdminOrdersRouteChildren = {
-  AppAdminOrdersOrderIdRoute: AppAdminOrdersOrderIdRoute,
-}
-
-const AppAdminOrdersRouteWithChildren = AppAdminOrdersRoute._addFileChildren(
-  AppAdminOrdersRouteChildren,
-)
 
 interface AppRouteChildren {
   AppAddressesRoute: typeof AppAddressesRoute
@@ -532,7 +520,6 @@ interface AppRouteChildren {
   AppRestaurantDashboardRoute: typeof AppRestaurantDashboardRoute
   AppRiderDashboardRoute: typeof AppRiderDashboardRoute
   AppAdminEatRoute: typeof AppAdminEatRoute
-  AppAdminOrdersRoute: typeof AppAdminOrdersRouteWithChildren
   AppAdminRiderRoute: typeof AppAdminRiderRoute
   AppMyRestaurantSettingsRoute: typeof AppMyRestaurantSettingsRoute
   AppRestaurantAnalyticsRoute: typeof AppRestaurantAnalyticsRoute
@@ -543,7 +530,9 @@ interface AppRouteChildren {
   AppRestaurantReviewsRoute: typeof AppRestaurantReviewsRoute
   AppRestaurantsRestaurantIdRoute: typeof AppRestaurantsRestaurantIdRoute
   AppAdminIndexRoute: typeof AppAdminIndexRoute
+  AppAdminOrdersOrderIdRoute: typeof AppAdminOrdersOrderIdRoute
   AppAdminUsersUserIdRoute: typeof AppAdminUsersUserIdRoute
+  AppAdminOrdersIndexRoute: typeof AppAdminOrdersIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -556,7 +545,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppRestaurantDashboardRoute: AppRestaurantDashboardRoute,
   AppRiderDashboardRoute: AppRiderDashboardRoute,
   AppAdminEatRoute: AppAdminEatRoute,
-  AppAdminOrdersRoute: AppAdminOrdersRouteWithChildren,
   AppAdminRiderRoute: AppAdminRiderRoute,
   AppMyRestaurantSettingsRoute: AppMyRestaurantSettingsRoute,
   AppRestaurantAnalyticsRoute: AppRestaurantAnalyticsRoute,
@@ -568,7 +556,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppRestaurantReviewsRoute: AppRestaurantReviewsRoute,
   AppRestaurantsRestaurantIdRoute: AppRestaurantsRestaurantIdRoute,
   AppAdminIndexRoute: AppAdminIndexRoute,
+  AppAdminOrdersOrderIdRoute: AppAdminOrdersOrderIdRoute,
   AppAdminUsersUserIdRoute: AppAdminUsersUserIdRoute,
+  AppAdminOrdersIndexRoute: AppAdminOrdersIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
