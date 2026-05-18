@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Shield, ChevronLeft, Ban, RefreshCw, User, Bike, Store } from "lucide-react";
+import { Shield, ChevronLeft, Ban, RefreshCw, User, Bike, Store, Clock, CreditCard, Star, FileImage, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import {
   getOrderDetailForAdmin,
@@ -89,8 +89,22 @@ function AdminOrderDetail() {
     );
   }
 
-  const { order, items, promotions, customer, rider } = data;
+  const { order, items, promotions, customer, rider, reviews } = data;
   const restaurant = order.restaurants;
+
+  const timeline: { label: string; at: string | null; icon?: string }[] = [
+    { label: "ลูกค้าสร้างออเดอร์", at: order.created_at, icon: "🛒" },
+    { label: "ร้านยืนยันรับออเดอร์", at: order.restaurant_accepted_at, icon: "🏪" },
+    { label: "ไรเดอร์รับงาน", at: order.rider_accepted_at, icon: "🛵" },
+    { label: "ลูกค้าส่งสลิป", at: order.payment_submitted_at, icon: "💸" },
+    { label: "ร้านยืนยันการชำระเงิน", at: order.payment_confirmed_at, icon: "✅" },
+    { label: "อัพเดตล่าสุด", at: order.updated_at, icon: "🕒" },
+  ];
+
+  function fmt(ts: string | null) {
+    if (!ts) return "—";
+    return new Date(ts).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "medium" });
+  }
 
   async function handleCancel() {
     try {
@@ -153,6 +167,24 @@ function AdminOrderDetail() {
 
       <Card className="p-4 space-y-2">
         <div className="flex items-center gap-2 text-sm font-semibold">
+          <Clock className="h-4 w-4" /> ไทม์ไลน์ออเดอร์
+        </div>
+        <div className="space-y-1.5 text-sm">
+          {timeline.map((t) => (
+            <div key={t.label} className="flex items-start justify-between gap-3">
+              <span className="text-muted-foreground">
+                {t.icon} {t.label}
+              </span>
+              <span className={`font-mono text-xs ${t.at ? "" : "text-muted-foreground/60"}`}>
+                {fmt(t.at)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="p-4 space-y-2">
+        <div className="flex items-center gap-2 text-sm font-semibold">
           <Store className="h-4 w-4" /> ร้านค้า
         </div>
         {restaurant ? (
@@ -183,11 +215,26 @@ function AdminOrderDetail() {
         <div className="text-sm space-y-1">
           <p className="font-medium">
             {[customer?.first_name, customer?.last_name].filter(Boolean).join(" ") || "—"}
+            {customer?.username && (
+              <span className="text-xs text-muted-foreground"> @{customer.username}</span>
+            )}
           </p>
           <p className="text-xs text-muted-foreground">
             {customer?.email ?? "—"} · {customer?.phone ?? "—"}
           </p>
-          <p className="text-xs text-muted-foreground">📍 {order.delivery_address}</p>
+          <p className="text-xs text-muted-foreground flex items-start gap-1">
+            <MapPin className="h-3 w-3 mt-0.5 shrink-0" /> {order.delivery_address}
+            {order.delivery_lat && order.delivery_lng && (
+              <a
+                href={`https://www.google.com/maps?q=${order.delivery_lat},${order.delivery_lng}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary hover:underline ml-1"
+              >
+                (แผนที่)
+              </a>
+            )}
+          </p>
           {order.notes && (
             <p className="text-xs text-muted-foreground">📝 {order.notes}</p>
           )}
@@ -257,10 +304,61 @@ function AdminOrderDetail() {
         )}
       </Card>
 
+      <Card className="p-4 space-y-2">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <CreditCard className="h-4 w-4" /> การชำระเงิน
+        </div>
+        <div className="text-sm space-y-1">
+          <Row label="วิธีชำระ" value={order.payment_method} />
+          <Row label="ยอดสุทธิ" value={`฿${Number(order.total).toFixed(0)}`} />
+          {restaurant?.promptpay_holder_name && (
+            <Row label="ชื่อบัญชี PromptPay" value={restaurant.promptpay_holder_name} />
+          )}
+          {restaurant?.promptpay_id && (
+            <Row label="PromptPay ID" value={restaurant.promptpay_id} />
+          )}
+          <Row label="ส่งสลิปเมื่อ" value={fmt(order.payment_submitted_at)} />
+          <Row label="ร้านยืนยันเมื่อ" value={fmt(order.payment_confirmed_at)} />
+        </div>
+        {order.payment_slip_url && (
+          <a
+            href={order.payment_slip_url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+          >
+            <FileImage className="h-3.5 w-3.5" /> เปิดดูสลิป
+          </a>
+        )}
+      </Card>
+
       {order.delivery_otp && (
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">OTP ส่งของ</p>
           <p className="text-2xl font-bold font-mono tracking-widest">{order.delivery_otp}</p>
+        </Card>
+      )}
+
+      {reviews && reviews.length > 0 && (
+        <Card className="p-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Star className="h-4 w-4" /> รีวิวจากลูกค้า
+          </div>
+          {reviews.map((rv: any) => (
+            <div key={rv.id} className="text-sm space-y-1 border-t pt-2 first:border-0 first:pt-0">
+              <div className="flex gap-3 text-xs">
+                {rv.restaurant_rating != null && <span>ร้าน: {"⭐".repeat(rv.restaurant_rating)}</span>}
+                {rv.rider_rating != null && <span>ไรเดอร์: {"⭐".repeat(rv.rider_rating)}</span>}
+              </div>
+              {rv.comment && <p className="text-sm">{rv.comment}</p>}
+              {rv.owner_reply && (
+                <p className="text-xs text-muted-foreground border-l-2 pl-2">
+                  ร้านตอบ: {rv.owner_reply}
+                </p>
+              )}
+              <p className="text-[10px] text-muted-foreground">{fmt(rv.created_at)}</p>
+            </div>
+          ))}
         </Card>
       )}
 
