@@ -382,7 +382,13 @@ function AdminRiderPage() {
               {filteredRiders.map((r) => (
                 <tr key={r.id} className="border-b last:border-0 align-top">
                   <td className="px-5 py-2">
-                    <p className="font-medium">{displayName(r) || "—"}</p>
+                    <Link
+                      to="/admin/users/$userId"
+                      params={{ userId: r.id }}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {displayName(r) || "—"}
+                    </Link>
                     <p className="text-xs text-muted-foreground">{r.phone ?? "—"}</p>
                   </td>
                   <td className="px-3 py-2 break-all">{r.email ?? "—"}</td>
