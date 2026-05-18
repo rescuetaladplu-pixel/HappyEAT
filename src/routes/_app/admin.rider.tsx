@@ -434,7 +434,15 @@ function AdminRiderPage() {
                       >
                         <KeyRound className="h-3.5 w-3.5" />
                       </Button>
-                    </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive"
+                        onClick={() => handleDeleteRider(r)}
+                        title="ลบบัญชี"
+                      >
+                        ลบ
+                      </Button>
                   </td>
                 </tr>
               ))}
