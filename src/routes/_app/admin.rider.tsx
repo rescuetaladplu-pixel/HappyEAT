@@ -98,6 +98,7 @@ function AdminRiderPage() {
   const confirmEmailFn = useServerFn(confirmUserEmail);
   const resetPwFn = useServerFn(resetUserPassword);
   const activeFn = useServerFn(listActiveDeliveries);
+  const deleteUserFn = useServerFn(deleteUserAccount);
 
   async function loadStats() {
     const today = new Date();
