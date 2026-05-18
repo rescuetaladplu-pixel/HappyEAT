@@ -89,8 +89,22 @@ function AdminOrderDetail() {
     );
   }
 
-  const { order, items, promotions, customer, rider } = data;
+  const { order, items, promotions, customer, rider, reviews } = data;
   const restaurant = order.restaurants;
+
+  const timeline: { label: string; at: string | null; icon?: string }[] = [
+    { label: "ลูกค้าสร้างออเดอร์", at: order.created_at, icon: "🛒" },
+    { label: "ร้านยืนยันรับออเดอร์", at: order.restaurant_accepted_at, icon: "🏪" },
+    { label: "ไรเดอร์รับงาน", at: order.rider_accepted_at, icon: "🛵" },
+    { label: "ลูกค้าส่งสลิป", at: order.payment_submitted_at, icon: "💸" },
+    { label: "ร้านยืนยันการชำระเงิน", at: order.payment_confirmed_at, icon: "✅" },
+    { label: "อัพเดตล่าสุด", at: order.updated_at, icon: "🕒" },
+  ];
+
+  function fmt(ts: string | null) {
+    if (!ts) return "—";
+    return new Date(ts).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "medium" });
+  }
 
   async function handleCancel() {
     try {
