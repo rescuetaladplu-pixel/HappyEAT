@@ -286,6 +286,8 @@ function AdminEatPage() {
       toast.error(e?.message ?? "ไม่สำเร็จ");
     }
   }
+
+  if (role !== "admin") {
     return (
       <main className="p-6 text-center">
         <Shield className="h-12 w-12 mx-auto opacity-30 mb-2" />
