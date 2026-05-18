@@ -304,7 +304,33 @@ function AdminOrderDetail() {
         )}
       </Card>
 
-      {order.delivery_otp && (
+      <Card className="p-4 space-y-2">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <CreditCard className="h-4 w-4" /> การชำระเงิน
+        </div>
+        <div className="text-sm space-y-1">
+          <Row label="วิธีชำระ" value={order.payment_method} />
+          <Row label="ยอดสุทธิ" value={`฿${Number(order.total).toFixed(0)}`} />
+          {restaurant?.promptpay_holder_name && (
+            <Row label="ชื่อบัญชี PromptPay" value={restaurant.promptpay_holder_name} />
+          )}
+          {restaurant?.promptpay_id && (
+            <Row label="PromptPay ID" value={restaurant.promptpay_id} />
+          )}
+          <Row label="ส่งสลิปเมื่อ" value={fmt(order.payment_submitted_at)} />
+          <Row label="ร้านยืนยันเมื่อ" value={fmt(order.payment_confirmed_at)} />
+        </div>
+        {order.payment_slip_url && (
+          <a
+            href={order.payment_slip_url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+          >
+            <FileImage className="h-3.5 w-3.5" /> เปิดดูสลิป
+          </a>
+        )}
+      </Card>
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">OTP ส่งของ</p>
           <p className="text-2xl font-bold font-mono tracking-widest">{order.delivery_otp}</p>
