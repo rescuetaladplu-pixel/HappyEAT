@@ -213,7 +213,17 @@ function AdminRiderPage() {
     }
   }
 
-  if (role !== "admin") {
+  async function handleDeleteRider(r: RiderRow) {
+    if (!confirm(`ลบบัญชีไรเดอร์ ${displayName(r) || r.email} ถาวร?`)) return;
+    try {
+      await deleteUserFn({ data: { userId: r.id } });
+      toast.success("ลบบัญชีแล้ว");
+      loadRiders();
+      loadStats();
+    } catch (e: any) {
+      toast.error(e?.message ?? "ไม่สำเร็จ");
+    }
+  }
     return (
       <main className="p-6 text-center">
         <Shield className="h-12 w-12 mx-auto opacity-30 mb-2" />
