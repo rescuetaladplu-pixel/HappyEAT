@@ -10,7 +10,8 @@
 ## สิ่งที่ต้องเตรียมบนเครื่องคุณ (ครั้งเดียว)
 
 1. **Node.js 20+** — https://nodejs.org
-2. **JDK 17** — https://adoptium.net (เลือก Temurin 17 LTS)
+2. **JDK 21** — https://adoptium.net (เลือก Temurin 21 LTS) หรือใช้ **JetBrains Runtime 21 (jbr-21)** ที่มากับ Android Studio
+   > ⚠️ ต้องเป็น **Java 21** เท่านั้น — Capacitor + Android Gradle Plugin รุ่นล่าสุดต้องการ JDK 21 ไม่งั้นจะเจอ error `invalid source release: 21`
 3. **Android Studio** — https://developer.android.com/studio
    - ตอนติดตั้งให้ติ๊ก: Android SDK, Android SDK Platform, Android Virtual Device
 4. **Git** — https://git-scm.com
