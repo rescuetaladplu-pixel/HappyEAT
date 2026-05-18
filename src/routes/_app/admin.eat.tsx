@@ -544,6 +544,13 @@ function AdminEatPage() {
                         >
                           <KeyRound className="h-3.5 w-3.5 mr-1" /> รหัสผ่าน
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive"
+                          onClick={() => handleDeleteUser(u)}
+                        >
+                          ลบบัญชี
                       </div>
                     </td>
                   </tr>
