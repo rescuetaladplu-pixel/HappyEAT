@@ -276,7 +276,16 @@ function AdminEatPage() {
     }
   }
 
-  if (role !== "admin") {
+  async function handleDeleteUser(u: UserRow) {
+    if (!confirm(`ลบบัญชี ${u.email ?? displayName(u)} ถาวร? ข้อมูลทั้งหมดของผู้ใช้นี้จะถูกลบ`)) return;
+    try {
+      await deleteUserFn({ data: { userId: u.user_id } });
+      toast.success("ลบบัญชีแล้ว");
+      loadUsers();
+    } catch (e: any) {
+      toast.error(e?.message ?? "ไม่สำเร็จ");
+    }
+  }
     return (
       <main className="p-6 text-center">
         <Shield className="h-12 w-12 mx-auto opacity-30 mb-2" />
