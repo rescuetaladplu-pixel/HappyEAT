@@ -167,6 +167,24 @@ function AdminOrderDetail() {
 
       <Card className="p-4 space-y-2">
         <div className="flex items-center gap-2 text-sm font-semibold">
+          <Clock className="h-4 w-4" /> ไทม์ไลน์ออเดอร์
+        </div>
+        <div className="space-y-1.5 text-sm">
+          {timeline.map((t) => (
+            <div key={t.label} className="flex items-start justify-between gap-3">
+              <span className="text-muted-foreground">
+                {t.icon} {t.label}
+              </span>
+              <span className={`font-mono text-xs ${t.at ? "" : "text-muted-foreground/60"}`}>
+                {fmt(t.at)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="p-4 space-y-2">
+        <div className="flex items-center gap-2 text-sm font-semibold">
           <Store className="h-4 w-4" /> ร้านค้า
         </div>
         {restaurant ? (
