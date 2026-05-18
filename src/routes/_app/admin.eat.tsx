@@ -361,12 +361,16 @@ function AdminEatPage() {
           <div className="space-y-2">
             {pending.map((r) => (
               <div key={r.id} className="flex items-center justify-between gap-3 border-b last:border-0 py-2 flex-wrap">
-                <div className="min-w-0 flex-1">
+                <Link
+                  to="/admin/users/$userId"
+                  params={{ userId: r.owner_id }}
+                  className="min-w-0 flex-1 hover:opacity-80"
+                >
                   <p className="font-medium">{r.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {r.category ?? "—"} · {r.phone ?? "ไม่มีเบอร์"} · {r.address ?? "ไม่มีที่อยู่"}
                   </p>
-                </div>
+                </Link>
                 <div className="flex gap-2">
                   <Button size="sm" onClick={() => handleApprove(r)}>
                     <CheckCircle className="h-3.5 w-3.5 mr-1" /> อนุมัติ
