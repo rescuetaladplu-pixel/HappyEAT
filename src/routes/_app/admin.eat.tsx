@@ -415,7 +415,11 @@ function AdminEatPage() {
         <div className="space-y-2">
           {filteredRestaurants.map((r) => (
             <div key={r.id} className="flex items-center justify-between gap-3 border-b last:border-0 py-2 flex-wrap">
-              <div className="min-w-0 flex-1">
+              <Link
+                to="/admin/users/$userId"
+                params={{ userId: r.owner_id }}
+                className="min-w-0 flex-1 hover:opacity-80"
+              >
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-medium">{r.name}</p>
                   {r.is_approved ? (
@@ -430,7 +434,7 @@ function AdminEatPage() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">{r.category ?? "—"} · {r.phone ?? "—"}</p>
-              </div>
+              </Link>
               <div className="flex gap-1.5">
                 {r.is_approved && (
                   <Button size="sm" variant="outline" onClick={() => handleSuspend(r)} title="ระงับร้าน">
