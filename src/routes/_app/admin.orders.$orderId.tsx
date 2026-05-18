@@ -215,11 +215,26 @@ function AdminOrderDetail() {
         <div className="text-sm space-y-1">
           <p className="font-medium">
             {[customer?.first_name, customer?.last_name].filter(Boolean).join(" ") || "—"}
+            {customer?.username && (
+              <span className="text-xs text-muted-foreground"> @{customer.username}</span>
+            )}
           </p>
           <p className="text-xs text-muted-foreground">
             {customer?.email ?? "—"} · {customer?.phone ?? "—"}
           </p>
-          <p className="text-xs text-muted-foreground">📍 {order.delivery_address}</p>
+          <p className="text-xs text-muted-foreground flex items-start gap-1">
+            <MapPin className="h-3 w-3 mt-0.5 shrink-0" /> {order.delivery_address}
+            {order.delivery_lat && order.delivery_lng && (
+              <a
+                href={`https://www.google.com/maps?q=${order.delivery_lat},${order.delivery_lng}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary hover:underline ml-1"
+              >
+                (แผนที่)
+              </a>
+            )}
+          </p>
           {order.notes && (
             <p className="text-xs text-muted-foreground">📝 {order.notes}</p>
           )}
