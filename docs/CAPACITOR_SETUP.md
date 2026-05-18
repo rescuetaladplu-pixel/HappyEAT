@@ -10,7 +10,8 @@
 ## สิ่งที่ต้องเตรียมบนเครื่องคุณ (ครั้งเดียว)
 
 1. **Node.js 20+** — https://nodejs.org
-2. **JDK 17** — https://adoptium.net (เลือก Temurin 17 LTS)
+2. **JDK 21** — https://adoptium.net (เลือก Temurin 21 LTS) หรือใช้ **JetBrains Runtime 21 (jbr-21)** ที่มากับ Android Studio
+   > ⚠️ ต้องเป็น **Java 21** เท่านั้น — Capacitor + Android Gradle Plugin รุ่นล่าสุดต้องการ JDK 21 ไม่งั้นจะเจอ error `invalid source release: 21`
 3. **Android Studio** — https://developer.android.com/studio
    - ตอนติดตั้งให้ติ๊ก: Android SDK, Android SDK Platform, Android Virtual Device
 4. **Git** — https://git-scm.com
@@ -38,6 +39,40 @@
    ```bash
    npx cap sync android
    ```
+
+### 3.5 ⚙️ ตั้งค่า Java 21 ใน Android project (สำคัญมาก!)
+
+หลัง `cap add android` จะได้โฟลเดอร์ `android/` ขึ้นมา ต้องแก้ 2 ไฟล์นี้ก่อน build:
+
+**ก) `android/variables.gradle`** — เพิ่ม/แก้บล็อกนี้เข้าไปท้ายไฟล์:
+```gradle
+ext.compileOptions = [
+    sourceCompatibility: JavaVersion.VERSION_21,
+    targetCompatibility: JavaVersion.VERSION_21
+]
+ext.kotlinOptions = [
+    jvmTarget: "21"
+]
+```
+
+**ข) `android/app/build.gradle`** — หา block `android { ... }` แล้วใส่/แก้เป็น:
+```gradle
+android {
+    // ...ของเดิม...
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+    kotlinOptions {
+        jvmTarget = "21"
+    }
+}
+```
+
+**ค) ตั้ง Gradle JDK ใน Android Studio:**
+- File → Settings (Mac: Android Studio → Settings) → Build, Execution, Deployment → Build Tools → Gradle
+- ช่อง **Gradle JDK** → เลือก `jbr-21` (มาในตัว) หรือ JDK 21 ที่ติดตั้งไว้
+- กด Apply → Sync project
 
 ### 4. เปิดใน Android Studio
    ```bash
