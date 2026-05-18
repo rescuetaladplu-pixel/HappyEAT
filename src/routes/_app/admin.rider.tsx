@@ -443,6 +443,7 @@ function AdminRiderPage() {
                       >
                         ลบ
                       </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
