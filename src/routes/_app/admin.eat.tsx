@@ -566,7 +566,12 @@ function AdminEatPage() {
         <h2 className="font-semibold mb-3">ออเดอร์ล่าสุด</h2>
         <div className="space-y-2">
           {recentOrders.map((o) => (
-            <div key={o.id} className="flex justify-between items-center border-b last:border-0 py-2 text-sm">
+            <Link
+              key={o.id}
+              to="/admin/orders/$orderId"
+              params={{ orderId: o.id }}
+              className="flex justify-between items-center border-b last:border-0 py-2 text-sm hover:bg-muted/40 -mx-2 px-2 rounded"
+            >
               <div className="min-w-0">
                 <p className="font-medium truncate">{o.restaurants?.name ?? "—"}</p>
                 <p className="text-xs text-muted-foreground">
@@ -579,7 +584,7 @@ function AdminEatPage() {
                 </Badge>
                 <span className="font-semibold text-primary">฿{Number(o.total).toFixed(0)}</span>
               </div>
-            </div>
+            </Link>
           ))}
           {recentOrders.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">ยังไม่มีออเดอร์</p>
