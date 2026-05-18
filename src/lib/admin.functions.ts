@@ -527,3 +527,90 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const getRestaurantDetailForAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ restaurantId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+
+    const { data: restaurant, error: rErr } = await supabaseAdmin
+      .from("restaurants")
+      .select("*")
+      .eq("id", data.restaurantId)
+      .maybeSingle();
+    if (rErr) throw new Error(rErr.message);
+    if (!restaurant) throw new Error("ไม่พบร้านค้า");
+
+    const [
+      { data: owner },
+      { data: ownerAuth },
+      { data: menuItems },
+      { data: categories },
+      { data: orders },
+      { data: promotions },
+      { data: reviews },
+    ] = await Promise.all([
+      supabaseAdmin.from("profiles").select("*").eq("id", restaurant.owner_id).maybeSingle(),
+      supabaseAdmin.auth.admin.getUserById(restaurant.owner_id),
+      supabaseAdmin
+        .from("menu_items")
+        .select("id, name, price, is_available, category, image_url, sort_order")
+        .eq("restaurant_id", data.restaurantId)
+        .order("sort_order", { ascending: true }),
+      supabaseAdmin
+        .from("menu_categories")
+        .select("id, name, sort_order")
+        .eq("restaurant_id", data.restaurantId),
+      supabaseAdmin
+        .from("orders")
+        .select("id, status, total, created_at, customer_id")
+        .eq("restaurant_id", data.restaurantId)
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabaseAdmin
+        .from("promotions")
+        .select("id, code, type, value, is_active, used_count, usage_limit, starts_at, ends_at")
+        .eq("restaurant_id", data.restaurantId),
+      supabaseAdmin
+        .from("reviews")
+        .select("id, restaurant_rating, rider_rating, comment, owner_reply, created_at, order_id")
+        .in(
+          "order_id",
+          (
+            await supabaseAdmin
+              .from("orders")
+              .select("id")
+              .eq("restaurant_id", data.restaurantId)
+              .limit(200)
+          ).data?.map((o: any) => o.id) ?? [],
+        )
+        .order("created_at", { ascending: false })
+        .limit(50),
+    ]);
+
+    const stats = {
+      ordersTotal: orders?.length ?? 0,
+      ordersDelivered: orders?.filter((o: any) => o.status === "delivered").length ?? 0,
+      ordersCancelled: orders?.filter((o: any) => o.status === "cancelled").length ?? 0,
+      revenue: (orders ?? [])
+        .filter((o: any) => o.status === "delivered")
+        .reduce((s: number, o: any) => s + Number(o.total ?? 0), 0),
+      menuTotal: menuItems?.length ?? 0,
+      menuAvailable: menuItems?.filter((m: any) => m.is_available).length ?? 0,
+    };
+
+    return {
+      restaurant,
+      owner: owner ?? null,
+      ownerEmail: ownerAuth?.user?.email ?? null,
+      menuItems: menuItems ?? [],
+      categories: categories ?? [],
+      orders: orders ?? [],
+      promotions: promotions ?? [],
+      reviews: reviews ?? [],
+      stats,
+    };
+  });
