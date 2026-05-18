@@ -551,6 +551,7 @@ function AdminEatPage() {
                           onClick={() => handleDeleteUser(u)}
                         >
                           ลบบัญชี
+                        </Button>
                       </div>
                     </td>
                   </tr>
