@@ -333,14 +333,14 @@ function AdminEatPage() {
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-muted-foreground">ออเดอร์</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Stat label="ออเดอร์ทั้งหมด" value={stats.ordersTotal} />
-          <Stat label="วันนี้" value={stats.ordersToday} />
-          <Stat label="รอร้านยืนยัน" value={stats.awaitingRestaurant} highlight={stats.awaitingRestaurant > 0} />
-          <Stat label="รอตรวจสลิป" value={stats.awaitingPaymentConfirm} highlight={stats.awaitingPaymentConfirm > 0} />
-          <Stat label="กำลังทำ" value={stats.preparing} />
-          <Stat label="พร้อมส่ง" value={stats.ready} />
-          <Stat label="ส่งสำเร็จ" value={stats.delivered} />
-          <Stat label="ยกเลิก" value={stats.cancelled} />
+          <StatLink to="/admin/orders" label="ออเดอร์ทั้งหมด" value={stats.ordersTotal} />
+          <StatLink to="/admin/orders" label="วันนี้" value={stats.ordersToday} />
+          <StatLink to="/admin/orders" search={{ status: "awaiting_restaurant" }} label="รอร้านยืนยัน" value={stats.awaitingRestaurant} highlight={stats.awaitingRestaurant > 0} />
+          <StatLink to="/admin/orders" search={{ status: "awaiting_payment_confirm" }} label="รอตรวจสลิป" value={stats.awaitingPaymentConfirm} highlight={stats.awaitingPaymentConfirm > 0} />
+          <StatLink to="/admin/orders" search={{ status: "preparing" }} label="กำลังทำ" value={stats.preparing} />
+          <StatLink to="/admin/orders" search={{ status: "ready" }} label="พร้อมส่ง" value={stats.ready} />
+          <StatLink to="/admin/orders" search={{ status: "delivered" }} label="ส่งสำเร็จ" value={stats.delivered} />
+          <StatLink to="/admin/orders" search={{ status: "cancelled" }} label="ยกเลิก" value={stats.cancelled} />
         </div>
 
         <h2 className="text-sm font-semibold text-muted-foreground pt-2">ร้านค้า + ลูกค้า</h2>
