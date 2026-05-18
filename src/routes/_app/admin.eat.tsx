@@ -333,14 +333,14 @@ function AdminEatPage() {
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-muted-foreground">ออเดอร์</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Stat label="ออเดอร์ทั้งหมด" value={stats.ordersTotal} />
-          <Stat label="วันนี้" value={stats.ordersToday} />
-          <Stat label="รอร้านยืนยัน" value={stats.awaitingRestaurant} highlight={stats.awaitingRestaurant > 0} />
-          <Stat label="รอตรวจสลิป" value={stats.awaitingPaymentConfirm} highlight={stats.awaitingPaymentConfirm > 0} />
-          <Stat label="กำลังทำ" value={stats.preparing} />
-          <Stat label="พร้อมส่ง" value={stats.ready} />
-          <Stat label="ส่งสำเร็จ" value={stats.delivered} />
-          <Stat label="ยกเลิก" value={stats.cancelled} />
+          <StatLink to="/admin/orders" label="ออเดอร์ทั้งหมด" value={stats.ordersTotal} />
+          <StatLink to="/admin/orders" label="วันนี้" value={stats.ordersToday} />
+          <StatLink to="/admin/orders" search={{ status: "awaiting_restaurant" }} label="รอร้านยืนยัน" value={stats.awaitingRestaurant} highlight={stats.awaitingRestaurant > 0} />
+          <StatLink to="/admin/orders" search={{ status: "awaiting_payment_confirm" }} label="รอตรวจสลิป" value={stats.awaitingPaymentConfirm} highlight={stats.awaitingPaymentConfirm > 0} />
+          <StatLink to="/admin/orders" search={{ status: "preparing" }} label="กำลังทำ" value={stats.preparing} />
+          <StatLink to="/admin/orders" search={{ status: "ready" }} label="พร้อมส่ง" value={stats.ready} />
+          <StatLink to="/admin/orders" search={{ status: "delivered" }} label="ส่งสำเร็จ" value={stats.delivered} />
+          <StatLink to="/admin/orders" search={{ status: "cancelled" }} label="ยกเลิก" value={stats.cancelled} />
         </div>
 
         <h2 className="text-sm font-semibold text-muted-foreground pt-2">ร้านค้า + ลูกค้า</h2>
@@ -503,7 +503,13 @@ function AdminEatPage() {
                 .map((u) => (
                   <tr key={u.user_id} className="border-b last:border-0 align-top">
                     <td className="px-5 py-2">
-                      <p className="font-medium">{displayName(u) || u.username || "—"}</p>
+                      <Link
+                        to="/admin/users/$userId"
+                        params={{ userId: u.user_id }}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {displayName(u) || u.username || "—"}
+                      </Link>
                     </td>
                     <td className="px-3 py-2">
                       <p className="break-all">{u.email ?? "—"}</p>
@@ -566,7 +572,12 @@ function AdminEatPage() {
         <h2 className="font-semibold mb-3">ออเดอร์ล่าสุด</h2>
         <div className="space-y-2">
           {recentOrders.map((o) => (
-            <div key={o.id} className="flex justify-between items-center border-b last:border-0 py-2 text-sm">
+            <Link
+              key={o.id}
+              to="/admin/orders/$orderId"
+              params={{ orderId: o.id }}
+              className="flex justify-between items-center border-b last:border-0 py-2 text-sm hover:bg-muted/40 -mx-2 px-2 rounded"
+            >
               <div className="min-w-0">
                 <p className="font-medium truncate">{o.restaurants?.name ?? "—"}</p>
                 <p className="text-xs text-muted-foreground">
@@ -579,7 +590,7 @@ function AdminEatPage() {
                 </Badge>
                 <span className="font-semibold text-primary">฿{Number(o.total).toFixed(0)}</span>
               </div>
-            </div>
+            </Link>
           ))}
           {recentOrders.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">ยังไม่มีออเดอร์</p>
@@ -629,5 +640,28 @@ function Stat({ label, value, highlight }: { label: string; value: number; highl
       <p className={`text-2xl font-bold ${highlight ? "text-amber-600" : "text-primary"}`}>{value}</p>
       <p className="text-xs text-muted-foreground">{label}</p>
     </Card>
+  );
+}
+
+function StatLink({
+  to,
+  search,
+  label,
+  value,
+  highlight,
+}: {
+  to: string;
+  search?: Record<string, string>;
+  label: string;
+  value: number;
+  highlight?: boolean;
+}) {
+  return (
+    <Link to={to} search={search as any} className="block">
+      <Card className="p-4 text-center hover:border-primary hover:shadow-sm transition cursor-pointer">
+        <p className={`text-2xl font-bold ${highlight ? "text-amber-600" : "text-primary"}`}>{value}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
+      </Card>
+    </Link>
   );
 }

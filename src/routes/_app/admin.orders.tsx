@@ -22,8 +22,13 @@ import {
 } from "@/lib/admin.functions";
 import { STATUS_LABELS, STATUS_VARIANTS, type OrderStatus } from "@/lib/order-status";
 
+type OrdersSearch = { status?: string };
+
 export const Route = createFileRoute("/_app/admin/orders")({
   component: AdminOrdersPage,
+  validateSearch: (s: Record<string, unknown>): OrdersSearch => ({
+    status: typeof s.status === "string" ? s.status : undefined,
+  }),
 });
 
 type OrderRow = {
@@ -69,8 +74,10 @@ const ACTION_STATUSES: OrderStatus[] = [
 
 function AdminOrdersPage() {
   const { role } = useAuth();
+  const searchParams = Route.useSearch();
+  const initialStatus = (searchParams.status as OrderStatus | undefined) ?? "all";
   const [orders, setOrders] = useState<OrderRow[]>([]);
-  const [status, setStatus] = useState<"all" | OrderStatus>("all");
+  const [status, setStatus] = useState<"all" | OrderStatus>(initialStatus);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<OrderRow | null>(null);
@@ -191,26 +198,32 @@ function AdminOrdersPage() {
               key={o.id}
               className="border rounded-md p-3 text-sm space-y-2"
             >
-              <div className="flex justify-between items-start gap-3 flex-wrap">
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium truncate">{o.restaurants?.name ?? "—"}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {new Date(o.created_at).toLocaleString("th-TH")} · {o.delivery_address}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground font-mono">{o.id}</p>
+              <Link
+                to="/admin/orders/$orderId"
+                params={{ orderId: o.id }}
+                className="block hover:bg-muted/40 -m-3 p-3 rounded-t-md"
+              >
+                <div className="flex justify-between items-start gap-3 flex-wrap">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate">{o.restaurants?.name ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {new Date(o.created_at).toLocaleString("th-TH")} · {o.delivery_address}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground font-mono">{o.id}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant={STATUS_VARIANTS[o.status as OrderStatus] ?? "secondary"}
+                      className="text-xs"
+                    >
+                      {STATUS_LABELS[o.status as OrderStatus] ?? o.status}
+                    </Badge>
+                    <span className="font-semibold text-primary">
+                      ฿{Number(o.total).toFixed(0)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant={STATUS_VARIANTS[o.status as OrderStatus] ?? "secondary"}
-                    className="text-xs"
-                  >
-                    {STATUS_LABELS[o.status as OrderStatus] ?? o.status}
-                  </Badge>
-                  <span className="font-semibold text-primary">
-                    ฿{Number(o.total).toFixed(0)}
-                  </span>
-                </div>
-              </div>
+              </Link>
               <div className="flex gap-1.5 flex-wrap">
                 <Button
                   size="sm"

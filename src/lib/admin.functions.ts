@@ -409,6 +409,101 @@ export const adminCancelOrder = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ---------------- Detail views ----------------
+
+export const getOrderDetailForAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ orderId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { data: order, error } = await supabaseAdmin
+      .from("orders")
+      .select("*, restaurants(id, name, phone, address, owner_id, promptpay_qr_url, promptpay_holder_name, promptpay_id)")
+      .eq("id", data.orderId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!order) throw new Error("ไม่พบออเดอร์");
+
+    const [{ data: items }, { data: promos }, { data: profiles }, { data: authData }, { data: reviews }] =
+      await Promise.all([
+        supabaseAdmin.from("order_items").select("*").eq("order_id", data.orderId),
+        supabaseAdmin.from("order_promotions").select("*").eq("order_id", data.orderId),
+        supabaseAdmin
+          .from("profiles")
+          .select("id, first_name, last_name, phone, username, avatar_url")
+          .in("id", [order.customer_id, order.rider_id].filter(Boolean) as string[]),
+        supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+        supabaseAdmin.from("reviews").select("*").eq("order_id", data.orderId),
+      ]);
+
+    const pmap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+    const emap = new Map(authData.users.map((u) => [u.id, u.email ?? null]));
+    const customer = pmap.get(order.customer_id) as any | undefined;
+    const rider = order.rider_id ? (pmap.get(order.rider_id) as any | undefined) : null;
+
+    return {
+      order,
+      items: items ?? [],
+      promotions: promos ?? [],
+      reviews: reviews ?? [],
+      customer: customer
+        ? { ...customer, email: emap.get(order.customer_id) ?? null }
+        : { id: order.customer_id, email: emap.get(order.customer_id) ?? null },
+      rider: rider
+        ? { ...rider, email: emap.get(order.rider_id!) ?? null }
+        : null,
+    };
+  });
+
+export const getUserDetailForAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ userId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { data: authUser, error: aErr } = await supabaseAdmin.auth.admin.getUserById(data.userId);
+    if (aErr) throw new Error(aErr.message);
+    if (!authUser?.user) throw new Error("ไม่พบผู้ใช้");
+
+    const [{ data: profile }, { data: roles }, { data: restaurants }, { data: orders }, { data: addresses }, { data: rider }] =
+      await Promise.all([
+        supabaseAdmin.from("profiles").select("*").eq("id", data.userId).maybeSingle(),
+        supabaseAdmin.from("user_roles").select("role").eq("user_id", data.userId),
+        supabaseAdmin
+          .from("restaurants")
+          .select("id, name, is_approved, is_open, category, phone, address, created_at")
+          .eq("owner_id", data.userId)
+          .order("created_at", { ascending: false }),
+        supabaseAdmin
+          .from("orders")
+          .select("id, status, total, created_at, restaurants(name)")
+          .or(`customer_id.eq.${data.userId},rider_id.eq.${data.userId}`)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabaseAdmin.from("addresses").select("*").eq("user_id", data.userId),
+        supabaseAdmin.from("riders").select("*").eq("id", data.userId).maybeSingle(),
+      ]);
+
+    return {
+      user: {
+        user_id: authUser.user.id,
+        email: authUser.user.email ?? null,
+        created_at: authUser.user.created_at,
+        last_sign_in_at: authUser.user.last_sign_in_at ?? null,
+        email_confirmed: !!authUser.user.email_confirmed_at,
+      },
+      profile: profile ?? null,
+      roles: (roles ?? []).map((r: any) => r.role as string),
+      restaurants: restaurants ?? [],
+      orders: orders ?? [],
+      addresses: addresses ?? [],
+      rider: rider ?? null,
+    };
+  });
+
 export const deleteUserAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
