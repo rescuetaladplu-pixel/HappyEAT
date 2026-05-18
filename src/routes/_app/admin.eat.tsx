@@ -127,6 +127,7 @@ function AdminEatPage() {
   const suspendFn = useServerFn(suspendRestaurant);
   const deleteFn = useServerFn(deleteRestaurant);
   const recentOrdersFn = useServerFn(listRecentOrders);
+  const deleteUserFn = useServerFn(deleteUserAccount);
 
   async function loadStats() {
     const today = new Date();
