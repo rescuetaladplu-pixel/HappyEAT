@@ -33,6 +33,7 @@ import { Route as AppAdminRiderRouteImport } from './routes/_app/admin.rider'
 import { Route as AppAdminEatRouteImport } from './routes/_app/admin.eat'
 import { Route as AppAdminOrdersIndexRouteImport } from './routes/_app/admin.orders.index'
 import { Route as AppAdminUsersUserIdRouteImport } from './routes/_app/admin.users.$userId'
+import { Route as AppAdminRestaurantsRestaurantIdRouteImport } from './routes/_app/admin.restaurants.$restaurantId'
 import { Route as AppAdminOrdersOrderIdRouteImport } from './routes/_app/admin.orders.$orderId'
 
 const AuthRoute = AuthRouteImport.update({
@@ -156,6 +157,12 @@ const AppAdminUsersUserIdRoute = AppAdminUsersUserIdRouteImport.update({
   path: '/admin/users/$userId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminRestaurantsRestaurantIdRoute =
+  AppAdminRestaurantsRestaurantIdRouteImport.update({
+    id: '/admin/restaurants/$restaurantId',
+    path: '/admin/restaurants/$restaurantId',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppAdminOrdersOrderIdRoute = AppAdminOrdersOrderIdRouteImport.update({
   id: '/admin/orders/$orderId',
   path: '/admin/orders/$orderId',
@@ -185,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
   '/admin/': typeof AppAdminIndexRoute
   '/admin/orders/$orderId': typeof AppAdminOrdersOrderIdRoute
+  '/admin/restaurants/$restaurantId': typeof AppAdminRestaurantsRestaurantIdRoute
   '/admin/users/$userId': typeof AppAdminUsersUserIdRoute
   '/admin/orders/': typeof AppAdminOrdersIndexRoute
 }
@@ -211,6 +219,7 @@ export interface FileRoutesByTo {
   '/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
   '/admin': typeof AppAdminIndexRoute
   '/admin/orders/$orderId': typeof AppAdminOrdersOrderIdRoute
+  '/admin/restaurants/$restaurantId': typeof AppAdminRestaurantsRestaurantIdRoute
   '/admin/users/$userId': typeof AppAdminUsersUserIdRoute
   '/admin/orders': typeof AppAdminOrdersIndexRoute
 }
@@ -239,6 +248,7 @@ export interface FileRoutesById {
   '/_app/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
   '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/admin/orders/$orderId': typeof AppAdminOrdersOrderIdRoute
+  '/_app/admin/restaurants/$restaurantId': typeof AppAdminRestaurantsRestaurantIdRoute
   '/_app/admin/users/$userId': typeof AppAdminUsersUserIdRoute
   '/_app/admin/orders/': typeof AppAdminOrdersIndexRoute
 }
@@ -267,6 +277,7 @@ export interface FileRouteTypes {
     | '/restaurants/$restaurantId'
     | '/admin/'
     | '/admin/orders/$orderId'
+    | '/admin/restaurants/$restaurantId'
     | '/admin/users/$userId'
     | '/admin/orders/'
   fileRoutesByTo: FileRoutesByTo
@@ -293,6 +304,7 @@ export interface FileRouteTypes {
     | '/restaurants/$restaurantId'
     | '/admin'
     | '/admin/orders/$orderId'
+    | '/admin/restaurants/$restaurantId'
     | '/admin/users/$userId'
     | '/admin/orders'
   id:
@@ -320,6 +332,7 @@ export interface FileRouteTypes {
     | '/_app/restaurants/$restaurantId'
     | '/_app/admin/'
     | '/_app/admin/orders/$orderId'
+    | '/_app/admin/restaurants/$restaurantId'
     | '/_app/admin/users/$userId'
     | '/_app/admin/orders/'
   fileRoutesById: FileRoutesById
@@ -500,6 +513,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminUsersUserIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/restaurants/$restaurantId': {
+      id: '/_app/admin/restaurants/$restaurantId'
+      path: '/admin/restaurants/$restaurantId'
+      fullPath: '/admin/restaurants/$restaurantId'
+      preLoaderRoute: typeof AppAdminRestaurantsRestaurantIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/orders/$orderId': {
       id: '/_app/admin/orders/$orderId'
       path: '/admin/orders/$orderId'
@@ -531,6 +551,7 @@ interface AppRouteChildren {
   AppRestaurantsRestaurantIdRoute: typeof AppRestaurantsRestaurantIdRoute
   AppAdminIndexRoute: typeof AppAdminIndexRoute
   AppAdminOrdersOrderIdRoute: typeof AppAdminOrdersOrderIdRoute
+  AppAdminRestaurantsRestaurantIdRoute: typeof AppAdminRestaurantsRestaurantIdRoute
   AppAdminUsersUserIdRoute: typeof AppAdminUsersUserIdRoute
   AppAdminOrdersIndexRoute: typeof AppAdminOrdersIndexRoute
 }
@@ -557,6 +578,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppRestaurantsRestaurantIdRoute: AppRestaurantsRestaurantIdRoute,
   AppAdminIndexRoute: AppAdminIndexRoute,
   AppAdminOrdersOrderIdRoute: AppAdminOrdersOrderIdRoute,
+  AppAdminRestaurantsRestaurantIdRoute: AppAdminRestaurantsRestaurantIdRoute,
   AppAdminUsersUserIdRoute: AppAdminUsersUserIdRoute,
   AppAdminOrdersIndexRoute: AppAdminOrdersIndexRoute,
 }
