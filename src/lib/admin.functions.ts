@@ -377,7 +377,9 @@ export const adminUpdateOrderStatus = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
-    const { error } = await supabaseAdmin
+    // ใช้ context.supabase (มี auth ของ admin user) เพื่อให้ trigger enforce_orders_update_authorization
+    // เห็นว่า auth.uid() เป็น admin จริง — supabaseAdmin ใช้ service role auth.uid()=NULL ทำให้ trigger reject
+    const { error } = await context.supabase
       .from("orders")
       .update({ status: data.status, updated_at: new Date().toISOString() })
       .eq("id", data.orderId);
@@ -397,7 +399,7 @@ export const adminCancelOrder = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
-    const { error } = await supabaseAdmin
+    const { error } = await context.supabase
       .from("orders")
       .update({
         status: "cancelled",
