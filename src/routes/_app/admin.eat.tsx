@@ -503,7 +503,13 @@ function AdminEatPage() {
                 .map((u) => (
                   <tr key={u.user_id} className="border-b last:border-0 align-top">
                     <td className="px-5 py-2">
-                      <p className="font-medium">{displayName(u) || u.username || "—"}</p>
+                      <Link
+                        to="/admin/users/$userId"
+                        params={{ userId: u.user_id }}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {displayName(u) || u.username || "—"}
+                      </Link>
                     </td>
                     <td className="px-3 py-2">
                       <p className="break-all">{u.email ?? "—"}</p>
