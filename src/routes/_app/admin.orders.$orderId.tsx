@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Shield, ChevronLeft, Ban, RefreshCw, User, Bike, Store } from "lucide-react";
+import { Shield, ChevronLeft, Ban, RefreshCw, User, Bike, Store, Clock, CreditCard, Star, FileImage, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import {
   getOrderDetailForAdmin,
