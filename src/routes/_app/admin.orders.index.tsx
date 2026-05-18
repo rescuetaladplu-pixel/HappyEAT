@@ -24,7 +24,7 @@ import { STATUS_LABELS, STATUS_VARIANTS, type OrderStatus } from "@/lib/order-st
 
 type OrdersSearch = { status?: string };
 
-export const Route = createFileRoute("/_app/admin/orders")({
+export const Route = createFileRoute("/_app/admin/orders/")({
   component: AdminOrdersPage,
   validateSearch: (s: Record<string, unknown>): OrdersSearch => ({
     status: typeof s.status === "string" ? s.status : undefined,
