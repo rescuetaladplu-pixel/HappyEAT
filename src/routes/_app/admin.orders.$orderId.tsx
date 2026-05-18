@@ -331,9 +331,34 @@ function AdminOrderDetail() {
           </a>
         )}
       </Card>
+
+      {order.delivery_otp && (
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">OTP ส่งของ</p>
           <p className="text-2xl font-bold font-mono tracking-widest">{order.delivery_otp}</p>
+        </Card>
+      )}
+
+      {reviews && reviews.length > 0 && (
+        <Card className="p-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Star className="h-4 w-4" /> รีวิวจากลูกค้า
+          </div>
+          {reviews.map((rv: any) => (
+            <div key={rv.id} className="text-sm space-y-1 border-t pt-2 first:border-0 first:pt-0">
+              <div className="flex gap-3 text-xs">
+                {rv.restaurant_rating != null && <span>ร้าน: {"⭐".repeat(rv.restaurant_rating)}</span>}
+                {rv.rider_rating != null && <span>ไรเดอร์: {"⭐".repeat(rv.rider_rating)}</span>}
+              </div>
+              {rv.comment && <p className="text-sm">{rv.comment}</p>}
+              {rv.owner_reply && (
+                <p className="text-xs text-muted-foreground border-l-2 pl-2">
+                  ร้านตอบ: {rv.owner_reply}
+                </p>
+              )}
+              <p className="text-[10px] text-muted-foreground">{fmt(rv.created_at)}</p>
+            </div>
+          ))}
         </Card>
       )}
 
