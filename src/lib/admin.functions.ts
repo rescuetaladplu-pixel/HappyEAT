@@ -219,9 +219,20 @@ export const listRidersForAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.userId);
+    // Only users that actually hold the 'rider' role — exclude admins
+    // who may have stray rows in the `riders` table.
+    const { data: roleRows, error: roleErr } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "rider");
+    if (roleErr) throw new Error(roleErr.message);
+    const riderIds = new Set((roleRows ?? []).map((r: any) => r.user_id as string));
+    if (riderIds.size === 0) return [];
+
     const { data: riders, error } = await supabaseAdmin
       .from("riders")
       .select("id, is_approved, is_online, vehicle_type, license_plate, rating, current_lat, current_lng, created_at")
+      .in("id", Array.from(riderIds))
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     const ids = (riders ?? []).map((r) => r.id);
