@@ -34,6 +34,7 @@ import {
   approveRider,
   suspendRider,
   listActiveDeliveries,
+  deleteUserAccount,
 } from "@/lib/admin.functions";
 import { STATUS_LABELS, STATUS_VARIANTS, type OrderStatus } from "@/lib/order-status";
 
