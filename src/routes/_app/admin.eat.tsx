@@ -416,8 +416,8 @@ function AdminEatPage() {
           {filteredRestaurants.map((r) => (
             <div key={r.id} className="flex items-center justify-between gap-3 border-b last:border-0 py-2 flex-wrap">
               <Link
-                to="/admin/users/$userId"
-                params={{ userId: r.owner_id }}
+                to="/admin/restaurants/$restaurantId"
+                params={{ restaurantId: r.id }}
                 className="min-w-0 flex-1 hover:opacity-80"
               >
                 <div className="flex items-center gap-2 flex-wrap">
