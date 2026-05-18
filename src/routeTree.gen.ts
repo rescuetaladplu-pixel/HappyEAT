@@ -30,6 +30,7 @@ import { Route as AppRestaurantMenuRouteImport } from './routes/_app/restaurant.
 import { Route as AppRestaurantAnalyticsRouteImport } from './routes/_app/restaurant.analytics'
 import { Route as AppMyRestaurantSettingsRouteImport } from './routes/_app/my-restaurant_.settings'
 import { Route as AppAdminRiderRouteImport } from './routes/_app/admin.rider'
+import { Route as AppAdminOrdersRouteImport } from './routes/_app/admin.orders'
 import { Route as AppAdminEatRouteImport } from './routes/_app/admin.eat'
 
 const AuthRoute = AuthRouteImport.update({
@@ -138,6 +139,11 @@ const AppAdminRiderRoute = AppAdminRiderRouteImport.update({
   path: '/admin/rider',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminOrdersRoute = AppAdminOrdersRouteImport.update({
+  id: '/admin/orders',
+  path: '/admin/orders',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminEatRoute = AppAdminEatRouteImport.update({
   id: '/admin/eat',
   path: '/admin/eat',
@@ -156,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/rider-dashboard': typeof AppRiderDashboardRoute
   '/admin/eat': typeof AppAdminEatRoute
+  '/admin/orders': typeof AppAdminOrdersRoute
   '/admin/rider': typeof AppAdminRiderRoute
   '/my-restaurant/settings': typeof AppMyRestaurantSettingsRoute
   '/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
@@ -179,6 +186,7 @@ export interface FileRoutesByTo {
   '/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/rider-dashboard': typeof AppRiderDashboardRoute
   '/admin/eat': typeof AppAdminEatRoute
+  '/admin/orders': typeof AppAdminOrdersRoute
   '/admin/rider': typeof AppAdminRiderRoute
   '/my-restaurant/settings': typeof AppMyRestaurantSettingsRoute
   '/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/_app/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/_app/rider-dashboard': typeof AppRiderDashboardRoute
   '/_app/admin/eat': typeof AppAdminEatRoute
+  '/_app/admin/orders': typeof AppAdminOrdersRoute
   '/_app/admin/rider': typeof AppAdminRiderRoute
   '/_app/my-restaurant_/settings': typeof AppMyRestaurantSettingsRoute
   '/_app/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
@@ -229,6 +238,7 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard'
     | '/rider-dashboard'
     | '/admin/eat'
+    | '/admin/orders'
     | '/admin/rider'
     | '/my-restaurant/settings'
     | '/restaurant/analytics'
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard'
     | '/rider-dashboard'
     | '/admin/eat'
+    | '/admin/orders'
     | '/admin/rider'
     | '/my-restaurant/settings'
     | '/restaurant/analytics'
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/_app/restaurant-dashboard'
     | '/_app/rider-dashboard'
     | '/_app/admin/eat'
+    | '/_app/admin/orders'
     | '/_app/admin/rider'
     | '/_app/my-restaurant_/settings'
     | '/_app/restaurant/analytics'
@@ -443,6 +455,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRiderRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/orders': {
+      id: '/_app/admin/orders'
+      path: '/admin/orders'
+      fullPath: '/admin/orders'
+      preLoaderRoute: typeof AppAdminOrdersRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/eat': {
       id: '/_app/admin/eat'
       path: '/admin/eat'
@@ -463,6 +482,7 @@ interface AppRouteChildren {
   AppRestaurantDashboardRoute: typeof AppRestaurantDashboardRoute
   AppRiderDashboardRoute: typeof AppRiderDashboardRoute
   AppAdminEatRoute: typeof AppAdminEatRoute
+  AppAdminOrdersRoute: typeof AppAdminOrdersRoute
   AppAdminRiderRoute: typeof AppAdminRiderRoute
   AppMyRestaurantSettingsRoute: typeof AppMyRestaurantSettingsRoute
   AppRestaurantAnalyticsRoute: typeof AppRestaurantAnalyticsRoute
@@ -485,6 +505,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppRestaurantDashboardRoute: AppRestaurantDashboardRoute,
   AppRiderDashboardRoute: AppRiderDashboardRoute,
   AppAdminEatRoute: AppAdminEatRoute,
+  AppAdminOrdersRoute: AppAdminOrdersRoute,
   AppAdminRiderRoute: AppAdminRiderRoute,
   AppMyRestaurantSettingsRoute: AppMyRestaurantSettingsRoute,
   AppRestaurantAnalyticsRoute: AppRestaurantAnalyticsRoute,
