@@ -473,7 +473,7 @@ function HomePage() {
         <p className="text-sm text-muted-foreground mt-1">สวัสดี {user?.email?.split("@")[0]}</p>
       </header>
 
-      <div className="px-4 pb-3 sticky top-0 bg-background/95 backdrop-blur z-10 pt-2">
+      <div className="px-4 pb-3 sticky safe-sticky-top bg-background/95 backdrop-blur z-10 pt-2">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -646,7 +646,7 @@ function ScrollToTopButton() {
       type="button"
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
       aria-label="กลับขึ้นบนสุด"
-      className="fixed right-4 bottom-32 z-40 h-11 w-11 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 active:scale-95 transition"
+      className="fixed right-4 safe-action-above-nav z-40 h-11 w-11 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 active:scale-95 transition"
     >
       <ArrowUp className="h-5 w-5" />
     </button>
