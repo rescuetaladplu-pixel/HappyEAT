@@ -397,8 +397,12 @@ function HomePage() {
   return (
     <main className="max-w-2xl mx-auto">
       <header className="px-4 pt-6 pb-4">
-        <div className="flex items-center justify-center mb-3">
-          <Logo size={40} showText />
+        <div className="flex flex-col items-center justify-center mb-5 gap-2">
+          <Logo size={96} />
+          <span className="text-3xl font-extrabold tracking-tight leading-none">
+            <span style={{ color: "var(--brand-orange)" }}>Happy</span>
+            <span style={{ color: "var(--brand-green)" }}>EAT</span>
+          </span>
         </div>
         <Sheet open={addrOpen} onOpenChange={handleAddressOpen}>
           <SheetTrigger asChild>
