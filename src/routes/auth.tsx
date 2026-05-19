@@ -100,10 +100,7 @@ function AuthPage() {
     <main className="min-h-screen bg-gradient-to-br from-accent/40 via-background to-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <Link to="/home" className="flex items-center justify-center gap-2 mb-6">
-          <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground">
-            <UtensilsCrossed className="h-6 w-6" />
-          </div>
-          <span className="text-2xl font-bold text-foreground">HappyEat</span>
+          <Logo size={64} showText />
         </Link>
 
         <Card>
