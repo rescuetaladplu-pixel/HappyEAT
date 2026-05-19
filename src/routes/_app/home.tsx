@@ -99,6 +99,17 @@ function HomePage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("ทั้งหมด");
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const pre = sessionStorage.getItem("happyeat:home_cat");
+      if (pre) {
+        setCategory(pre);
+        sessionStorage.removeItem("happyeat:home_cat");
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   // Address state — รองรับสูงสุด 3 ที่อยู่
   const MAX_ADDRESSES = 3;
   const [addresses, setAddresses] = useState<AddressRow[]>([]);
