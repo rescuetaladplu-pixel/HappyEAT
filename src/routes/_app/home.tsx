@@ -396,18 +396,13 @@ function HomePage() {
 
   return (
     <main className="max-w-2xl mx-auto">
-      <header className="px-4 pt-6 pb-4">
-        <div className="flex flex-col items-center justify-center mb-5 gap-2">
-          <Logo size={160} />
-          <span
-            className="text-3xl font-extrabold tracking-tight leading-none bg-clip-text text-transparent"
-            style={{
-              backgroundImage:
-                "linear-gradient(90deg, var(--brand-orange) 0%, var(--brand-orange) 45%, var(--brand-green) 55%, var(--brand-green) 100%)",
-            }}
-          >
-            HappyEAT
-          </span>
+      <header className="px-4 pt-2 pb-2">
+        <div className="flex items-center justify-center">
+          <img
+            src={new URL("@/assets/happyeat-logo.png", import.meta.url).href}
+            alt="HappyEAT"
+            className="h-40 w-auto object-contain"
+          />
         </div>
         <Sheet open={addrOpen} onOpenChange={handleAddressOpen}>
           <SheetTrigger asChild>
