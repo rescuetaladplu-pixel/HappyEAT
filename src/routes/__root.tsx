@@ -132,6 +132,7 @@ function RootComponent() {
         <CartProvider>
           <Outlet />
           <Toaster position="top-center" richColors />
+          <ForceUpdateGate />
         </CartProvider>
       </AuthProvider>
     </QueryClientProvider>
