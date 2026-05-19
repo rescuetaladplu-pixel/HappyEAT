@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Logo } from "@/components/Logo";
+import logoSrc from "@/assets/happyeat-logo.png";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -99,8 +99,8 @@ function AuthPage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-accent/40 via-background to-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <Link to="/home" className="flex items-center justify-center gap-2 mb-6">
-          <Logo size={64} showText />
+        <Link to="/home" className="flex items-center justify-center mb-6">
+          <img src={logoSrc} alt="HappyEAT" className="h-44 w-auto object-contain" />
         </Link>
 
         <Card>
