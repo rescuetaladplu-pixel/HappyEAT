@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
-import { Browser } from "@capacitor/browser";
 import { supabase } from "@/integrations/supabase/client";
 import { APP_VERSION, compareVersions } from "@/lib/app-version";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Smartphone, Download, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { downloadAndInstallApk } from "@/lib/apk-updater";
 
 export function AppVersionCard() {
+  const [downloading, setDownloading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [currentVersion, setCurrentVersion] = useState<string>(APP_VERSION);
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [apkUrl, setApkUrl] = useState<string | null>(null);
