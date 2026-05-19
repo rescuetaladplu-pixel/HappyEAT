@@ -170,6 +170,24 @@ function AdminLanding() {
             <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition" />
           </div>
         </Link>
+
+        <Link
+          to="/admin/app-version"
+          className="group block rounded-lg border bg-card p-5 hover:border-primary hover:shadow-md transition md:col-span-2"
+        >
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-3xl">📱</span>
+              <div>
+                <h2 className="font-bold text-lg">จัดการเวอร์ชันแอป</h2>
+                <p className="text-xs text-muted-foreground">
+                  ปล่อย APK ใหม่ / บังคับอัปเดต / แก้ release notes
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition" />
+          </div>
+        </Link>
       </div>
 
       <Card className="p-5 space-y-4">
