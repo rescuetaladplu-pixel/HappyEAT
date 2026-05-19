@@ -205,11 +205,22 @@ function PlatformCard({ row, onSaved }: { row: AppConfigRow; onSaved: () => void
     <Card className="space-y-4 p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-primary/10 p-2">
-            <Icon className="h-5 w-5 text-primary" />
+          <div className="h-14 w-14 shrink-0 rounded-lg bg-muted/50 p-1.5 flex items-center justify-center overflow-hidden">
+            {PLATFORM_LOGOS[row.platform] ? (
+              <img
+                src={PLATFORM_LOGOS[row.platform]}
+                alt={meta.label}
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <Icon className="h-6 w-6 text-primary" />
+            )}
           </div>
           <div>
-            <h3 className="font-semibold">{meta.label}</h3>
+            <h3 className="font-semibold flex items-center gap-1.5">
+              <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+              {meta.label}
+            </h3>
             <p className="text-xs text-muted-foreground">{meta.desc}</p>
           </div>
         </div>
