@@ -248,8 +248,18 @@ function CartPage() {
   }
 
   return (
-    <main className="max-w-2xl mx-auto p-4 pb-32 space-y-4">
-      <h1 className="text-2xl font-bold">ตะกร้าของคุณ</h1>
+    <main className="max-w-2xl mx-auto p-4 pb-40 space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold">ตะกร้าของคุณ</h1>
+        {restaurantId && (
+          <Button asChild variant="outline" size="sm">
+            <Link to="/restaurants/$restaurantId" params={{ restaurantId }}>
+              <Plus className="h-4 w-4 mr-1" />สั่งเพิ่ม
+            </Link>
+          </Button>
+        )}
+      </div>
+
 
       <div className="space-y-2">
         {items.map((item) => (
