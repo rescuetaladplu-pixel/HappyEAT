@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
-import { Browser } from '@capacitor/browser';
 import { supabase } from '@/integrations/supabase/client';
 import { APP_VERSION, compareVersions } from '@/lib/app-version';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, AlertTriangle } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Download, AlertTriangle, Loader2 } from 'lucide-react';
+import { downloadAndInstallApk } from '@/lib/apk-updater';
+import { toast } from 'sonner';
 
 type AppConfig = {
   latest_version: string;
