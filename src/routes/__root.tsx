@@ -131,6 +131,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <CartProvider>
+          <SystemBarsConfig />
           <Outlet />
           <Toaster position="top-center" richColors />
           <ForceUpdateGate />
