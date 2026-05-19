@@ -22,7 +22,10 @@ export function SystemBarsConfig() {
         await SystemBars.show({ bar: SystemBarType.StatusBar });
         await SystemBars.show({ bar: SystemBarType.NavigationBar });
         await SystemBars.setStyle({ style: SystemBarsStyle.Light, bar: SystemBarType.StatusBar });
-        await SystemBars.setStyle({ style: SystemBarsStyle.Light, bar: SystemBarType.NavigationBar });
+        await SystemBars.setStyle({
+          style: SystemBarsStyle.Light,
+          bar: SystemBarType.NavigationBar,
+        });
         await StatusBar.setOverlaysWebView({ overlay: false });
         await StatusBar.setStyle({ style: Style.Light });
         await StatusBar.setBackgroundColor({ color: "#ffffff" });
