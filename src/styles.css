@@ -127,12 +127,14 @@
 
 html.capacitor-native {
   --app-safe-top-min: 44px;
-  --app-safe-bottom-min: 48px;
+  --app-safe-bottom-min: 8px;
 }
 
 html.capacitor-android {
-  --app-safe-top-min: 48px;
-  --app-safe-bottom-min: 56px;
+  /* Android status bar ~24-28dp + กันชนเพิ่มเผื่อ notch/punch-hole */
+  --app-safe-top-min: 72px;
+  /* gesture bar ~16dp ก็พอ ไม่ต้องเผื่อเยอะ จะได้ไม่ลอยสูง */
+  --app-safe-bottom-min: 12px;
 }
 
 .dark {
