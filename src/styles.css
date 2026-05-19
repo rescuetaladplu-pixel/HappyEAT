@@ -126,15 +126,17 @@
 }
 
 html.capacitor-native {
-  --app-safe-top-min: 44px;
-  --app-safe-bottom-min: 8px;
+  --app-safe-top-min: 28px;
+  --app-safe-bottom-min: 0px;
 }
 
 html.capacitor-android {
-  /* Android status bar ~24-28dp + กันชนเพิ่มเผื่อ notch/punch-hole */
-  --app-safe-top-min: 72px;
-  /* gesture bar ~16dp ก็พอ ไม่ต้องเผื่อเยอะ จะได้ไม่ลอยสูง */
-  --app-safe-bottom-min: 12px;
+  /* ชิดขอบ status bar — เผื่อแค่ความสูง status bar จริง (~28dp) */
+  --app-safe-top-min: 32px;
+  /* ชิดขอบ gesture bar — ไม่ต้องเผื่อ ปล่อยให้ env() จัดการ */
+  --app-safe-bottom-min: 0px;
+  /* บีบ nav ให้เตี้ยลง → เห็นร้านได้มากขึ้นต่อสกรีน */
+  --app-nav-height: 3.75rem;
 }
 
 .dark {
