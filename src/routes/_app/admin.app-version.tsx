@@ -10,6 +10,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Shield, ChevronLeft, Smartphone, Bike, AlertTriangle, Plus, Eye } from "lucide-react";
 import { toast } from "sonner";
+import happyEatLogo from "@/assets/happyeat-logo.png";
+import happyRiderLogo from "@/assets/happyrider-logo.png";
+
+const PLATFORM_LOGOS: Record<string, string> = {
+  android: happyEatLogo,
+  ios: happyEatLogo,
+  android_rider: happyRiderLogo,
+};
 import { compareVersions } from "@/lib/app-version";
 import {
   Dialog,
