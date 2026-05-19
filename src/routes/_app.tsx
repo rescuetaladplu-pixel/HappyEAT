@@ -45,7 +45,7 @@ function AppLayout() {
   return (
     <div className="min-h-screen bg-background safe-top safe-pb-nav">
       <Outlet />
-      <nav className="fixed bottom-12 inset-x-0 z-40 bg-card border-t border-border">
+      <nav className="fixed bottom-16 inset-x-0 z-40 bg-card border-t border-border safe-bottom">
 
         <div
           className="mx-auto max-w-2xl grid"
