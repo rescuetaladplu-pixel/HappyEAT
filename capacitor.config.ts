@@ -18,6 +18,10 @@ const config: CapacitorConfig = {
     adjustMarginsForEdgeToEdge: "force",
   },
   plugins: {
+    SystemBars: {
+      style: 'LIGHT',
+      insetsHandling: 'css',
+    },
     SplashScreen: {
       launchShowDuration: 1500,
       backgroundColor: '#FF6B2C',
