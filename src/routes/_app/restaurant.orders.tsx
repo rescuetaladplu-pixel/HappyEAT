@@ -333,7 +333,7 @@ function RestaurantOrdersPage() {
   return (
     <main className="max-w-3xl mx-auto p-4 pb-24 space-y-4">
       {alerting && (
-        <div className="sticky top-2 z-30 flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 shadow-md animate-pulse">
+        <div className="sticky safe-sticky-top z-30 flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 shadow-md animate-pulse">
           <div className="flex items-center gap-2 text-sm font-medium text-primary">
             <Bell className="h-4 w-4" />
             กำลังเล่นเสียงแจ้งเตือนวนซ้ำ — มีออเดอร์ใหม่รอรับ
