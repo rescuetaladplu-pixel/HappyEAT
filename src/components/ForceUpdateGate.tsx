@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
-import { Browser } from '@capacitor/browser';
 import { supabase } from '@/integrations/supabase/client';
 import { APP_VERSION, compareVersions } from '@/lib/app-version';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, AlertTriangle } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Download, AlertTriangle, Loader2 } from 'lucide-react';
+import { downloadAndInstallApk } from '@/lib/apk-updater';
+import { toast } from 'sonner';
 
 type AppConfig = {
   latest_version: string;
@@ -18,6 +20,8 @@ type AppConfig = {
 
 export function ForceUpdateGate() {
   const [config, setConfig] = useState<AppConfig | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [currentVersion, setCurrentVersion] = useState<string>(APP_VERSION);
   const [mustUpdate, setMustUpdate] = useState(false);
 
@@ -66,11 +70,18 @@ export function ForceUpdateGate() {
 
   const handleUpdate = async () => {
     if (!config?.apk_download_url) return;
+    setDownloading(true);
+    setProgress(0);
     try {
-      await Browser.open({ url: config.apk_download_url });
-    } catch {
-      // fallback
-      window.open(config.apk_download_url, '_blank');
+      await downloadAndInstallApk(config.apk_download_url, ({ percent }) => setProgress(percent));
+      if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
+        toast.success('โหลดเสร็จแล้ว กดติดตั้งเพื่ออัปเดต');
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'ดาวน์โหลดไม่สำเร็จ';
+      toast.error(msg);
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -112,18 +123,28 @@ export function ForceUpdateGate() {
           )}
         </div>
 
+        {downloading && (
+          <div className="space-y-1">
+            <Progress value={progress} />
+            <p className="text-xs text-muted-foreground text-center">กำลังดาวน์โหลด {progress}%</p>
+          </div>
+        )}
+
         <Button
           onClick={handleUpdate}
-          disabled={!config.apk_download_url}
+          disabled={!config.apk_download_url || downloading}
           size="lg"
           className="mt-2 w-full gap-2"
         >
-          <Download className="h-5 w-5" />
-          ดาวน์โหลดเวอร์ชันใหม่
+          {downloading ? (
+            <><Loader2 className="h-5 w-5 animate-spin" /> กำลังโหลด...</>
+          ) : (
+            <><Download className="h-5 w-5" /> ดาวน์โหลดเวอร์ชันใหม่</>
+          )}
         </Button>
 
         <p className="text-center text-xs text-muted-foreground">
-          หลังดาวน์โหลดเสร็จ กดไฟล์ APK เพื่อติดตั้งทับเวอร์ชันเดิมได้เลย
+          หลังโหลดเสร็จ Android จะถามให้กดติดตั้งทับเวอร์ชันเดิมได้เลย
         </p>
       </DialogContent>
     </Dialog>

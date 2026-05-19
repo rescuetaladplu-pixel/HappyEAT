@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
-import { Browser } from "@capacitor/browser";
 import { supabase } from "@/integrations/supabase/client";
 import { APP_VERSION, compareVersions } from "@/lib/app-version";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Smartphone, Download, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { downloadAndInstallApk } from "@/lib/apk-updater";
 
 export function AppVersionCard() {
+  const [downloading, setDownloading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [currentVersion, setCurrentVersion] = useState<string>(APP_VERSION);
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [apkUrl, setApkUrl] = useState<string | null>(null);
@@ -51,10 +54,18 @@ export function AppVersionCard() {
 
   async function handleDownload() {
     if (!apkUrl) return;
+    setDownloading(true);
+    setProgress(0);
     try {
-      await Browser.open({ url: apkUrl });
-    } catch {
-      window.open(apkUrl, "_blank");
+      await downloadAndInstallApk(apkUrl, ({ percent }) => setProgress(percent));
+      if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android") {
+        toast.success("โหลดเสร็จแล้ว กดติดตั้งเพื่ออัปเดต");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "ดาวน์โหลดไม่สำเร็จ";
+      toast.error(msg);
+    } finally {
+      setDownloading(false);
     }
   }
 
@@ -86,8 +97,20 @@ export function AppVersionCard() {
               <p className="whitespace-pre-line">{releaseNotes}</p>
             </div>
           )}
-          <Button onClick={handleDownload} disabled={!apkUrl} className="w-full gap-2">
-            <Download className="h-4 w-4" /> ดาวน์โหลดเวอร์ชันใหม่ ({latestVersion})
+          {downloading && (
+            <div className="space-y-1">
+              <Progress value={progress} />
+              <p className="text-xs text-muted-foreground text-center">
+                กำลังดาวน์โหลด {progress}%
+              </p>
+            </div>
+          )}
+          <Button onClick={handleDownload} disabled={!apkUrl || downloading} className="w-full gap-2">
+            {downloading ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> กำลังโหลด...</>
+            ) : (
+              <><Download className="h-4 w-4" /> ดาวน์โหลดเวอร์ชันใหม่ ({latestVersion})</>
+            )}
           </Button>
           {!isNative && (
             <p className="text-xs text-muted-foreground text-center">
