@@ -4,9 +4,10 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { LogOut, User, Store, ChevronRight, Loader2 } from "lucide-react";
+import { LogOut, User, Store, ChevronRight, Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { isOpenNow } from "@/lib/opening-hours";
+import { AppVersionCard } from "@/components/AppVersionCard";
 
 interface OpeningHours {
   [k: string]: { open: string; close: string; closed: boolean };
