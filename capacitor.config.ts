@@ -13,6 +13,9 @@ const config: CapacitorConfig = {
   },
   android: {
     allowMixedContent: false,
+    // Android 15+ บังคับ edge-to-edge — "force" ให้ระบบเพิ่ม margin ให้ webview
+    // เอง เพื่อไม่ให้คอนเทนต์วาดทับ status bar / navigation bar
+    adjustMarginsForEdgeToEdge: "force",
   },
   plugins: {
     SplashScreen: {
