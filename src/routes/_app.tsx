@@ -46,9 +46,9 @@ function AppLayout() {
           : customerNav;
 
   return (
-    <div className="min-h-dvh bg-background safe-top safe-pb-nav">
+    <div className="min-h-dvh bg-background safe-top safe-pb-nav overflow-x-hidden">
       <Outlet />
-      <nav className="fixed nav-bottom-offset inset-x-0 z-40 bg-card border-t border-border">
+      <nav className="fixed bottom-0 inset-x-0 z-40 bg-card border-t border-border pb-[var(--app-safe-bottom)]">
 
         <div
           className="mx-auto max-w-2xl grid"
@@ -61,7 +61,7 @@ function AppLayout() {
               <Link
                 key={item.to}
                 to={item.to}
-                className={`flex flex-col items-center gap-1 py-3 text-xs transition-colors ${
+                className={`flex h-[var(--app-nav-height)] flex-col items-center justify-center gap-1 text-xs transition-colors ${
                   active ? "text-primary" : "text-muted-foreground"
                 }`}
               >
