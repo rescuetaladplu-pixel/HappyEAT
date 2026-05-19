@@ -272,7 +272,7 @@ function RestaurantDetail() {
       )}
 
       {count > 0 && (
-        <div className="fixed bottom-28 inset-x-0 px-4 z-30">
+        <div className="fixed safe-action-above-nav inset-x-0 px-4 z-30">
           <div className="max-w-2xl mx-auto">
             <Button asChild size="lg" className="w-full shadow-lg">
               <Link to="/cart">ดูตะกร้า ({count} รายการ)</Link>
