@@ -35,7 +35,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useFavorites } from "@/lib/favorites";
-import { Logo } from "@/components/Logo";
+import logoSrc from "@/assets/happyeat-logo.png";
 
 const FAVORITES_CAT = "ร้านโปรด";
 
@@ -398,11 +398,7 @@ function HomePage() {
     <main className="max-w-2xl mx-auto">
       <header className="px-4 pt-2 pb-2">
         <div className="flex items-center justify-center">
-          <img
-            src={new URL("@/assets/happyeat-logo.png", import.meta.url).href}
-            alt="HappyEAT"
-            className="h-40 w-auto object-contain"
-          />
+          <img src={logoSrc} alt="HappyEAT" className="h-40 w-auto object-contain" />
         </div>
         <Sheet open={addrOpen} onOpenChange={handleAddressOpen}>
           <SheetTrigger asChild>
