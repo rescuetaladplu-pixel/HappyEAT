@@ -46,7 +46,7 @@ function AppLayout() {
           : customerNav;
 
   return (
-    <div className="min-h-screen bg-background safe-top safe-pb-nav">
+    <div className="min-h-dvh bg-background safe-top safe-pb-nav">
       <Outlet />
       <nav className="fixed nav-bottom-offset inset-x-0 z-40 bg-card border-t border-border">
 
