@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { LogOut, User, Store, ChevronRight, Loader2, Pencil } from "lucide-react";
+import { LogOut, User, Store, ChevronRight, Loader2, Pencil, MapPin, KeyRound, Heart } from "lucide-react";
 import { toast } from "sonner";
 import { isOpenNow } from "@/lib/opening-hours";
 import { AppVersionCard } from "@/components/AppVersionCard";
