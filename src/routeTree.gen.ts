@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppRiderDashboardRouteImport } from './routes/_app/rider-dashboard'
 import { Route as AppRestaurantDashboardRouteImport } from './routes/_app/restaurant-dashboard'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
@@ -51,6 +52,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppRiderDashboardRoute = AppRiderDashboardRouteImport.update({
   id: '/rider-dashboard',
@@ -192,6 +198,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AppProfileRoute
   '/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/rider-dashboard': typeof AppRiderDashboardRoute
+  '/settings': typeof AppSettingsRoute
   '/admin/app-version': typeof AppAdminAppVersionRoute
   '/admin/eat': typeof AppAdminEatRoute
   '/admin/rider': typeof AppAdminRiderRoute
@@ -221,6 +228,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AppProfileRoute
   '/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/rider-dashboard': typeof AppRiderDashboardRoute
+  '/settings': typeof AppSettingsRoute
   '/admin/app-version': typeof AppAdminAppVersionRoute
   '/admin/eat': typeof AppAdminEatRoute
   '/admin/rider': typeof AppAdminRiderRoute
@@ -252,6 +260,7 @@ export interface FileRoutesById {
   '/_app/profile': typeof AppProfileRoute
   '/_app/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/_app/rider-dashboard': typeof AppRiderDashboardRoute
+  '/_app/settings': typeof AppSettingsRoute
   '/_app/admin/app-version': typeof AppAdminAppVersionRoute
   '/_app/admin/eat': typeof AppAdminEatRoute
   '/_app/admin/rider': typeof AppAdminRiderRoute
@@ -283,6 +292,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/restaurant-dashboard'
     | '/rider-dashboard'
+    | '/settings'
     | '/admin/app-version'
     | '/admin/eat'
     | '/admin/rider'
@@ -312,6 +322,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/restaurant-dashboard'
     | '/rider-dashboard'
+    | '/settings'
     | '/admin/app-version'
     | '/admin/eat'
     | '/admin/rider'
@@ -342,6 +353,7 @@ export interface FileRouteTypes {
     | '/_app/profile'
     | '/_app/restaurant-dashboard'
     | '/_app/rider-dashboard'
+    | '/_app/settings'
     | '/_app/admin/app-version'
     | '/_app/admin/eat'
     | '/_app/admin/rider'
@@ -389,6 +401,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/rider-dashboard': {
       id: '/_app/rider-dashboard'
@@ -577,6 +596,7 @@ interface AppRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
   AppRestaurantDashboardRoute: typeof AppRestaurantDashboardRoute
   AppRiderDashboardRoute: typeof AppRiderDashboardRoute
+  AppSettingsRoute: typeof AppSettingsRoute
   AppAdminAppVersionRoute: typeof AppAdminAppVersionRoute
   AppAdminEatRoute: typeof AppAdminEatRoute
   AppAdminRiderRoute: typeof AppAdminRiderRoute
@@ -605,6 +625,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProfileRoute: AppProfileRoute,
   AppRestaurantDashboardRoute: AppRestaurantDashboardRoute,
   AppRiderDashboardRoute: AppRiderDashboardRoute,
+  AppSettingsRoute: AppSettingsRoute,
   AppAdminAppVersionRoute: AppAdminAppVersionRoute,
   AppAdminEatRoute: AppAdminEatRoute,
   AppAdminRiderRoute: AppAdminRiderRoute,
