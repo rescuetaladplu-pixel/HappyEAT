@@ -145,14 +145,14 @@
 
 @layer utilities {
   .safe-top {
-    padding-top: env(safe-area-inset-top);
+    padding-top: calc(env(safe-area-inset-top) + 1.5rem);
   }
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
   .safe-pb-nav {
-    /* bottom nav (~80px) + Lovable badge space (~64px) + safe area */
-    padding-bottom: calc(9rem + env(safe-area-inset-bottom));
+    /* bottom nav + Lovable badge space + safe area */
+    padding-bottom: calc(8rem + env(safe-area-inset-bottom));
   }
 
 }
