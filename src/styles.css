@@ -145,7 +145,7 @@
 
 @layer utilities {
   .safe-top {
-    padding-top: calc(env(safe-area-inset-top) + 1.5rem);
+    padding-top: calc(env(safe-area-inset-top) + 3rem);
   }
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
