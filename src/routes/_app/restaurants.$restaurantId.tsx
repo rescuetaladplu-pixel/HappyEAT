@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Star, UtensilsCrossed, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Plus, Star, UtensilsCrossed, AlertTriangle, Heart } from "lucide-react";
+import { useFavorites } from "@/lib/favorites";
 import { toast } from "sonner";
 import { isOpenNow, nextOpenLabel, type OpeningHours } from "@/lib/opening-hours";
 
@@ -50,6 +51,7 @@ function RestaurantDetail() {
   const { restaurantId } = Route.useParams();
   const navigate = useNavigate();
   const { count } = useCart();
+  const { isFavorite, toggle: toggleFav } = useFavorites();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -167,6 +169,15 @@ function RestaurantDetail() {
           className="absolute top-4 left-4 h-10 w-10 rounded-full bg-card/90 backdrop-blur flex items-center justify-center shadow"
         >
           <ArrowLeft className="h-5 w-5" />
+        </button>
+        <button
+          onClick={() => toggleFav(restaurant.id)}
+          aria-label="ร้านโปรด"
+          className="absolute top-4 right-4 h-10 w-10 rounded-full bg-card/90 backdrop-blur flex items-center justify-center shadow"
+        >
+          <Heart
+            className={`h-5 w-5 ${isFavorite(restaurant.id) ? "fill-red-500 text-red-500" : "text-muted-foreground"}`}
+          />
         </button>
       </div>
 
