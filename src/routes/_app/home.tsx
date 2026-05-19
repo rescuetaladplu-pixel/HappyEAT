@@ -30,9 +30,13 @@ import {
   Trash2,
   Check,
   ArrowLeft,
+  Heart,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useFavorites } from "@/lib/favorites";
+
+const FAVORITES_CAT = "ร้านโปรด";
 
 export const Route = createFileRoute("/_app/home")({
   component: HomePage,
@@ -67,7 +71,7 @@ interface AddressRow {
   rider_note: string | null;
 }
 
-const CATEGORIES = ["ทั้งหมด", ...RESTAURANT_CATEGORIES];
+const CATEGORIES = ["ทั้งหมด", FAVORITES_CAT, ...RESTAURANT_CATEGORIES];
 const PHONE_RE = /^[0-9+\-\s()]{8,20}$/;
 const ADDRESS_SAVE_TIMEOUT_MS = 15000;
 
@@ -88,11 +92,23 @@ async function withTimeout<T>(promise: PromiseLike<T>, ms: number) {
 function HomePage() {
   const { user, role, roles, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { isFavorite, toggle: toggleFav } = useFavorites();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("ทั้งหมด");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const pre = sessionStorage.getItem("happyeat:home_cat");
+      if (pre) {
+        setCategory(pre);
+        sessionStorage.removeItem("happyeat:home_cat");
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   // Address state — รองรับสูงสุด 3 ที่อยู่
   const MAX_ADDRESSES = 3;
@@ -340,7 +356,9 @@ function HomePage() {
     .filter((r) => {
       const cats =
         r.categories && r.categories.length > 0 ? r.categories : r.category ? [r.category] : [];
-      const okCat = category === "ทั้งหมด" || cats.includes(category);
+      const okCat =
+        category === "ทั้งหมด" ||
+        (category === FAVORITES_CAT ? isFavorite(r.id) : cats.includes(category));
       const okSearch = !search || r.name.toLowerCase().includes(search.toLowerCase());
       return okCat && okSearch;
     })
@@ -537,6 +555,20 @@ function HomePage() {
                         <UtensilsCrossed className="h-12 w-12" />
                       </div>
                     )}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleFav(r.id);
+                      }}
+                      aria-label="ร้านโปรด"
+                      className="absolute top-2 right-2 h-9 w-9 rounded-full bg-card/90 backdrop-blur flex items-center justify-center shadow hover:bg-card transition"
+                    >
+                      <Heart
+                        className={`h-5 w-5 ${isFavorite(r.id) ? "fill-red-500 text-red-500" : "text-muted-foreground"}`}
+                      />
+                    </button>
                     {!reallyOpen && (
                       <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
                         <span className="font-semibold text-foreground">{closedLabel}</span>

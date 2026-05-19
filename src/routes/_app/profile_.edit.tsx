@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Loader2, Save, Upload, User } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Upload, User, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/profile_/edit")({
@@ -25,6 +25,18 @@ function EditProfilePage() {
   const [phone, setPhone] = useState("");
   const [username, setUsername] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash === "#password") {
+      setTimeout(() => {
+        document.getElementById("password-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 200);
+    }
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -83,6 +95,18 @@ function EditProfilePage() {
     if (error) return toast.error(error.message);
     toast.success("บันทึกโปรไฟล์แล้ว");
     navigate({ to: "/profile" });
+  }
+
+  async function handleChangePassword() {
+    if (newPassword.length < 8) return toast.error("รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร");
+    if (newPassword !== confirmPassword) return toast.error("รหัสผ่านยืนยันไม่ตรงกัน");
+    setChangingPassword(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setChangingPassword(false);
+    if (error) return toast.error(error.message);
+    setNewPassword("");
+    setConfirmPassword("");
+    toast.success("เปลี่ยนรหัสผ่านแล้ว");
   }
 
   if (!user) {
@@ -159,6 +183,42 @@ function EditProfilePage() {
         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
         บันทึก
       </Button>
+
+      <Card id="password-section" className="p-5 space-y-4 scroll-mt-4">
+        <div className="flex items-center gap-2">
+          <KeyRound className="h-5 w-5 text-primary" />
+          <h2 className="font-semibold">เปลี่ยนรหัสผ่าน</h2>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="new-password">รหัสผ่านใหม่ (อย่างน้อย 8 ตัวอักษร)</Label>
+          <Input
+            id="new-password"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            autoComplete="new-password"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="confirm-password">ยืนยันรหัสผ่านใหม่</Label>
+          <Input
+            id="confirm-password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            autoComplete="new-password"
+          />
+        </div>
+        <Button
+          onClick={handleChangePassword}
+          disabled={changingPassword || !newPassword || !confirmPassword}
+          variant="outline"
+          className="w-full gap-2"
+        >
+          {changingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+          เปลี่ยนรหัสผ่าน
+        </Button>
+      </Card>
     </main>
   );
 }
