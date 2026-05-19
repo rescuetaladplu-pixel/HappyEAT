@@ -11,12 +11,21 @@ import { StatusBar, Style } from "@capacitor/status-bar";
 export function SystemBarsConfig() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
+
+    const root = document.documentElement;
+    const platform = Capacitor.getPlatform();
+
+    root.classList.add("capacitor-native", `capacitor-${platform}`);
+
     (async () => {
       try {
         await SystemBars.show({ bar: SystemBarType.StatusBar });
         await SystemBars.show({ bar: SystemBarType.NavigationBar });
         await SystemBars.setStyle({ style: SystemBarsStyle.Light, bar: SystemBarType.StatusBar });
-        await SystemBars.setStyle({ style: SystemBarsStyle.Light, bar: SystemBarType.NavigationBar });
+        await SystemBars.setStyle({
+          style: SystemBarsStyle.Light,
+          bar: SystemBarType.NavigationBar,
+        });
         await StatusBar.setOverlaysWebView({ overlay: false });
         await StatusBar.setStyle({ style: Style.Light });
         await StatusBar.setBackgroundColor({ color: "#ffffff" });
@@ -24,6 +33,10 @@ export function SystemBarsConfig() {
         /* plugin ไม่พร้อม — ปล่อย */
       }
     })();
+
+    return () => {
+      root.classList.remove("capacitor-native", `capacitor-${platform}`);
+    };
   }, []);
   return null;
 }
