@@ -123,18 +123,28 @@ export function ForceUpdateGate() {
           )}
         </div>
 
+        {downloading && (
+          <div className="space-y-1">
+            <Progress value={progress} />
+            <p className="text-xs text-muted-foreground text-center">กำลังดาวน์โหลด {progress}%</p>
+          </div>
+        )}
+
         <Button
           onClick={handleUpdate}
-          disabled={!config.apk_download_url}
+          disabled={!config.apk_download_url || downloading}
           size="lg"
           className="mt-2 w-full gap-2"
         >
-          <Download className="h-5 w-5" />
-          ดาวน์โหลดเวอร์ชันใหม่
+          {downloading ? (
+            <><Loader2 className="h-5 w-5 animate-spin" /> กำลังโหลด...</>
+          ) : (
+            <><Download className="h-5 w-5" /> ดาวน์โหลดเวอร์ชันใหม่</>
+          )}
         </Button>
 
         <p className="text-center text-xs text-muted-foreground">
-          หลังดาวน์โหลดเสร็จ กดไฟล์ APK เพื่อติดตั้งทับเวอร์ชันเดิมได้เลย
+          หลังโหลดเสร็จ Android จะถามให้กดติดตั้งทับเวอร์ชันเดิมได้เลย
         </p>
       </DialogContent>
     </Dialog>
