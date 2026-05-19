@@ -5,10 +5,8 @@ import { useAuth } from "@/lib/auth";
 import { fetchActiveRestaurantId } from "@/lib/active-restaurant";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Star, MessageSquare } from "lucide-react";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/restaurant/reviews")({
   component: RestaurantReviewsPage,
@@ -19,8 +17,6 @@ interface Review {
   restaurant_rating: number | null;
   rider_rating: number | null;
   comment: string | null;
-  owner_reply: string | null;
-  replied_at: string | null;
   created_at: string;
   customer_id: string;
   order_id: string;
@@ -32,16 +28,17 @@ function RestaurantReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
 
   async function load(rid: string) {
-    // Fetch reviews for orders of this restaurant
     const { data: orderIds } = await supabase
       .from("orders").select("id").eq("restaurant_id", rid);
     const ids = (orderIds ?? []).map((o) => o.id);
     if (ids.length === 0) { setReviews([]); setLoading(false); return; }
     const { data } = await supabase
-      .from("reviews").select("*").in("order_id", ids).order("created_at", { ascending: false });
+      .from("reviews")
+      .select("id, restaurant_rating, rider_rating, comment, created_at, customer_id, order_id")
+      .in("order_id", ids)
+      .order("created_at", { ascending: false });
     setReviews((data ?? []) as Review[]);
     setLoading(false);
   }
@@ -59,24 +56,12 @@ function RestaurantReviewsPage() {
 
   const avg = reviews.length
     ? reviews.filter((r) => r.restaurant_rating).reduce((s, r) => s + (r.restaurant_rating ?? 0), 0)
-      / reviews.filter((r) => r.restaurant_rating).length
+      / Math.max(1, reviews.filter((r) => r.restaurant_rating).length)
     : 0;
 
   const distribution = [5, 4, 3, 2, 1].map((s) => ({
     star: s, count: reviews.filter((r) => r.restaurant_rating === s).length,
   }));
-
-  async function reply(r: Review) {
-    const text = drafts[r.id]?.trim();
-    if (!text) return;
-    const { error } = await supabase.from("reviews")
-      .update({ owner_reply: text, replied_at: new Date().toISOString() })
-      .eq("id", r.id);
-    if (error) return toast.error(error.message);
-    toast.success("ตอบกลับแล้ว");
-    setDrafts((d) => ({ ...d, [r.id]: "" }));
-    if (restaurantId) load(restaurantId);
-  }
 
   if (loading) return <main className="p-6">กำลังโหลด...</main>;
   if (!restaurantId) {
@@ -149,23 +134,6 @@ function RestaurantReviewsPage() {
               </div>
               {r.comment && <p className="text-sm">{r.comment}</p>}
               <p className="text-xs text-muted-foreground">ออเดอร์ #{r.order_id.slice(0, 8)}</p>
-
-              {r.owner_reply ? (
-                <div className="bg-muted/50 rounded-lg p-3 mt-2">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">การตอบกลับของร้าน</p>
-                  <p className="text-sm">{r.owner_reply}</p>
-                </div>
-              ) : (
-                <div className="space-y-2 mt-2">
-                  <Textarea
-                    placeholder="ตอบกลับลูกค้า..."
-                    value={drafts[r.id] ?? ""}
-                    onChange={(e) => setDrafts((d) => ({ ...d, [r.id]: e.target.value }))}
-                    rows={2}
-                  />
-                  <Button size="sm" onClick={() => reply(r)}>ส่งคำตอบ</Button>
-                </div>
-              )}
             </Card>
           ))}
         </div>
