@@ -416,9 +416,11 @@ function CartPage() {
             size="lg"
             className="w-full shadow-lg"
             onClick={handleCheckout}
-            disabled={submitting || restaurantHasPromptpay === false}
+            disabled={submitting || (!!user && restaurantHasPromptpay === false)}
           >
-            {submitting
+            {!user
+              ? "เข้าสู่ระบบเพื่อยืนยันออเดอร์"
+              : submitting
               ? "กำลังสั่ง..."
               : `เสนอออเดอร์ — ฿${(total + deliveryFee - discount).toFixed(0)}`}
           </Button>
