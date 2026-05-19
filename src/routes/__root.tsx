@@ -13,6 +13,7 @@ import { AuthProvider } from "@/lib/auth";
 import { CartProvider } from "@/lib/cart";
 import { Toaster } from "@/components/ui/sonner";
 import { ForceUpdateGate } from "@/components/ForceUpdateGate";
+import { SystemBarsConfig } from "@/components/SystemBarsConfig";
 
 function NotFoundComponent() {
   return (
