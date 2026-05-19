@@ -23,6 +23,12 @@ const config: CapacitorConfig = {
       backgroundColor: '#f97316',
       showSpinner: false,
     },
+    StatusBar: {
+      // ไม่ให้ status bar ทับ webview (เผื่อ Android เวอร์ชันเก่าที่ไม่บังคับ edge-to-edge)
+      overlaysWebView: false,
+      style: 'DARK',
+      backgroundColor: '#ffffff',
+    },
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
