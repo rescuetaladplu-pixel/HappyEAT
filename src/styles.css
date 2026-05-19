@@ -145,7 +145,8 @@
 
 @layer utilities {
   .safe-top {
-    padding-top: calc(env(safe-area-inset-top) + 3rem);
+    /* webview ไม่อยู่ใต้ status bar แล้ว — เผื่อกรณีเก่า/iOS ใช้ env() พอ */
+    padding-top: env(safe-area-inset-top);
   }
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
@@ -154,5 +155,5 @@
     /* bottom nav + Lovable badge space + safe area */
     padding-bottom: calc(8rem + env(safe-area-inset-bottom));
   }
-
 }
+
