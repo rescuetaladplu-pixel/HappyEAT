@@ -31,6 +31,7 @@ import { Route as AppRestaurantAnalyticsRouteImport } from './routes/_app/restau
 import { Route as AppMyRestaurantSettingsRouteImport } from './routes/_app/my-restaurant_.settings'
 import { Route as AppAdminRiderRouteImport } from './routes/_app/admin.rider'
 import { Route as AppAdminEatRouteImport } from './routes/_app/admin.eat'
+import { Route as AppAdminAppVersionRouteImport } from './routes/_app/admin.app-version'
 import { Route as AppAdminOrdersIndexRouteImport } from './routes/_app/admin.orders.index'
 import { Route as AppAdminUsersUserIdRouteImport } from './routes/_app/admin.users.$userId'
 import { Route as AppAdminRestaurantsRestaurantIdRouteImport } from './routes/_app/admin.restaurants.$restaurantId'
@@ -147,6 +148,11 @@ const AppAdminEatRoute = AppAdminEatRouteImport.update({
   path: '/admin/eat',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminAppVersionRoute = AppAdminAppVersionRouteImport.update({
+  id: '/admin/app-version',
+  path: '/admin/app-version',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminOrdersIndexRoute = AppAdminOrdersIndexRouteImport.update({
   id: '/admin/orders/',
   path: '/admin/orders/',
@@ -180,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AppProfileRoute
   '/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/rider-dashboard': typeof AppRiderDashboardRoute
+  '/admin/app-version': typeof AppAdminAppVersionRoute
   '/admin/eat': typeof AppAdminEatRoute
   '/admin/rider': typeof AppAdminRiderRoute
   '/my-restaurant/settings': typeof AppMyRestaurantSettingsRoute
@@ -207,6 +214,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AppProfileRoute
   '/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/rider-dashboard': typeof AppRiderDashboardRoute
+  '/admin/app-version': typeof AppAdminAppVersionRoute
   '/admin/eat': typeof AppAdminEatRoute
   '/admin/rider': typeof AppAdminRiderRoute
   '/my-restaurant/settings': typeof AppMyRestaurantSettingsRoute
@@ -236,6 +244,7 @@ export interface FileRoutesById {
   '/_app/profile': typeof AppProfileRoute
   '/_app/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/_app/rider-dashboard': typeof AppRiderDashboardRoute
+  '/_app/admin/app-version': typeof AppAdminAppVersionRoute
   '/_app/admin/eat': typeof AppAdminEatRoute
   '/_app/admin/rider': typeof AppAdminRiderRoute
   '/_app/my-restaurant_/settings': typeof AppMyRestaurantSettingsRoute
@@ -265,6 +274,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/restaurant-dashboard'
     | '/rider-dashboard'
+    | '/admin/app-version'
     | '/admin/eat'
     | '/admin/rider'
     | '/my-restaurant/settings'
@@ -292,6 +302,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/restaurant-dashboard'
     | '/rider-dashboard'
+    | '/admin/app-version'
     | '/admin/eat'
     | '/admin/rider'
     | '/my-restaurant/settings'
@@ -320,6 +331,7 @@ export interface FileRouteTypes {
     | '/_app/profile'
     | '/_app/restaurant-dashboard'
     | '/_app/rider-dashboard'
+    | '/_app/admin/app-version'
     | '/_app/admin/eat'
     | '/_app/admin/rider'
     | '/_app/my-restaurant_/settings'
@@ -499,6 +511,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminEatRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/app-version': {
+      id: '/_app/admin/app-version'
+      path: '/admin/app-version'
+      fullPath: '/admin/app-version'
+      preLoaderRoute: typeof AppAdminAppVersionRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/orders/': {
       id: '/_app/admin/orders/'
       path: '/admin/orders'
@@ -539,6 +558,7 @@ interface AppRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
   AppRestaurantDashboardRoute: typeof AppRestaurantDashboardRoute
   AppRiderDashboardRoute: typeof AppRiderDashboardRoute
+  AppAdminAppVersionRoute: typeof AppAdminAppVersionRoute
   AppAdminEatRoute: typeof AppAdminEatRoute
   AppAdminRiderRoute: typeof AppAdminRiderRoute
   AppMyRestaurantSettingsRoute: typeof AppMyRestaurantSettingsRoute
@@ -565,6 +585,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProfileRoute: AppProfileRoute,
   AppRestaurantDashboardRoute: AppRestaurantDashboardRoute,
   AppRiderDashboardRoute: AppRiderDashboardRoute,
+  AppAdminAppVersionRoute: AppAdminAppVersionRoute,
   AppAdminEatRoute: AppAdminEatRoute,
   AppAdminRiderRoute: AppAdminRiderRoute,
   AppMyRestaurantSettingsRoute: AppMyRestaurantSettingsRoute,
@@ -593,3 +614,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
