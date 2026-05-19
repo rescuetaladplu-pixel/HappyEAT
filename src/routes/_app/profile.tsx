@@ -4,9 +4,10 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { LogOut, User, Store, ChevronRight, Loader2 } from "lucide-react";
+import { LogOut, User, Store, ChevronRight, Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { isOpenNow } from "@/lib/opening-hours";
+import { AppVersionCard } from "@/components/AppVersionCard";
 
 interface OpeningHours {
   [k: string]: { open: string; close: string; closed: boolean };
@@ -93,10 +94,17 @@ function ProfilePage() {
         <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
           <User className="h-8 w-8" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="font-semibold truncate">{user?.email ?? "ยังไม่ได้เข้าสู่ระบบ"}</p>
           <p className="text-sm text-muted-foreground">{role ? ROLE_LABELS[role] : "—"}</p>
         </div>
+        {user && (
+          <Link to="/profile/edit">
+            <Button variant="outline" size="sm" className="gap-1">
+              <Pencil className="h-3.5 w-3.5" /> แก้ไข
+            </Button>
+          </Link>
+        )}
       </Card>
 
       {(role === "restaurant" || role === "admin" || hasRestaurant) && (
@@ -155,6 +163,8 @@ function ProfilePage() {
           </Button>
         </Card>
       )}
+
+      <AppVersionCard />
 
       {user ? (
         <Button variant="outline" className="w-full" onClick={handleSignOut}>
