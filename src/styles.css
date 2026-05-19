@@ -115,10 +115,24 @@
   /*
    * Native safe-area values:
    * Capacitor Android injects --safe-area-inset-* at runtime, while browsers expose env().
-   * Use our own app variables so fixed dialogs, loaders, navs, and pages all read the same source.
+   * Web stays at 0px. Native gets conservative minimums via SystemBarsConfig classes,
+   * so app UI is separated from the OS status/navigation bars even on older WebViews.
    */
-  --app-safe-top: max(var(--safe-area-inset-top, env(safe-area-inset-top)), 28px);
-  --app-safe-bottom: max(var(--safe-area-inset-bottom, env(safe-area-inset-bottom)), 24px);
+  --app-safe-top-min: 0px;
+  --app-safe-bottom-min: 0px;
+  --app-safe-top: max(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)), var(--app-safe-top-min));
+  --app-safe-bottom: max(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)), var(--app-safe-bottom-min));
+  --app-nav-height: 4.75rem;
+}
+
+html.capacitor-native {
+  --app-safe-top-min: 44px;
+  --app-safe-bottom-min: 48px;
+}
+
+html.capacitor-android {
+  --app-safe-top-min: 48px;
+  --app-safe-bottom-min: 56px;
 }
 
 .dark {
@@ -161,9 +175,17 @@
     border-color: var(--color-border);
   }
 
+  html {
+    min-height: 100%;
+    background-color: var(--color-background);
+  }
+
   body {
+    min-height: 100dvh;
+    margin: 0;
     background-color: var(--color-background);
     color: var(--color-foreground);
+    overflow-x: hidden;
   }
 }
 
@@ -177,7 +199,7 @@
   }
   .safe-pb-nav {
     /* bottom nav + Android gesture bar + safe area */
-    padding-bottom: calc(5rem + var(--app-safe-bottom));
+    padding-bottom: calc(var(--app-nav-height) + var(--app-safe-bottom) + 0.75rem);
   }
   /* offset สำหรับ bottom-fixed nav: ดัน nav ขึ้นเหนือ gesture bar */
   .nav-bottom-offset {
