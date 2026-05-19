@@ -132,7 +132,12 @@ function CartPage() {
   }, [restaurantId]);
 
   async function handleCheckout() {
-    if (!user || !restaurantId || items.length === 0) return;
+    if (!restaurantId || items.length === 0) return;
+    if (!user) {
+      toast.info("กรุณาเข้าสู่ระบบหรือสมัครสมาชิกก่อนยืนยันออเดอร์");
+      navigate({ to: "/auth" });
+      return;
+    }
     if (!address.trim()) return toast.error("กรุณากรอกที่อยู่จัดส่ง");
     if (!restaurantHasPromptpay) return toast.error("ร้านนี้ยังไม่ได้ตั้งค่า PromptPay จึงรับออเดอร์ไม่ได้");
     setSubmitting(true);
@@ -411,9 +416,11 @@ function CartPage() {
             size="lg"
             className="w-full shadow-lg"
             onClick={handleCheckout}
-            disabled={submitting || restaurantHasPromptpay === false}
+            disabled={submitting || (!!user && restaurantHasPromptpay === false)}
           >
-            {submitting
+            {!user
+              ? "เข้าสู่ระบบเพื่อยืนยันออเดอร์"
+              : submitting
               ? "กำลังสั่ง..."
               : `เสนอออเดอร์ — ฿${(total + deliveryFee - discount).toFixed(0)}`}
           </Button>
