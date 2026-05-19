@@ -97,8 +97,20 @@ export function AppVersionCard() {
               <p className="whitespace-pre-line">{releaseNotes}</p>
             </div>
           )}
-          <Button onClick={handleDownload} disabled={!apkUrl} className="w-full gap-2">
-            <Download className="h-4 w-4" /> ดาวน์โหลดเวอร์ชันใหม่ ({latestVersion})
+          {downloading && (
+            <div className="space-y-1">
+              <Progress value={progress} />
+              <p className="text-xs text-muted-foreground text-center">
+                กำลังดาวน์โหลด {progress}%
+              </p>
+            </div>
+          )}
+          <Button onClick={handleDownload} disabled={!apkUrl || downloading} className="w-full gap-2">
+            {downloading ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> กำลังโหลด...</>
+            ) : (
+              <><Download className="h-4 w-4" /> ดาวน์โหลดเวอร์ชันใหม่ ({latestVersion})</>
+            )}
           </Button>
           {!isNative && (
             <p className="text-xs text-muted-foreground text-center">
