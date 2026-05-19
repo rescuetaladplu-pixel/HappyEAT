@@ -63,38 +63,54 @@
 
 :root {
   --radius: 0.875rem;
+
+  /* Brand palette — แมตช์โลโก้ HappyEat (carrot orange + leaf green) */
+  --brand-orange: #FF6B2C;
+  --brand-orange-deep: #E85A1F;
+  --brand-green: #2E8B3D;
+  --brand-green-deep: #1F6B2A;
+  --brand-yellow: #FFB547;
+
   --background: oklch(0.99 0.005 80);
   --foreground: oklch(0.18 0.02 30);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.18 0.02 30);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.02 30);
-  --primary: oklch(0.68 0.20 35);
+
+  /* Primary = ส้มแครอท (warmer than Shopee red-orange, hue 40 not 27) */
+  --primary: oklch(0.70 0.19 40);
   --primary-foreground: oklch(0.99 0.005 80);
-  --secondary: oklch(0.96 0.015 60);
-  --secondary-foreground: oklch(0.22 0.02 30);
+
+  /* Secondary = เขียวใบไม้ — เป็นคู่สีหลักของแบรนด์ */
+  --secondary: oklch(0.55 0.16 145);
+  --secondary-foreground: oklch(0.99 0.005 80);
+
   --muted: oklch(0.96 0.012 80);
   --muted-foreground: oklch(0.52 0.02 40);
-  --accent: oklch(0.93 0.06 70);
-  --accent-foreground: oklch(0.22 0.04 35);
+
+  /* Accent = เขียวอ่อน (soft leaf) สำหรับ highlight/hover */
+  --accent: oklch(0.93 0.06 150);
+  --accent-foreground: oklch(0.30 0.10 145);
+
   --destructive: oklch(0.58 0.23 27);
   --destructive-foreground: oklch(0.99 0.005 80);
   --border: oklch(0.92 0.01 60);
   --input: oklch(0.94 0.01 60);
-  --ring: oklch(0.68 0.20 35);
-  --chart-1: oklch(0.68 0.20 35);
-  --chart-2: oklch(0.72 0.15 160);
-  --chart-3: oklch(0.62 0.18 250);
-  --chart-4: oklch(0.78 0.16 90);
-  --chart-5: oklch(0.66 0.20 320);
+  --ring: oklch(0.70 0.19 40);
+  --chart-1: oklch(0.70 0.19 40);   /* orange */
+  --chart-2: oklch(0.55 0.16 145);  /* green */
+  --chart-3: oklch(0.78 0.16 80);   /* warm yellow */
+  --chart-4: oklch(0.62 0.18 250);  /* blue accent */
+  --chart-5: oklch(0.66 0.20 320);  /* magenta accent */
   --sidebar: oklch(0.99 0.005 80);
   --sidebar-foreground: oklch(0.18 0.02 30);
-  --sidebar-primary: oklch(0.68 0.20 35);
+  --sidebar-primary: oklch(0.70 0.19 40);
   --sidebar-primary-foreground: oklch(0.99 0.005 80);
-  --sidebar-accent: oklch(0.96 0.015 60);
-  --sidebar-accent-foreground: oklch(0.22 0.02 30);
+  --sidebar-accent: oklch(0.94 0.04 150);
+  --sidebar-accent-foreground: oklch(0.30 0.10 145);
   --sidebar-border: oklch(0.92 0.01 60);
-  --sidebar-ring: oklch(0.68 0.20 35);
+  --sidebar-ring: oklch(0.70 0.19 40);
 }
 
 .dark {
