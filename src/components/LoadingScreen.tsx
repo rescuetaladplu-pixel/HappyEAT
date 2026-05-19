@@ -13,7 +13,7 @@ export function LoadingScreen({ label = "กำลังโหลด...", fullSc
     <div
       className={
         fullScreen
-          ? "fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-background"
+          ? "fixed inset-x-0 top-0 bottom-0 z-50 flex flex-col items-center justify-center gap-6 bg-background safe-top safe-bottom"
           : "flex flex-col items-center justify-center gap-6 py-16"
       }
     >
