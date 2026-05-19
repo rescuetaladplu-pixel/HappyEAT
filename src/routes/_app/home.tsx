@@ -544,6 +544,20 @@ function HomePage() {
                         <UtensilsCrossed className="h-12 w-12" />
                       </div>
                     )}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleFav(r.id);
+                      }}
+                      aria-label="ร้านโปรด"
+                      className="absolute top-2 right-2 h-9 w-9 rounded-full bg-card/90 backdrop-blur flex items-center justify-center shadow hover:bg-card transition"
+                    >
+                      <Heart
+                        className={`h-5 w-5 ${isFavorite(r.id) ? "fill-red-500 text-red-500" : "text-muted-foreground"}`}
+                      />
+                    </button>
                     {!reallyOpen && (
                       <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
                         <span className="font-semibold text-foreground">{closedLabel}</span>
