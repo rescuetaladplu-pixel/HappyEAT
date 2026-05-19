@@ -79,11 +79,10 @@ export function ForceUpdateGate() {
   return (
     <Dialog open modal>
       <DialogContent
-        className="max-w-sm"
+        className="max-w-sm [&>button.absolute]:hidden"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
-        showCloseButton={false}
       >
         <DialogHeader>
           <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
