@@ -183,6 +183,12 @@
   .nav-bottom-offset {
     bottom: var(--app-safe-bottom);
   }
+  .safe-sticky-top {
+    top: var(--app-safe-top);
+  }
+  .safe-action-above-nav {
+    bottom: calc(5.5rem + var(--app-safe-bottom));
+  }
   .safe-fixed-panel {
     top: calc(50% + (var(--app-safe-top) - var(--app-safe-bottom)) / 2);
     max-height: calc(100dvh - var(--app-safe-top) - var(--app-safe-bottom) - 1rem);
