@@ -396,11 +396,14 @@ function HomePage() {
   return (
     <main className="max-w-2xl mx-auto">
       <header className="px-4 pt-6 pb-4">
+        <div className="flex items-center justify-center mb-3">
+          <Logo size={40} showText />
+        </div>
         <Sheet open={addrOpen} onOpenChange={handleAddressOpen}>
           <SheetTrigger asChild>
             <button className="flex items-center gap-2 mb-3 w-full text-left rounded-xl hover:bg-secondary/60 active:bg-secondary p-1 -m-1 transition">
-              <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shrink-0">
-                <UtensilsCrossed className="h-5 w-5" />
+              <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <MapPin className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
