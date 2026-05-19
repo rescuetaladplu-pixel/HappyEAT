@@ -164,6 +164,8 @@ function ProfilePage() {
         </Card>
       )}
 
+      <AppVersionCard />
+
       {user ? (
         <Button variant="outline" className="w-full" onClick={handleSignOut}>
           <LogOut className="h-4 w-4 mr-2" /> ออกจากระบบ
