@@ -80,7 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "HappyEat — แอปสั่งอาหาร" },
       { name: "description", content: "สั่งอาหารจากร้านโปรดของคุณ ส่งถึงที่หมายอย่างรวดเร็ว" },
       { name: "author", content: "HappyEat" },
-      { name: "theme-color", content: "#f97316" },
+      { name: "theme-color", content: "#FF6B2C" },
       { name: "application-name", content: "HappyEat" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
