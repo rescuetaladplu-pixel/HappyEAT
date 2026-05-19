@@ -124,6 +124,42 @@ export type Database = {
         }
         Relationships: []
       }
+      app_config: {
+        Row: {
+          apk_download_url: string | null
+          created_at: string
+          force_update: boolean
+          id: string
+          latest_version: string
+          min_supported_version: string
+          platform: string
+          release_notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          apk_download_url?: string | null
+          created_at?: string
+          force_update?: boolean
+          id?: string
+          latest_version: string
+          min_supported_version: string
+          platform: string
+          release_notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          apk_download_url?: string | null
+          created_at?: string
+          force_update?: boolean
+          id?: string
+          latest_version?: string
+          min_supported_version?: string
+          platform?: string
+          release_notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fcm_tokens: {
         Row: {
           created_at: string
