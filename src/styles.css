@@ -161,15 +161,19 @@
 
 @layer utilities {
   .safe-top {
-    /* webview ไม่อยู่ใต้ status bar แล้ว — เผื่อกรณีเก่า/iOS ใช้ env() พอ */
-    padding-top: env(safe-area-inset-top);
+    /* status bar inset + กันชนขั้นต่ำ 28px เผื่อ webview overlay (Android 15 edge-to-edge) */
+    padding-top: max(env(safe-area-inset-top), 28px);
   }
   .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: max(env(safe-area-inset-bottom), 16px);
   }
   .safe-pb-nav {
-    /* bottom nav + Lovable badge space + safe area */
-    padding-bottom: calc(8rem + env(safe-area-inset-bottom));
+    /* bottom nav + Android gesture bar + safe area */
+    padding-bottom: calc(5rem + max(env(safe-area-inset-bottom), 24px));
+  }
+  /* offset สำหรับ bottom-fixed nav: ดัน nav ขึ้นเหนือ gesture bar */
+  .nav-bottom-offset {
+    bottom: max(env(safe-area-inset-bottom), 24px);
   }
 }
 
