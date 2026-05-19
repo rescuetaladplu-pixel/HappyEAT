@@ -12,6 +12,7 @@ import appCss from "../styles.css?url";
 import { AuthProvider } from "@/lib/auth";
 import { CartProvider } from "@/lib/cart";
 import { Toaster } from "@/components/ui/sonner";
+import { ForceUpdateGate } from "@/components/ForceUpdateGate";
 
 function NotFoundComponent() {
   return (
@@ -131,6 +132,7 @@ function RootComponent() {
         <CartProvider>
           <Outlet />
           <Toaster position="top-center" richColors />
+          <ForceUpdateGate />
         </CartProvider>
       </AuthProvider>
     </QueryClientProvider>
