@@ -420,7 +420,7 @@ function CartPage() {
         </div>
       </Card>
 
-      <div className="fixed bottom-20 inset-x-0 px-4 z-30">
+      <div className="fixed bottom-28 inset-x-0 px-4 z-30">
         <div className="max-w-2xl mx-auto">
           <Button
             size="lg"
