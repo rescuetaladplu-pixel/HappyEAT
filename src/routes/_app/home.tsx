@@ -35,6 +35,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useFavorites } from "@/lib/favorites";
+import { Logo } from "@/components/Logo";
 
 const FAVORITES_CAT = "ร้านโปรด";
 
