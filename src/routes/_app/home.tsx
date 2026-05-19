@@ -30,9 +30,13 @@ import {
   Trash2,
   Check,
   ArrowLeft,
+  Heart,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useFavorites } from "@/lib/favorites";
+
+const FAVORITES_CAT = "ร้านโปรด";
 
 export const Route = createFileRoute("/_app/home")({
   component: HomePage,
@@ -67,7 +71,7 @@ interface AddressRow {
   rider_note: string | null;
 }
 
-const CATEGORIES = ["ทั้งหมด", ...RESTAURANT_CATEGORIES];
+const CATEGORIES = ["ทั้งหมด", FAVORITES_CAT, ...RESTAURANT_CATEGORIES];
 const PHONE_RE = /^[0-9+\-\s()]{8,20}$/;
 const ADDRESS_SAVE_TIMEOUT_MS = 15000;
 
@@ -88,6 +92,7 @@ async function withTimeout<T>(promise: PromiseLike<T>, ms: number) {
 function HomePage() {
   const { user, role, roles, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { isFavorite, toggle: toggleFav } = useFavorites();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
