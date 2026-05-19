@@ -161,7 +161,7 @@ function PlatformCard({ row, onSaved }: { row: AppConfigRow; onSaved: () => void
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState(false);
 
-  const versionRegex = /^\d+\.\d+\.\d+$/;
+  const versionRegex = /^\d+\.\d+(\.\d+)?$/;
   const latestValid = versionRegex.test(latest);
   const minValid = versionRegex.test(minSupported);
   const versionWarning =
