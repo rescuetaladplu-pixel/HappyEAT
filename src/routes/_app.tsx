@@ -2,15 +2,18 @@ import { createFileRoute, Outlet, Link, useLocation } from "@tanstack/react-rout
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 import { Home, ShoppingBag, ClipboardList, User, Store, Bike, Shield } from "lucide-react";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
 });
 
 function AppLayout() {
-  const { role } = useAuth();
+  const { role, loading } = useAuth();
   const location = useLocation();
   const { count } = useCart();
+
+  if (loading) return <LoadingScreen />;
 
   const customerNav = [
     { to: "/home", icon: Home, label: "หน้าแรก" },
