@@ -20,6 +20,8 @@ type AppConfig = {
 
 export function ForceUpdateGate() {
   const [config, setConfig] = useState<AppConfig | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [currentVersion, setCurrentVersion] = useState<string>(APP_VERSION);
   const [mustUpdate, setMustUpdate] = useState(false);
 
