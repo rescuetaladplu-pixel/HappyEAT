@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, SystemBars, SystemBarsStyle, SystemBarType } from "@capacitor/core";
 import { StatusBar, Style } from "@capacitor/status-bar";
 
 /**
@@ -13,6 +13,10 @@ export function SystemBarsConfig() {
     if (!Capacitor.isNativePlatform()) return;
     (async () => {
       try {
+        await SystemBars.show({ bar: SystemBarType.StatusBar });
+        await SystemBars.show({ bar: SystemBarType.NavigationBar });
+        await SystemBars.setStyle({ style: SystemBarsStyle.Light, bar: SystemBarType.StatusBar });
+        await SystemBars.setStyle({ style: SystemBarsStyle.Light, bar: SystemBarType.NavigationBar });
         await StatusBar.setOverlaysWebView({ overlay: false });
         await StatusBar.setStyle({ style: Style.Light });
         await StatusBar.setBackgroundColor({ color: "#ffffff" });

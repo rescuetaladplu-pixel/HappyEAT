@@ -97,7 +97,7 @@ function AuthPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-accent/40 via-background to-background flex items-center justify-center p-4">
+    <main className="min-h-dvh bg-gradient-to-br from-accent/40 via-background to-background flex items-center justify-center p-4 safe-top safe-bottom">
       <div className="w-full max-w-md">
         <Link to="/home" className="flex items-center justify-center mb-6">
           <img src={logoSrc} alt="HappyEAT" className="h-44 w-auto object-contain" />

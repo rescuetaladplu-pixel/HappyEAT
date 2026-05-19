@@ -111,6 +111,14 @@
   --sidebar-accent-foreground: oklch(0.30 0.10 145);
   --sidebar-border: oklch(0.92 0.01 60);
   --sidebar-ring: oklch(0.70 0.19 40);
+
+  /*
+   * Native safe-area values:
+   * Capacitor Android injects --safe-area-inset-* at runtime, while browsers expose env().
+   * Use our own app variables so fixed dialogs, loaders, navs, and pages all read the same source.
+   */
+  --app-safe-top: max(var(--safe-area-inset-top, env(safe-area-inset-top)), 28px);
+  --app-safe-bottom: max(var(--safe-area-inset-bottom, env(safe-area-inset-bottom)), 24px);
 }
 
 .dark {
@@ -161,19 +169,29 @@
 
 @layer utilities {
   .safe-top {
-    /* status bar inset + กันชนขั้นต่ำ 28px เผื่อ webview overlay (Android 15 edge-to-edge) */
-    padding-top: max(env(safe-area-inset-top), 28px);
+    /* status bar inset + กันชนขั้นต่ำ เผื่อ native webview overlay */
+    padding-top: var(--app-safe-top);
   }
   .safe-bottom {
-    padding-bottom: max(env(safe-area-inset-bottom), 16px);
+    padding-bottom: var(--app-safe-bottom);
   }
   .safe-pb-nav {
     /* bottom nav + Android gesture bar + safe area */
-    padding-bottom: calc(5rem + max(env(safe-area-inset-bottom), 24px));
+    padding-bottom: calc(5rem + var(--app-safe-bottom));
   }
   /* offset สำหรับ bottom-fixed nav: ดัน nav ขึ้นเหนือ gesture bar */
   .nav-bottom-offset {
-    bottom: max(env(safe-area-inset-bottom), 24px);
+    bottom: var(--app-safe-bottom);
+  }
+  .safe-sticky-top {
+    top: var(--app-safe-top);
+  }
+  .safe-action-above-nav {
+    bottom: calc(5.5rem + var(--app-safe-bottom));
+  }
+  .safe-fixed-panel {
+    top: calc(50% + (var(--app-safe-top) - var(--app-safe-bottom)) / 2);
+    max-height: calc(100dvh - var(--app-safe-top) - var(--app-safe-bottom) - 1rem);
   }
 }
 
