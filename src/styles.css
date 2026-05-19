@@ -151,7 +151,7 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
   .safe-pb-nav {
-    /* bottom nav (~80px) + Android gesture bar */
-    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+    /* bottom nav (~80px) + Lovable badge space (~48px) + Android gesture bar */
+    padding-bottom: calc(8rem + env(safe-area-inset-bottom));
   }
 }
