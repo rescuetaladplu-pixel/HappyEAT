@@ -54,10 +54,18 @@ export function AppVersionCard() {
 
   async function handleDownload() {
     if (!apkUrl) return;
+    setDownloading(true);
+    setProgress(0);
     try {
-      await Browser.open({ url: apkUrl });
-    } catch {
-      window.open(apkUrl, "_blank");
+      await downloadAndInstallApk(apkUrl, ({ percent }) => setProgress(percent));
+      if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android") {
+        toast.success("โหลดเสร็จแล้ว กดติดตั้งเพื่ออัปเดต");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "ดาวน์โหลดไม่สำเร็จ";
+      toast.error(msg);
+    } finally {
+      setDownloading(false);
     }
   }
 
