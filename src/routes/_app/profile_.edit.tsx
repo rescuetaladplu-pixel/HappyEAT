@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Loader2, Save, Upload, User } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_app/profile/edit")({
+export const Route = createFileRoute("/_app/profile_/edit")({
   component: EditProfilePage,
 });
 

@@ -28,7 +28,7 @@ import { Route as AppRestaurantOrdersRouteImport } from './routes/_app/restauran
 import { Route as AppRestaurantNotificationSettingsRouteImport } from './routes/_app/restaurant.notification-settings'
 import { Route as AppRestaurantMenuRouteImport } from './routes/_app/restaurant.menu'
 import { Route as AppRestaurantAnalyticsRouteImport } from './routes/_app/restaurant.analytics'
-import { Route as AppProfileEditRouteImport } from './routes/_app/profile.edit'
+import { Route as AppProfileEditRouteImport } from './routes/_app/profile_.edit'
 import { Route as AppMyRestaurantSettingsRouteImport } from './routes/_app/my-restaurant_.settings'
 import { Route as AppAdminRiderRouteImport } from './routes/_app/admin.rider'
 import { Route as AppAdminEatRouteImport } from './routes/_app/admin.eat'
@@ -135,9 +135,9 @@ const AppRestaurantAnalyticsRoute = AppRestaurantAnalyticsRouteImport.update({
   getParentRoute: () => AppRoute,
 } as any)
 const AppProfileEditRoute = AppProfileEditRouteImport.update({
-  id: '/edit',
-  path: '/edit',
-  getParentRoute: () => AppProfileRoute,
+  id: '/profile_/edit',
+  path: '/profile/edit',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppMyRestaurantSettingsRoute = AppMyRestaurantSettingsRouteImport.update({
   id: '/my-restaurant_/settings',
@@ -189,7 +189,7 @@ export interface FileRoutesByFullPath {
   '/home': typeof AppHomeRoute
   '/my-restaurant': typeof AppMyRestaurantRoute
   '/orders': typeof AppOrdersRoute
-  '/profile': typeof AppProfileRouteWithChildren
+  '/profile': typeof AppProfileRoute
   '/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/rider-dashboard': typeof AppRiderDashboardRoute
   '/admin/app-version': typeof AppAdminAppVersionRoute
@@ -218,7 +218,7 @@ export interface FileRoutesByTo {
   '/home': typeof AppHomeRoute
   '/my-restaurant': typeof AppMyRestaurantRoute
   '/orders': typeof AppOrdersRoute
-  '/profile': typeof AppProfileRouteWithChildren
+  '/profile': typeof AppProfileRoute
   '/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/rider-dashboard': typeof AppRiderDashboardRoute
   '/admin/app-version': typeof AppAdminAppVersionRoute
@@ -249,14 +249,14 @@ export interface FileRoutesById {
   '/_app/home': typeof AppHomeRoute
   '/_app/my-restaurant': typeof AppMyRestaurantRoute
   '/_app/orders': typeof AppOrdersRoute
-  '/_app/profile': typeof AppProfileRouteWithChildren
+  '/_app/profile': typeof AppProfileRoute
   '/_app/restaurant-dashboard': typeof AppRestaurantDashboardRoute
   '/_app/rider-dashboard': typeof AppRiderDashboardRoute
   '/_app/admin/app-version': typeof AppAdminAppVersionRoute
   '/_app/admin/eat': typeof AppAdminEatRoute
   '/_app/admin/rider': typeof AppAdminRiderRoute
   '/_app/my-restaurant_/settings': typeof AppMyRestaurantSettingsRoute
-  '/_app/profile/edit': typeof AppProfileEditRoute
+  '/_app/profile_/edit': typeof AppProfileEditRoute
   '/_app/restaurant/analytics': typeof AppRestaurantAnalyticsRoute
   '/_app/restaurant/menu': typeof AppRestaurantMenuRoute
   '/_app/restaurant/notification-settings': typeof AppRestaurantNotificationSettingsRoute
@@ -346,7 +346,7 @@ export interface FileRouteTypes {
     | '/_app/admin/eat'
     | '/_app/admin/rider'
     | '/_app/my-restaurant_/settings'
-    | '/_app/profile/edit'
+    | '/_app/profile_/edit'
     | '/_app/restaurant/analytics'
     | '/_app/restaurant/menu'
     | '/_app/restaurant/notification-settings'
@@ -502,12 +502,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRestaurantAnalyticsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/profile/edit': {
-      id: '/_app/profile/edit'
-      path: '/edit'
+    '/_app/profile_/edit': {
+      id: '/_app/profile_/edit'
+      path: '/profile/edit'
       fullPath: '/profile/edit'
       preLoaderRoute: typeof AppProfileEditRouteImport
-      parentRoute: typeof AppProfileRoute
+      parentRoute: typeof AppRoute
     }
     '/_app/my-restaurant_/settings': {
       id: '/_app/my-restaurant_/settings'
@@ -568,31 +568,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AppProfileRouteChildren {
-  AppProfileEditRoute: typeof AppProfileEditRoute
-}
-
-const AppProfileRouteChildren: AppProfileRouteChildren = {
-  AppProfileEditRoute: AppProfileEditRoute,
-}
-
-const AppProfileRouteWithChildren = AppProfileRoute._addFileChildren(
-  AppProfileRouteChildren,
-)
-
 interface AppRouteChildren {
   AppAddressesRoute: typeof AppAddressesRoute
   AppCartRoute: typeof AppCartRoute
   AppHomeRoute: typeof AppHomeRoute
   AppMyRestaurantRoute: typeof AppMyRestaurantRoute
   AppOrdersRoute: typeof AppOrdersRoute
-  AppProfileRoute: typeof AppProfileRouteWithChildren
+  AppProfileRoute: typeof AppProfileRoute
   AppRestaurantDashboardRoute: typeof AppRestaurantDashboardRoute
   AppRiderDashboardRoute: typeof AppRiderDashboardRoute
   AppAdminAppVersionRoute: typeof AppAdminAppVersionRoute
   AppAdminEatRoute: typeof AppAdminEatRoute
   AppAdminRiderRoute: typeof AppAdminRiderRoute
   AppMyRestaurantSettingsRoute: typeof AppMyRestaurantSettingsRoute
+  AppProfileEditRoute: typeof AppProfileEditRoute
   AppRestaurantAnalyticsRoute: typeof AppRestaurantAnalyticsRoute
   AppRestaurantMenuRoute: typeof AppRestaurantMenuRoute
   AppRestaurantNotificationSettingsRoute: typeof AppRestaurantNotificationSettingsRoute
@@ -613,13 +602,14 @@ const AppRouteChildren: AppRouteChildren = {
   AppHomeRoute: AppHomeRoute,
   AppMyRestaurantRoute: AppMyRestaurantRoute,
   AppOrdersRoute: AppOrdersRoute,
-  AppProfileRoute: AppProfileRouteWithChildren,
+  AppProfileRoute: AppProfileRoute,
   AppRestaurantDashboardRoute: AppRestaurantDashboardRoute,
   AppRiderDashboardRoute: AppRiderDashboardRoute,
   AppAdminAppVersionRoute: AppAdminAppVersionRoute,
   AppAdminEatRoute: AppAdminEatRoute,
   AppAdminRiderRoute: AppAdminRiderRoute,
   AppMyRestaurantSettingsRoute: AppMyRestaurantSettingsRoute,
+  AppProfileEditRoute: AppProfileEditRoute,
   AppRestaurantAnalyticsRoute: AppRestaurantAnalyticsRoute,
   AppRestaurantMenuRoute: AppRestaurantMenuRoute,
   AppRestaurantNotificationSettingsRoute:
@@ -645,3 +635,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
