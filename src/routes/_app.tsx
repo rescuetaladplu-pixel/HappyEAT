@@ -49,7 +49,6 @@ function AppLayout() {
     <div className="min-h-dvh bg-background safe-top safe-pb-nav overflow-x-hidden">
       <Outlet />
       <nav className="fixed bottom-0 inset-x-0 z-40 bg-card border-t border-border pb-[var(--app-safe-bottom)]">
-
         <div
           className="mx-auto max-w-2xl grid"
           style={{ gridTemplateColumns: `repeat(${nav.length}, minmax(0, 1fr))` }}
