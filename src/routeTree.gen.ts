@@ -35,6 +35,7 @@ import { Route as AppAdminRiderRouteImport } from './routes/_app/admin.rider'
 import { Route as AppAdminEatRouteImport } from './routes/_app/admin.eat'
 import { Route as AppAdminAppVersionRouteImport } from './routes/_app/admin.app-version'
 import { Route as AppAdminOrdersIndexRouteImport } from './routes/_app/admin.orders.index'
+import { Route as AppRestaurantsRestaurantIdReviewsRouteImport } from './routes/_app/restaurants.$restaurantId.reviews'
 import { Route as AppAdminUsersUserIdRouteImport } from './routes/_app/admin.users.$userId'
 import { Route as AppAdminRestaurantsRestaurantIdRouteImport } from './routes/_app/admin.restaurants.$restaurantId'
 import { Route as AppAdminOrdersOrderIdRouteImport } from './routes/_app/admin.orders.$orderId'
@@ -170,6 +171,12 @@ const AppAdminOrdersIndexRoute = AppAdminOrdersIndexRouteImport.update({
   path: '/admin/orders/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRestaurantsRestaurantIdReviewsRoute =
+  AppRestaurantsRestaurantIdReviewsRouteImport.update({
+    id: '/reviews',
+    path: '/reviews',
+    getParentRoute: () => AppRestaurantsRestaurantIdRoute,
+  } as any)
 const AppAdminUsersUserIdRoute = AppAdminUsersUserIdRouteImport.update({
   id: '/admin/users/$userId',
   path: '/admin/users/$userId',
@@ -210,11 +217,12 @@ export interface FileRoutesByFullPath {
   '/restaurant/orders': typeof AppRestaurantOrdersRoute
   '/restaurant/promotions': typeof AppRestaurantPromotionsRoute
   '/restaurant/reviews': typeof AppRestaurantReviewsRoute
-  '/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
+  '/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRouteWithChildren
   '/admin/': typeof AppAdminIndexRoute
   '/admin/orders/$orderId': typeof AppAdminOrdersOrderIdRoute
   '/admin/restaurants/$restaurantId': typeof AppAdminRestaurantsRestaurantIdRoute
   '/admin/users/$userId': typeof AppAdminUsersUserIdRoute
+  '/restaurants/$restaurantId/reviews': typeof AppRestaurantsRestaurantIdReviewsRoute
   '/admin/orders/': typeof AppAdminOrdersIndexRoute
 }
 export interface FileRoutesByTo {
@@ -240,11 +248,12 @@ export interface FileRoutesByTo {
   '/restaurant/orders': typeof AppRestaurantOrdersRoute
   '/restaurant/promotions': typeof AppRestaurantPromotionsRoute
   '/restaurant/reviews': typeof AppRestaurantReviewsRoute
-  '/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
+  '/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRouteWithChildren
   '/admin': typeof AppAdminIndexRoute
   '/admin/orders/$orderId': typeof AppAdminOrdersOrderIdRoute
   '/admin/restaurants/$restaurantId': typeof AppAdminRestaurantsRestaurantIdRoute
   '/admin/users/$userId': typeof AppAdminUsersUserIdRoute
+  '/restaurants/$restaurantId/reviews': typeof AppRestaurantsRestaurantIdReviewsRoute
   '/admin/orders': typeof AppAdminOrdersIndexRoute
 }
 export interface FileRoutesById {
@@ -272,11 +281,12 @@ export interface FileRoutesById {
   '/_app/restaurant/orders': typeof AppRestaurantOrdersRoute
   '/_app/restaurant/promotions': typeof AppRestaurantPromotionsRoute
   '/_app/restaurant/reviews': typeof AppRestaurantReviewsRoute
-  '/_app/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRoute
+  '/_app/restaurants/$restaurantId': typeof AppRestaurantsRestaurantIdRouteWithChildren
   '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/admin/orders/$orderId': typeof AppAdminOrdersOrderIdRoute
   '/_app/admin/restaurants/$restaurantId': typeof AppAdminRestaurantsRestaurantIdRoute
   '/_app/admin/users/$userId': typeof AppAdminUsersUserIdRoute
+  '/_app/restaurants/$restaurantId/reviews': typeof AppRestaurantsRestaurantIdReviewsRoute
   '/_app/admin/orders/': typeof AppAdminOrdersIndexRoute
 }
 export interface FileRouteTypes {
@@ -309,6 +319,7 @@ export interface FileRouteTypes {
     | '/admin/orders/$orderId'
     | '/admin/restaurants/$restaurantId'
     | '/admin/users/$userId'
+    | '/restaurants/$restaurantId/reviews'
     | '/admin/orders/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -339,6 +350,7 @@ export interface FileRouteTypes {
     | '/admin/orders/$orderId'
     | '/admin/restaurants/$restaurantId'
     | '/admin/users/$userId'
+    | '/restaurants/$restaurantId/reviews'
     | '/admin/orders'
   id:
     | '__root__'
@@ -370,6 +382,7 @@ export interface FileRouteTypes {
     | '/_app/admin/orders/$orderId'
     | '/_app/admin/restaurants/$restaurantId'
     | '/_app/admin/users/$userId'
+    | '/_app/restaurants/$restaurantId/reviews'
     | '/_app/admin/orders/'
   fileRoutesById: FileRoutesById
 }
@@ -563,6 +576,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminOrdersIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/restaurants/$restaurantId/reviews': {
+      id: '/_app/restaurants/$restaurantId/reviews'
+      path: '/reviews'
+      fullPath: '/restaurants/$restaurantId/reviews'
+      preLoaderRoute: typeof AppRestaurantsRestaurantIdReviewsRouteImport
+      parentRoute: typeof AppRestaurantsRestaurantIdRoute
+    }
     '/_app/admin/users/$userId': {
       id: '/_app/admin/users/$userId'
       path: '/admin/users/$userId'
@@ -587,6 +607,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppRestaurantsRestaurantIdRouteChildren {
+  AppRestaurantsRestaurantIdReviewsRoute: typeof AppRestaurantsRestaurantIdReviewsRoute
+}
+
+const AppRestaurantsRestaurantIdRouteChildren: AppRestaurantsRestaurantIdRouteChildren =
+  {
+    AppRestaurantsRestaurantIdReviewsRoute:
+      AppRestaurantsRestaurantIdReviewsRoute,
+  }
+
+const AppRestaurantsRestaurantIdRouteWithChildren =
+  AppRestaurantsRestaurantIdRoute._addFileChildren(
+    AppRestaurantsRestaurantIdRouteChildren,
+  )
+
 interface AppRouteChildren {
   AppAddressesRoute: typeof AppAddressesRoute
   AppCartRoute: typeof AppCartRoute
@@ -608,7 +643,7 @@ interface AppRouteChildren {
   AppRestaurantOrdersRoute: typeof AppRestaurantOrdersRoute
   AppRestaurantPromotionsRoute: typeof AppRestaurantPromotionsRoute
   AppRestaurantReviewsRoute: typeof AppRestaurantReviewsRoute
-  AppRestaurantsRestaurantIdRoute: typeof AppRestaurantsRestaurantIdRoute
+  AppRestaurantsRestaurantIdRoute: typeof AppRestaurantsRestaurantIdRouteWithChildren
   AppAdminIndexRoute: typeof AppAdminIndexRoute
   AppAdminOrdersOrderIdRoute: typeof AppAdminOrdersOrderIdRoute
   AppAdminRestaurantsRestaurantIdRoute: typeof AppAdminRestaurantsRestaurantIdRoute
@@ -638,7 +673,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppRestaurantOrdersRoute: AppRestaurantOrdersRoute,
   AppRestaurantPromotionsRoute: AppRestaurantPromotionsRoute,
   AppRestaurantReviewsRoute: AppRestaurantReviewsRoute,
-  AppRestaurantsRestaurantIdRoute: AppRestaurantsRestaurantIdRoute,
+  AppRestaurantsRestaurantIdRoute: AppRestaurantsRestaurantIdRouteWithChildren,
   AppAdminIndexRoute: AppAdminIndexRoute,
   AppAdminOrdersOrderIdRoute: AppAdminOrdersOrderIdRoute,
   AppAdminRestaurantsRestaurantIdRoute: AppAdminRestaurantsRestaurantIdRoute,
