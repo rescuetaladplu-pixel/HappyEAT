@@ -47,6 +47,12 @@ function AppLayout() {
 
   return (
     <div className="min-h-dvh bg-background safe-top safe-pb-nav overflow-x-hidden">
+      {/* แถบทึบปิด status bar — กัน content scroll ลอดขึ้นไปใต้แถบแจ้งเตือนระบบ */}
+      <div
+        aria-hidden
+        className="fixed top-0 inset-x-0 z-50 bg-background pointer-events-none"
+        style={{ height: "var(--app-safe-top)" }}
+      />
       <Outlet />
       <nav className="fixed bottom-0 inset-x-0 z-40 bg-card border-t border-border pb-[var(--app-safe-bottom)]">
         <div
