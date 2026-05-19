@@ -164,6 +164,41 @@ function ProfilePage() {
         </Card>
       )}
 
+      {user && (
+        <Card className="overflow-hidden divide-y">
+          <Link to="/addresses" search={{ from: "/profile" }} className="p-4 flex items-center gap-3 hover:bg-accent transition-colors">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+              <MapPin className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium">ที่อยู่จัดส่ง</p>
+              <p className="text-xs text-muted-foreground">เพิ่ม/แก้ไข และตั้งค่าที่อยู่เริ่มต้น</p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </Link>
+          <Link to="/home" search={{}} className="p-4 flex items-center gap-3 hover:bg-accent transition-colors" onClick={(e) => { e.preventDefault(); navigate({ to: "/home" }); setTimeout(() => { window.dispatchEvent(new CustomEvent("happyeat:select-favorites")); }, 100); }}>
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+              <Heart className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium">ร้านโปรดของฉัน</p>
+              <p className="text-xs text-muted-foreground">รายการร้านที่คุณกดถูกใจ</p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </Link>
+          <Link to="/profile/edit" hash="password" className="p-4 flex items-center gap-3 hover:bg-accent transition-colors">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+              <KeyRound className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium">เปลี่ยนรหัสผ่าน</p>
+              <p className="text-xs text-muted-foreground">ตั้งรหัสผ่านใหม่สำหรับบัญชีของคุณ</p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </Link>
+        </Card>
+      )}
+
       <AppVersionCard />
 
       {user ? (
