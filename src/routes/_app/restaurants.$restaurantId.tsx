@@ -186,11 +186,16 @@ function RestaurantDetail() {
         {restaurant.description && (
           <p className="text-sm text-muted-foreground mt-1">{restaurant.description}</p>
         )}
-        <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1">
+        <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground flex-wrap">
+          <Link
+            to="/restaurants/$restaurantId/reviews"
+            params={{ restaurantId }}
+            className="flex items-center gap-1 hover:text-primary underline-offset-2 hover:underline"
+          >
             <Star className="h-4 w-4 fill-primary text-primary" />
             {Number(restaurant.rating).toFixed(1)}
-          </span>
+            <span className="text-xs">(ดูรีวิว)</span>
+          </Link>
           <span>•</span>
           <span>ค่าส่ง ฿{Number(restaurant.delivery_fee).toFixed(0)}</span>
           {(() => {

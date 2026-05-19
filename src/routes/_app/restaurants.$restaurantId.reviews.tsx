@@ -1,85 +1,86 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
-import { fetchActiveRestaurantId } from "@/lib/active-restaurant";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Star, MessageSquare } from "lucide-react";
 
-export const Route = createFileRoute("/_app/restaurant/reviews")({
-  component: RestaurantReviewsPage,
+export const Route = createFileRoute("/_app/restaurants/$restaurantId/reviews")({
+  component: PublicRestaurantReviewsPage,
 });
 
 interface Review {
   id: string;
   restaurant_rating: number | null;
-  rider_rating: number | null;
   comment: string | null;
+  owner_reply: string | null;
+  replied_at: string | null;
   created_at: string;
-  customer_id: string;
   order_id: string;
 }
 
-function RestaurantReviewsPage() {
-  const { user } = useAuth();
-  const [restaurantId, setRestaurantId] = useState<string | null>(null);
+function PublicRestaurantReviewsPage() {
+  const { restaurantId } = Route.useParams();
+  const [restaurantName, setRestaurantName] = useState<string>("");
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
 
-  async function load(rid: string) {
-    const { data: orderIds } = await supabase
-      .from("orders").select("id").eq("restaurant_id", rid);
-    const ids = (orderIds ?? []).map((o) => o.id);
-    if (ids.length === 0) { setReviews([]); setLoading(false); return; }
-    const { data } = await supabase
-      .from("reviews")
-      .select("id, restaurant_rating, rider_rating, comment, created_at, customer_id, order_id")
-      .in("order_id", ids)
-      .order("created_at", { ascending: false });
-    setReviews((data ?? []) as Review[]);
-    setLoading(false);
-  }
-
   useEffect(() => {
-    if (!user) return;
-    fetchActiveRestaurantId(user.id).then((id) => {
-      if (id) { setRestaurantId(id); load(id); } else setLoading(false);
-    });
-  }, [user]);
+    (async () => {
+      const { data: r } = await supabase
+        .from("restaurants_public")
+        .select("name")
+        .eq("id", restaurantId)
+        .maybeSingle();
+      setRestaurantName((r as { name?: string } | null)?.name ?? "");
+
+      const { data: orderIds } = await supabase
+        .from("orders")
+        .select("id")
+        .eq("restaurant_id", restaurantId);
+      const ids = (orderIds ?? []).map((o) => o.id);
+      if (ids.length === 0) {
+        setReviews([]);
+        setLoading(false);
+        return;
+      }
+      const { data } = await supabase
+        .from("reviews")
+        .select("id, restaurant_rating, comment, owner_reply, replied_at, created_at, order_id")
+        .in("order_id", ids)
+        .order("created_at", { ascending: false });
+      setReviews((data ?? []) as Review[]);
+      setLoading(false);
+    })();
+  }, [restaurantId]);
 
   const filtered = filter === "all"
     ? reviews
     : reviews.filter((r) => r.restaurant_rating === Number(filter));
 
-  const avg = reviews.length
-    ? reviews.filter((r) => r.restaurant_rating).reduce((s, r) => s + (r.restaurant_rating ?? 0), 0)
-      / Math.max(1, reviews.filter((r) => r.restaurant_rating).length)
+  const rated = reviews.filter((r) => r.restaurant_rating);
+  const avg = rated.length
+    ? rated.reduce((s, r) => s + (r.restaurant_rating ?? 0), 0) / rated.length
     : 0;
 
   const distribution = [5, 4, 3, 2, 1].map((s) => ({
-    star: s, count: reviews.filter((r) => r.restaurant_rating === s).length,
+    star: s,
+    count: reviews.filter((r) => r.restaurant_rating === s).length,
   }));
-
-  if (loading) return <main className="p-6">กำลังโหลด...</main>;
-  if (!restaurantId) {
-    return (
-      <main className="max-w-2xl mx-auto p-6 text-center space-y-3">
-        <p>ยังไม่มีร้าน</p>
-        <Button asChild><Link to="/my-restaurant">ไปตั้งค่าร้าน</Link></Button>
-      </main>
-    );
-  }
 
   return (
     <main className="max-w-3xl mx-auto p-4 pb-24 space-y-4">
-      <Button asChild variant="ghost" size="sm"><Link to="/my-restaurant"><ArrowLeft className="h-4 w-4 mr-1" />หน้าร้าน</Link></Button>
+      <Button asChild variant="ghost" size="sm">
+        <Link to="/restaurants/$restaurantId" params={{ restaurantId }}>
+          <ArrowLeft className="h-4 w-4 mr-1" />กลับไปที่ร้าน
+        </Link>
+      </Button>
 
       <div className="flex items-center gap-2">
         <MessageSquare className="h-5 w-5 text-primary" />
-        <h1 className="text-2xl font-bold">รีวิวลูกค้า</h1>
+        <h1 className="text-2xl font-bold">รีวิว{restaurantName ? ` · ${restaurantName}` : ""}</h1>
       </div>
 
       <Card className="p-4">
@@ -118,7 +119,9 @@ function RestaurantReviewsPage() {
         </TabsList>
       </Tabs>
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <Card className="p-8 text-center text-muted-foreground">กำลังโหลด...</Card>
+      ) : filtered.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground">ยังไม่มีรีวิว</Card>
       ) : (
         <div className="space-y-3">
@@ -133,7 +136,12 @@ function RestaurantReviewsPage() {
                 <span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString("th-TH")}</span>
               </div>
               {r.comment && <p className="text-sm">{r.comment}</p>}
-              <p className="text-xs text-muted-foreground">ออเดอร์ #{r.order_id.slice(0, 8)}</p>
+              {r.owner_reply && (
+                <div className="bg-muted/50 rounded-lg p-3 mt-2">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">การตอบกลับของร้าน</p>
+                  <p className="text-sm">{r.owner_reply}</p>
+                </div>
+              )}
             </Card>
           ))}
         </div>
