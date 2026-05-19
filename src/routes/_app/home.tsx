@@ -31,6 +31,7 @@ import {
   Check,
   ArrowLeft,
   Heart,
+  ArrowUp,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -626,6 +627,7 @@ function HomePage() {
           })
         )}
       </section>
+      <ScrollToTopButton />
     </main>
   );
 }
