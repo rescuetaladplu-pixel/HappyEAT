@@ -274,7 +274,6 @@ export const notifyRidersOrderReady = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    // Resolve restaurant pickup point if not provided
     let pickupLat = data.restaurantLat;
     let pickupLng = data.restaurantLng;
     let restName = data.restaurantName;
@@ -291,116 +290,74 @@ export const notifyRidersOrderReady = createServerFn({ method: "POST" })
       }
     }
 
-    const { data: riders } = await supabaseAdmin
-      .from("riders")
-      .select("id, current_lat, current_lng")
-      .eq("is_online", true)
-      .eq("is_approved", true);
-
-    if (!riders || riders.length === 0) return { sent: 0, picked: 0 };
-
-    // Rank by ACTUAL DRIVING DISTANCE using OSRM (free, OpenStreetMap-based).
-    // Pre-filter to up to 10 candidates by straight-line distance to cap request size,
-    // then resolve driving distance via OSRM `table` service and pick the nearest 3.
-    let picked: string[];
+    let picked: string[] = [];
     if (pickupLat != null && pickupLng != null) {
-      const withCoords = riders
-        .map((r) => {
-          const lat = r.current_lat != null ? Number(r.current_lat) : null;
-          const lng = r.current_lng != null ? Number(r.current_lng) : null;
-          if (lat == null || lng == null) return null;
-          return { id: r.id, lat, lng, straightKm: haversineKm(pickupLat!, pickupLng!, lat, lng) };
-        })
-        .filter((x): x is { id: string; lat: number; lng: number; straightKm: number } => x !== null)
-        .sort((a, b) => a.straightKm - b.straightKm)
-        .slice(0, 10);
-
-      const noCoords = riders
-        .filter((r) => r.current_lat == null || r.current_lng == null)
-        .map((r) => r.id);
-
-      let ranked: string[] = [];
-      if (withCoords.length > 0) {
-        try {
-          // OSRM table service: origin = index 0, destinations = index 1..N
-          // Coords format: lng,lat (OSRM convention)
-          const coords = [
-            `${pickupLng},${pickupLat}`,
-            ...withCoords.map((r) => `${r.lng},${r.lat}`),
-          ].join(";");
-          const destIdx = withCoords.map((_, i) => i + 1).join(";");
-          const url = `https://router.project-osrm.org/table/v1/driving/${coords}?sources=0&destinations=${destIdx}&annotations=distance`;
-          const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-          const json: any = await res.json();
-          const distances: (number | null)[] = json?.distances?.[0] ?? [];
-          const withDriving = withCoords.map((r, i) => ({
-            id: r.id,
-            meters: distances[i] != null ? Number(distances[i]) : Number.POSITIVE_INFINITY,
-            straightKm: r.straightKm,
-          }));
-          withDriving.sort((a, b) => a.meters - b.meters || a.straightKm - b.straightKm);
-          ranked = withDriving.map((r) => r.id);
-        } catch (e) {
-          console.error("OSRM routing failed, falling back to straight-line:", e);
-          ranked = withCoords.map((r) => r.id);
-        }
-      }
-
-      picked = [...ranked, ...noCoords].slice(0, NEAREST_RIDER_COUNT);
+      picked = await selectRidersWithinKm(
+        supabaseAdmin,
+        pickupLat,
+        pickupLng,
+        INITIAL_RADIUS_KM,
+        NEAREST_RIDER_COUNT,
+      );
     } else {
-      picked = riders.slice(0, NEAREST_RIDER_COUNT).map((r) => r.id);
+      // No restaurant location → blast to first N online riders.
+      const { data: riders } = await supabaseAdmin
+        .from("riders")
+        .select("id")
+        .eq("is_online", true)
+        .eq("is_approved", true)
+        .limit(NEAREST_RIDER_COUNT);
+      picked = (riders ?? []).map((r) => r.id as string);
     }
 
-    if (picked.length === 0) return { sent: 0, picked: 0 };
+    return pushToRiderTokens({
+      pickedRiderIds: picked,
+      orderId: data.orderId,
+      title: "🛵 มีงานใหม่ใกล้คุณ!",
+      body: `${restName ?? "ร้าน"} พร้อมส่ง${data.deliveryFee ? ` • ค่าส่ง ฿${data.deliveryFee}` : ""} — ใครรับก่อนได้ก่อน`,
+    });
+  });
 
-    const { data: tokens } = await supabaseAdmin
-      .from("fcm_tokens")
-      .select("token")
-      .in("user_id", picked);
+// Subsequent waves (called by /api/public/hooks/dispatch-tick and by
+// boostDeliveryFee). Looks the order up to get the current fee + restaurant
+// location, then broadcasts to ALL riders within `radiusKm`.
+export const notifyRidersForWave = createServerFn({ method: "POST" })
+  .inputValidator((input) =>
+    z
+      .object({
+        orderId: z.string().uuid(),
+        radiusKm: z.number().min(1).max(20),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { data: order } = await supabaseAdmin
+      .from("orders")
+      .select(
+        "id, delivery_fee, restaurant_id, restaurants(name, latitude, longitude)",
+      )
+      .eq("id", data.orderId)
+      .maybeSingle();
+    if (!order) return { sent: 0, picked: 0 };
+    const rest = (order as any).restaurants as
+      | { name: string; latitude: number | null; longitude: number | null }
+      | null;
+    const pickupLat = rest?.latitude != null ? Number(rest.latitude) : null;
+    const pickupLng = rest?.longitude != null ? Number(rest.longitude) : null;
+    if (pickupLat == null || pickupLng == null) return { sent: 0, picked: 0 };
 
-    if (!tokens || tokens.length === 0) return { sent: 0, picked: picked.length };
-
-    const accessToken = await getGoogleAccessToken();
-    const projectId = getServiceAccount().project_id;
-    const title = "🛵 มีงานใหม่ใกล้คุณ!";
-    const body = `${restName ?? "ร้าน"} พร้อมส่ง${data.deliveryFee ? ` • ค่าส่ง ฿${data.deliveryFee}` : ""} — ใครรับก่อนได้ก่อน`;
-    const link = "/rider-dashboard";
-
-    let sent = 0;
-    const stale: string[] = [];
-    await Promise.all(
-      tokens.map(async (t) => {
-        const res = await fetch(
-          `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              message: {
-                token: t.token,
-                notification: { title, body },
-                data: { url: link, tag: `pool-${data.orderId}`, orderId: data.orderId },
-                webpush: { fcm_options: { link } },
-              },
-            }),
-          },
-        );
-        if (res.ok) sent++;
-        else {
-          const errBody = await res.text();
-          if (res.status === 404 || res.status === 400 || errBody.includes("UNREGISTERED")) {
-            stale.push(t.token);
-          }
-        }
-      }),
+    const picked = await selectRidersWithinKm(
+      supabaseAdmin,
+      pickupLat,
+      pickupLng,
+      data.radiusKm,
     );
-    if (stale.length > 0) {
-      await supabaseAdmin.from("fcm_tokens").delete().in("token", stale);
-    }
-    return { sent, picked: picked.length };
+    return pushToRiderTokens({
+      pickedRiderIds: picked,
+      orderId: data.orderId,
+      title: `🛵 ยังมีงานรอ — รัศมี ${data.radiusKm} กม.`,
+      body: `${rest?.name ?? "ร้าน"} • ค่าส่ง ฿${Number(order.delivery_fee).toFixed(0)} — ใครรับก่อนได้ก่อน`,
+    });
   });
 
 // ─────────────────────────────────────────────
