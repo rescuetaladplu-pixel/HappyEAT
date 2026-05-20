@@ -7,14 +7,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ClipboardList, Star } from "lucide-react";
+import { ClipboardList, Star, Phone, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { STATUS_LABELS, STATUS_VARIANTS, type OrderStatus } from "@/lib/order-status";
 import { PaymentPanel } from "@/components/PaymentPanel";
 import { EnablePushButton } from "@/components/EnablePushButton";
 import { BoostDeliveryFeeCard } from "@/components/BoostDeliveryFeeCard";
+
+interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  notes: string | null;
+}
 
 export const Route = createFileRoute("/_app/orders")({
   component: OrdersPage,
@@ -45,6 +53,7 @@ interface Order {
     promptpay_qr_holder_name: string | null;
     promptpay_mode: "id" | "qr_image" | null;
     promptpay_qr_url: string | null;
+    phone: string | null;
   } | null;
 }
 
@@ -58,6 +67,22 @@ function OrdersPage() {
   const [restRating, setRestRating] = useState(5);
   const [riderRating, setRiderRating] = useState(5);
   const [comment, setComment] = useState("");
+  const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
+  const [detailItems, setDetailItems] = useState<OrderItem[]>([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+
+  async function openDetails(o: Order) {
+    setDetailsOrder(o);
+    setDetailItems([]);
+    setDetailsLoading(true);
+    const { data, error } = await supabase
+      .from("order_items")
+      .select("id, name, price, quantity, notes")
+      .eq("order_id", o.id);
+    if (error) toast.error(error.message);
+    setDetailItems((data ?? []) as OrderItem[]);
+    setDetailsLoading(false);
+  }
 
   async function loadOrders() {
     if (!user) return;
@@ -65,7 +90,7 @@ function OrdersPage() {
     // ไม่ปะปนกับออเดอร์ที่เห็นผ่าน RLS เพราะเป็นเจ้าของร้าน/แอดมิน (ร้านมีหน้า /restaurant/orders แยก)
     let q = supabase
       .from("orders")
-      .select("id, status, total, subtotal, created_at, customer_id, rider_id, restaurant_id, payment_method, payment_slip_url, rejection_reason, delivery_otp, delivery_fee, awaiting_rider_boost, dispatch_wave, restaurants(name, owner_id, logo_url, promptpay_id, promptpay_holder_name, promptpay_qr_holder_name, promptpay_mode, promptpay_qr_url)")
+      .select("id, status, total, subtotal, created_at, customer_id, rider_id, restaurant_id, payment_method, payment_slip_url, rejection_reason, delivery_otp, delivery_fee, awaiting_rider_boost, dispatch_wave, restaurants(name, owner_id, logo_url, promptpay_id, promptpay_holder_name, promptpay_qr_holder_name, promptpay_mode, promptpay_qr_url, phone)")
       .order("created_at", { ascending: false })
       .limit(50);
     if (role === "rider") {
@@ -131,9 +156,16 @@ function OrdersPage() {
 
   return (
     <main className="max-w-2xl mx-auto p-4 space-y-3">
-      <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+      <div className="flex items-start justify-between gap-2 mb-2 flex-wrap">
         <h1 className="text-2xl font-bold">{role === "rider" ? "ประวัติงาน" : "ออเดอร์"}</h1>
-        {role !== "rider" && <EnablePushButton />}
+        {role !== "rider" && (
+          <div className="flex flex-col items-end gap-1">
+            <EnablePushButton />
+            <p className="text-[10px] text-muted-foreground max-w-[180px] text-right leading-tight">
+              เปิดเพื่อรับแจ้งเตือนเมื่อร้านยืนยัน/ไรเดอร์รับงาน/อาหารถึงแล้ว
+            </p>
+          </div>
+        )}
       </div>
       <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
@@ -178,16 +210,37 @@ function OrdersPage() {
           }
           return (
             <Card key={o.id} className="p-4 space-y-3">
-              <div className="flex items-start justify-between">
-                <div className="min-w-0">
-                  <h3 className="font-semibold truncate">{o.restaurants?.name ?? "ร้านไม่พบ"}</h3>
+              <button
+                type="button"
+                onClick={() => openDetails(o)}
+                className="w-full text-left flex items-start justify-between gap-2 hover:opacity-80 transition-opacity"
+              >
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold truncate flex items-center gap-1">
+                    {o.restaurants?.name ?? "ร้านไม่พบ"}
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </h3>
                   <p className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString("th-TH")}</p>
+                  <p className="text-xs text-primary mt-0.5">ดูรายละเอียดออเดอร์</p>
                 </div>
                 <Badge variant={STATUS_VARIANTS[o.status] ?? "secondary"}>{STATUS_LABELS[o.status] ?? o.status}</Badge>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">#{o.id.slice(0, 8)}</span>
-                <span className="font-semibold text-primary">฿{Number(o.total).toFixed(0)}</span>
+              </button>
+              <div className="text-sm space-y-1 bg-secondary/30 rounded p-2">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>#{o.id.slice(0, 8)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">ค่าอาหาร</span>
+                  <span>฿{Number(o.subtotal).toFixed(0)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">ค่าจัดส่ง</span>
+                  <span>฿{Number(o.delivery_fee ?? 0).toFixed(0)}</span>
+                </div>
+                <div className="flex justify-between font-semibold text-primary border-t pt-1">
+                  <span>รวมทั้งสิ้น</span>
+                  <span>฿{Number(o.total).toFixed(0)}</span>
+                </div>
               </div>
               {(o.status === "awaiting_confirmations" || o.status === "awaiting_restaurant") && o.customer_id === user?.id && (
                 <div className="bg-secondary/50 rounded p-2 text-xs space-y-2">
@@ -208,7 +261,16 @@ function OrdersPage() {
                   ) : (
                     <span>⏳ รอร้านเช็คความพร้อม...</span>
                   )}
-                  <div className="flex justify-end">
+                  <div className="flex justify-between items-center gap-2">
+                    {o.restaurants?.phone ? (
+                      <Button asChild size="sm" variant="outline" className="h-7 gap-1">
+                        <a href={`tel:${o.restaurants.phone}`}>
+                          <Phone className="h-3 w-3" /> โทรหาร้าน
+                        </a>
+                      </Button>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground">ร้านยังไม่ได้ใส่เบอร์โทร</span>
+                    )}
                     <Button size="sm" variant="ghost" className="text-destructive h-7" onClick={cancelOrder}>ยกเลิกออเดอร์</Button>
                   </div>
                 </div>
@@ -279,6 +341,54 @@ function OrdersPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setReviewing(null)}>ยกเลิก</Button>
             <Button onClick={submitReview}>ส่งรีวิว</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!detailsOrder} onOpenChange={(o) => !o && setDetailsOrder(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>รายละเอียดออเดอร์</DialogTitle>
+            <DialogDescription>
+              {detailsOrder?.restaurants?.name} · #{detailsOrder?.id.slice(0, 8)}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            {detailsOrder?.restaurants?.phone && (
+              <Button asChild variant="outline" size="sm" className="w-full gap-2">
+                <a href={`tel:${detailsOrder.restaurants.phone}`}>
+                  <Phone className="h-4 w-4" /> โทรหาร้าน {detailsOrder.restaurants.phone}
+                </a>
+              </Button>
+            )}
+            <div className="space-y-2">
+              <p className="text-sm font-semibold">รายการอาหาร</p>
+              {detailsLoading ? (
+                <Skeleton className="h-20 w-full" />
+              ) : detailItems.length === 0 ? (
+                <p className="text-xs text-muted-foreground">ไม่มีรายการ</p>
+              ) : (
+                detailItems.map((it) => (
+                  <div key={it.id} className="flex justify-between text-sm border-b pb-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">{it.quantity}× {it.name}</p>
+                      {it.notes && <p className="text-xs text-muted-foreground">หมายเหตุ: {it.notes}</p>}
+                    </div>
+                    <span className="shrink-0 ml-2">฿{(Number(it.price) * it.quantity).toFixed(0)}</span>
+                  </div>
+                ))
+              )}
+            </div>
+            {detailsOrder && (
+              <div className="text-sm space-y-1 bg-secondary/30 rounded p-3">
+                <div className="flex justify-between"><span className="text-muted-foreground">ค่าอาหาร</span><span>฿{Number(detailsOrder.subtotal).toFixed(0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">ค่าจัดส่ง</span><span>฿{Number(detailsOrder.delivery_fee ?? 0).toFixed(0)}</span></div>
+                <div className="flex justify-between font-semibold text-primary border-t pt-1"><span>รวมทั้งสิ้น</span><span>฿{Number(detailsOrder.total).toFixed(0)}</span></div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailsOrder(null)}>ปิด</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
