@@ -67,6 +67,22 @@ function OrdersPage() {
   const [restRating, setRestRating] = useState(5);
   const [riderRating, setRiderRating] = useState(5);
   const [comment, setComment] = useState("");
+  const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
+  const [detailItems, setDetailItems] = useState<OrderItem[]>([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+
+  async function openDetails(o: Order) {
+    setDetailsOrder(o);
+    setDetailItems([]);
+    setDetailsLoading(true);
+    const { data, error } = await supabase
+      .from("order_items")
+      .select("id, name, price, quantity, notes")
+      .eq("order_id", o.id);
+    if (error) toast.error(error.message);
+    setDetailItems((data ?? []) as OrderItem[]);
+    setDetailsLoading(false);
+  }
 
   async function loadOrders() {
     if (!user) return;
