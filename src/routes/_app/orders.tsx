@@ -156,9 +156,16 @@ function OrdersPage() {
 
   return (
     <main className="max-w-2xl mx-auto p-4 space-y-3">
-      <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+      <div className="flex items-start justify-between gap-2 mb-2 flex-wrap">
         <h1 className="text-2xl font-bold">{role === "rider" ? "ประวัติงาน" : "ออเดอร์"}</h1>
-        {role !== "rider" && <EnablePushButton />}
+        {role !== "rider" && (
+          <div className="flex flex-col items-end gap-1">
+            <EnablePushButton />
+            <p className="text-[10px] text-muted-foreground max-w-[180px] text-right leading-tight">
+              เปิดเพื่อรับแจ้งเตือนเมื่อร้านยืนยัน/ไรเดอร์รับงาน/อาหารถึงแล้ว
+            </p>
+          </div>
+        )}
       </div>
       <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
