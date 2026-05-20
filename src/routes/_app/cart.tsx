@@ -133,6 +133,33 @@ function CartPage() {
       });
   }, [restaurantId]);
 
+  // Live delivery-fee preview based on driving distance from restaurant → drop.
+  useEffect(() => {
+    if (!restaurantId || deliveryLat == null || deliveryLng == null) {
+      setDeliveryFee(35);
+      setDeliveryKm(null);
+      return;
+    }
+    let cancelled = false;
+    setFeeLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const { previewDeliveryFee } = await import("@/lib/dispatch.functions");
+        const res = await previewDeliveryFee({
+          data: { restaurantId, dropLat: deliveryLat, dropLng: deliveryLng },
+        });
+        if (cancelled) return;
+        setDeliveryFee(res.fee);
+        setDeliveryKm(res.distanceKm);
+      } catch (e) {
+        console.error("previewDeliveryFee failed", e);
+      } finally {
+        if (!cancelled) setFeeLoading(false);
+      }
+    }, 500);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [restaurantId, deliveryLat, deliveryLng]);
+
   async function handleCheckout() {
     if (!restaurantId || items.length === 0) return;
     if (!user) {
@@ -155,6 +182,7 @@ function CartPage() {
         delivery_address: address,
         delivery_lat: deliveryLat,
         delivery_lng: deliveryLng,
+        delivery_distance_km: deliveryKm,
         subtotal,
         delivery_fee: deliveryFee,
         discount,
@@ -407,8 +435,10 @@ function CartPage() {
           <span>฿{total.toFixed(0)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">ค่าส่ง</span>
-          <span>฿{deliveryFee.toFixed(0)}</span>
+          <span className="text-muted-foreground">
+            ค่าส่ง{deliveryKm != null && ` • ${deliveryKm.toFixed(1)} กม.`}
+          </span>
+          <span>{feeLoading ? "..." : `฿${deliveryFee.toFixed(0)}`}</span>
         </div>
         {discount > 0 && (
           <div className="flex justify-between text-sm text-green-600">
