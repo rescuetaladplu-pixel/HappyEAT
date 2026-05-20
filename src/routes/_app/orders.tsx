@@ -344,6 +344,54 @@ function OrdersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!detailsOrder} onOpenChange={(o) => !o && setDetailsOrder(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>รายละเอียดออเดอร์</DialogTitle>
+            <DialogDescription>
+              {detailsOrder?.restaurants?.name} · #{detailsOrder?.id.slice(0, 8)}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            {detailsOrder?.restaurants?.phone && (
+              <Button asChild variant="outline" size="sm" className="w-full gap-2">
+                <a href={`tel:${detailsOrder.restaurants.phone}`}>
+                  <Phone className="h-4 w-4" /> โทรหาร้าน {detailsOrder.restaurants.phone}
+                </a>
+              </Button>
+            )}
+            <div className="space-y-2">
+              <p className="text-sm font-semibold">รายการอาหาร</p>
+              {detailsLoading ? (
+                <Skeleton className="h-20 w-full" />
+              ) : detailItems.length === 0 ? (
+                <p className="text-xs text-muted-foreground">ไม่มีรายการ</p>
+              ) : (
+                detailItems.map((it) => (
+                  <div key={it.id} className="flex justify-between text-sm border-b pb-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">{it.quantity}× {it.name}</p>
+                      {it.notes && <p className="text-xs text-muted-foreground">หมายเหตุ: {it.notes}</p>}
+                    </div>
+                    <span className="shrink-0 ml-2">฿{(Number(it.price) * it.quantity).toFixed(0)}</span>
+                  </div>
+                ))
+              )}
+            </div>
+            {detailsOrder && (
+              <div className="text-sm space-y-1 bg-secondary/30 rounded p-3">
+                <div className="flex justify-between"><span className="text-muted-foreground">ค่าอาหาร</span><span>฿{Number(detailsOrder.subtotal).toFixed(0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">ค่าจัดส่ง</span><span>฿{Number(detailsOrder.delivery_fee ?? 0).toFixed(0)}</span></div>
+                <div className="flex justify-between font-semibold text-primary border-t pt-1"><span>รวมทั้งสิ้น</span><span>฿{Number(detailsOrder.total).toFixed(0)}</span></div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailsOrder(null)}>ปิด</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
