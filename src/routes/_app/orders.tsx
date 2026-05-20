@@ -210,13 +210,6 @@ function OrdersPage() {
           }
           return (
             <Card key={o.id} className="p-4 space-y-3">
-              <div className="flex items-start justify-between">
-                <div className="min-w-0">
-                  <h3 className="font-semibold truncate">{o.restaurants?.name ?? "ร้านไม่พบ"}</h3>
-                  <p className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString("th-TH")}</p>
-                </div>
-          return (
-            <Card key={o.id} className="p-4 space-y-3">
               <button
                 type="button"
                 onClick={() => openDetails(o)}
