@@ -589,6 +589,7 @@ export type Database = {
           first_name: string | null
           id: string
           last_name: string | null
+          notification_sound: string
           phone: string | null
           updated_at: string
           username: string | null
@@ -599,6 +600,7 @@ export type Database = {
           first_name?: string | null
           id: string
           last_name?: string | null
+          notification_sound?: string
           phone?: string | null
           updated_at?: string
           username?: string | null
@@ -609,6 +611,7 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          notification_sound?: string
           phone?: string | null
           updated_at?: string
           username?: string | null
