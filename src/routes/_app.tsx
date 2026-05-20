@@ -23,6 +23,7 @@ function useActiveOrdersCount() {
     }
     let cancelled = false;
     async function load() {
+      if (!user) return;
       const col = role === "rider" ? "rider_id" : "customer_id";
       const { count: c } = await supabase
         .from("orders")
