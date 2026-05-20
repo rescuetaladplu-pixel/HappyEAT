@@ -53,6 +53,7 @@ interface Order {
     promptpay_qr_holder_name: string | null;
     promptpay_mode: "id" | "qr_image" | null;
     promptpay_qr_url: string | null;
+    phone: string | null;
   } | null;
 }
 
