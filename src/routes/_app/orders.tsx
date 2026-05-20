@@ -350,7 +350,7 @@ function OrdersPage() {
           <DialogHeader>
             <DialogTitle>รายละเอียดออเดอร์</DialogTitle>
             <DialogDescription>
-              {detailsOrder?.restaurants?.name} · #{detailsOrder?.id.slice(0, 8)}
+              {detailsOrder?.restaurants?.name ?? ""} · {detailsOrder ? `#${detailsOrder.id.slice(0, 8)}` : ""}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 max-h-[60vh] overflow-y-auto">
