@@ -5,6 +5,7 @@ import { useCart } from "@/lib/cart";
 import { supabase } from "@/integrations/supabase/client";
 import { Home, ShoppingBag, ClipboardList, User, Store, Bike, Shield } from "lucide-react";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { ensureOrderChannels } from "@/lib/native-notifications";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -51,6 +52,10 @@ function AppLayout() {
   const location = useLocation();
   const { count } = useCart();
   const activeOrders = useActiveOrdersCount();
+
+  useEffect(() => {
+    void ensureOrderChannels();
+  }, []);
 
   if (loading) return <LoadingScreen />;
 

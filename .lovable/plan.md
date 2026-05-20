@@ -1,88 +1,80 @@
+# เปลี่ยนเสียงแจ้งเตือนเป็น Native Android
 
-# Distance-based dispatch + dynamic delivery fee
+## ทำไมต้องเปลี่ยน
 
-## 1. สูตรค่าส่ง (option A — fractional, ceil บาท)
+Web Audio ใน WebView มีข้อจำกัด: เล่นได้แค่ตอนแอปเปิดอยู่ + ต้องแตะหน้าจอก่อน + โดน silent mode กดเสียง  
+Native FCM + notification channel: ดังแม้แอปปิด/ล็อกหน้าจอ, ใช้ channel แยกจาก silent mode ได้, ระบบ Android จัดการให้
 
+## สิ่งที่ผมจะทำ (ฝั่งโค้ด)
+
+### 1. สร้างไฟล์เสียง MP3 จริง 3 ไฟล์
+ใช้ Python + numpy สังเคราะห์เสียงจาก algorithm เดียวกับ Web Audio version เลย → siren / airhorn / emergency  
+วางไว้ที่ `/mnt/documents/sounds/` ให้คุณดาวน์โหลด
+
+### 2. เพิ่ม `src/lib/native-notifications.ts`
+- ตรวจว่าอยู่ใน Capacitor native หรือ web
+- ถ้า native: เรียก `PushNotifications.createChannel()` ตอน app boot สร้าง 3 channels:
+  - `orders_siren` → sound: `siren`
+  - `orders_airhorn` → sound: `airhorn`
+  - `orders_emergency` → sound: `emergency`
+- importance: HIGH, vibration: on, bypass DND สำหรับร้าน
+
+### 3. อัปเดต `src/routes/_app/restaurant.notification-settings.tsx`
+- ปุ่ม "ฟัง" บน native → ส่ง test local notification (เพื่อเทสเสียงจริง) แทน Web Audio
+- ปุ่มเลือกเสียง → save preference + เรียก channel ใหม่
+- บน web → ใช้ Web Audio เหมือนเดิม (สำหรับ admin preview)
+
+### 4. แก้ `src/lib/fcm.functions.ts` (server)
+เพิ่ม `android.notification.channel_id` ลง FCM payload ตาม preference ของ user รับสาย:
+```ts
+android: {
+  notification: {
+    channel_id: userSoundPref, // 'orders_siren' | 'orders_airhorn' | 'orders_emergency'
+    sound: userSoundPref,
+    priority: 'high',
+  },
+  priority: 'high',
+}
 ```
-0–4 กม.    : 35฿  (flat)
-> 4–7 กม.  : +6฿/กม. (fraction)
-> 7–10 กม. : +7฿/กม.
-> 10+ กม.  : +8฿/กม.
-ผลรวมท้ายสุด → Math.ceil() เป็นบาทเต็ม
-```
 
-ตรวจ: 4.3→37฿ · 5→41฿ · 7→53฿ · 8.2→62฿ · 10→74฿ · 12→90฿
+### 5. เก็บ sound preference ใน DB
+เพิ่มคอลัมน์ `notification_sound` ใน `profiles` (ค่า: 'siren' | 'airhorn' | 'emergency', default 'siren')  
+เพื่อให้ server รู้ว่าจะส่ง channel ไหนให้ user คนนั้น
 
-ไฟล์ใหม่ `src/lib/delivery-fee.ts` (pure function ใช้ทั้ง client preview + server)
+### 6. คง Web Audio ไว้
+`notification-sounds.ts` ยังอยู่ — ใช้สำหรับ:
+- Browser/PWA users (ไม่ได้ลง APK)
+- Foreground in-app feedback (เสริมกับ native)
 
-## 2. ระยะทางที่ใช้ (ร้าน → ที่อยู่ลูกค้า)
+## สิ่งที่คุณต้องทำเอง
 
-- คำนวณตอน checkout ผ่าน OSRM `route` API (ฟรี, ใช้อยู่แล้วในโปรเจกต์)
-- เก็บลง `orders.delivery_distance_km` (column ใหม่) ตอน insert
-- ถ้า OSRM ล่ม → fallback haversine × 1.3 (กันราคาผิด)
-- หน้า cart: เรียก preview ฟังก์ชัน `previewDeliveryFee(restaurantId, lat, lng)` แบบ debounce 500ms เมื่อ address เปลี่ยน
+### A. วางไฟล์เสียงใน Android project
+1. ดาวน์โหลด 3 ไฟล์จาก `/mnt/documents/sounds/` ที่ผมจะสร้างให้
+2. เปิดโปรเจกต์ Android ใน Android Studio
+3. วางที่ `android/app/src/main/res/raw/`:
+   - `siren.mp3`
+   - `airhorn.mp3`
+   - `emergency.mp3`
+   
+   (ชื่อต้องตรงเป๊ะ ตัวพิมพ์เล็ก, ไม่มี dash/space)
 
-## 3. Wave dispatch (4→4→6→8 กม.)
+### B. Rebuild APK
+- รัน `npx cap sync android` แล้ว build APK ใหม่
+- ต้องทำทั้ง **HappyEat** และ **HappyRider** (ฝั่ง rider จะแจ้งให้ทำเหมือนกัน)
 
-| Wave | t (วิ) | รัศมี | กลุ่มเป้าหมาย |
-|------|-------|------|---------------|
-| 0 | 0    | 4 กม. | 3 คนใกล้สุด |
-| 1 | 15   | 4 กม. | **ทุกคน** ในรัศมี |
-| 2 | 30   | 6 กม. | ทุกคน |
-| 3 | 45   | 8 กม. | ทุกคน |
-| 4 | 60   | — | เปิด UI ลูกค้าเพิ่มค่าส่ง |
+### C. แจ้งห้อง HappyRider
+ผมจะอัปเดต `docs/SHARED_CONTRACT.md` เพิ่มสเปก channel IDs + sound names เพื่อให้ฝั่ง rider ใช้ชื่อเดียวกัน → ส่ง FCM cross-app ได้ถูก channel
 
-### Schema เพิ่ม (`orders`)
-- `delivery_distance_km numeric`
-- `dispatch_wave smallint default 0`
-- `last_dispatched_at timestamptz default now()`
-- `delivery_fee_boost numeric default 0` (ลูกค้าเพิ่มเอง, รวมเข้า `delivery_fee` ตอนแสดง/แจ้งไรเดอร์)
-- `awaiting_rider_boost boolean default false` (true เมื่อหลัง wave 4)
+## ลำดับการทำ
 
-### กลไก
-- Cron `pg_cron` ทุก 15 วินาที → POST `/api/public/hooks/dispatch-tick`
-- Handler: SELECT orders ที่ `status='awaiting_confirmations' AND rider_id IS NULL AND now() - last_dispatched_at >= 14s AND dispatch_wave < 4`
-  - แต่ละ order: เลื่อน wave +1 → คำนวณ candidate riders ตามตาราง → ยิง push → UPDATE `dispatch_wave`, `last_dispatched_at`
-  - wave 4: ไม่ยิง push, เซ็ต `awaiting_rider_boost=true` ส่ง realtime ให้ลูกค้า
-- Wave 0 ยังยิงทันทีตอน create order (เหมือนเดิม) — cron จะหยิบ wave ถัดไป
+1. ผมสร้างไฟล์ MP3 + เขียนโค้ดทั้งหมด + อัปเดต SHARED_CONTRACT (1 turn)
+2. คุณดาวน์โหลดไฟล์ MP3 + วางใน Android Studio + rebuild APK
+3. ทดสอบ: ส่งออเดอร์ทดลอง → ปิดแอปแล้วดูว่าเสียงดังจาก notification channel จริงไหม
+4. ไปทำฝั่ง HappyRider ด้วย step เดียวกัน
 
-### Push เลือกไรเดอร์ตาม radius
-ย้าย logic ปัจจุบันใน `notifyRidersOrderReady` → helper `selectRidersWithinKm(pickupLat, pickupLng, maxKm, limit?)`
-- wave 0: limit=3
-- wave 1-3: limit=undefined (ทุกคน)
-- ใช้ OSRM `table` service กรอง driving distance ≤ maxKm
+## หมายเหตุสำคัญ
 
-## 4. ลูกค้าเพิ่มค่าส่ง (+10฿)
-
-เมื่อ `awaiting_rider_boost=true` แสดง card บนหน้า `/orders/$orderId`:
-
-> **ตอนนี้ไรเดอร์ใกล้คุณว่างน้อย** 🛵
-> ลองเพิ่มค่าส่งสักหน่อยเพื่อเป็นกำลังใจให้ไรเดอร์ที่ไกลขึ้นมารับงานนะคะ — ค่าส่งที่เพิ่มจะเข้าตรงไปที่ไรเดอร์ ไม่ผ่านระบบของเรา
->
-> ค่าส่งปัจจุบัน: ฿XX
-> [+10฿] [+20฿] [+30฿]  → ปุ่ม "ยืนยันเพิ่ม ฿YY"
-
-กลไก:
-- กดยืนยัน → server fn `boostDeliveryFee(orderId, amount)`:
-  - UPDATE `delivery_fee_boost += amount`, `delivery_fee += amount`, `total += amount`, `dispatch_wave = 3`, `last_dispatched_at = now() - 14s`, `awaiting_rider_boost=false`
-  - ยิง push wave ใหม่ทันทีให้ไรเดอร์ทุกคนในรัศมี 8 กม. (title โชว์ค่าส่งใหม่)
-- ลูกค้าเพิ่มกี่รอบก็ได้ — ทุกครั้งจะ trigger push wave ใหม่
-- ถ้ายังไม่มีคนรับใน 60 วิ → cron เซ็ต `awaiting_rider_boost=true` อีกครั้ง
-
-## 5. ไฟล์ที่กระทบ
-
-| ไฟล์ | การเปลี่ยน |
-|------|-----------|
-| `src/lib/delivery-fee.ts` | **ใหม่** — pure tier calculator |
-| `src/lib/dispatch.functions.ts` | **ใหม่** — `previewDeliveryFee`, `boostDeliveryFee`, `selectRidersWithinKm` |
-| `src/routes/api/public/hooks/dispatch-tick.ts` | **ใหม่** — cron handler |
-| `src/lib/fcm.functions.ts` | refactor `notifyRidersOrderReady` → ใช้ `selectRidersWithinKm`, รับ `radiusKm`+`limit` |
-| `src/routes/_app/cart.tsx` | ลบ hardcode 30฿ → ใช้ `previewDeliveryFee`, เก็บ `delivery_distance_km` ตอน insert |
-| `src/routes/_app/orders.$orderId.tsx` | เพิ่ม boost UI เมื่อ `awaiting_rider_boost=true` |
-| migration | เพิ่ม 4 columns + enable `pg_cron`/`pg_net` + schedule job |
-| `docs/SHARED_CONTRACT.md` | changelog + แจ้ง rider room |
-
-## 6. Cross-app impact (HappyRider)
-
-- ไรเดอร์ไม่ต้อง action อะไรกับ wave logic (push มาให้เอง)
-- **ต้องอัปเดต UI list งาน:** โชว์ `delivery_fee` (ที่รวม boost แล้ว) — query เดิมดึง
+- **ต้อง rebuild APK** หลังวางไฟล์เสียงใหม่ (ไฟล์ใน `res/raw` ผูกกับ APK ไม่ใช่ web bundle)
+- **ทุกครั้งที่เพิ่ม/เปลี่ยนเสียงใหม่ในอนาคต** ก็ต้อง rebuild APK อีก
+- Notification channel **เปลี่ยนเสียงไม่ได้หลังสร้างแล้ว** — ถ้าจะเปลี่ยนต้องสร้าง channel ID ใหม่ (เช่น `orders_siren_v2`)
+- iOS ใช้กลไกต่างกัน (ไฟล์ใน app bundle + APNs payload) — ตอนนี้โฟกัส Android ตามที่คุณบอก ผมจะข้ามไปก่อน

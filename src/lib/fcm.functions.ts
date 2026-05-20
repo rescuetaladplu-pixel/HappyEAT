@@ -4,6 +4,43 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 // ─────────────────────────────────────────────
+// Notification sound → Android channel mapping
+// MUST match channel IDs created on the client in `src/lib/native-notifications.ts`
+// AND the MP3 file names in `android/app/src/main/res/raw/<sound>.mp3`.
+// ─────────────────────────────────────────────
+type SoundPref = "siren" | "airhorn" | "emergency";
+const DEFAULT_SOUND: SoundPref = "siren";
+function channelIdForSound(s: SoundPref): string {
+  return `orders_${s}`;
+}
+
+async function getSoundPrefsForUsers(
+  userIds: string[],
+): Promise<Map<string, SoundPref>> {
+  const map = new Map<string, SoundPref>();
+  if (userIds.length === 0) return map;
+  const { data } = await supabaseAdmin
+    .from("profiles")
+    .select("id, notification_sound")
+    .in("id", userIds);
+  for (const row of data ?? []) {
+    map.set(row.id as string, (row.notification_sound ?? DEFAULT_SOUND) as SoundPref);
+  }
+  for (const id of userIds) if (!map.has(id)) map.set(id, DEFAULT_SOUND);
+  return map;
+}
+
+function androidPayload(sound: SoundPref) {
+  return {
+    notification: {
+      channel_id: channelIdForSound(sound),
+      sound, // resolves to res/raw/<sound>.mp3 on native; Android also needs this on the message
+    },
+    priority: "high" as const,
+  };
+}
+
+// ─────────────────────────────────────────────
 // Register / refresh an FCM token for the user
 // ─────────────────────────────────────────────
 export const registerFcmToken = createServerFn({ method: "POST" })
@@ -48,7 +85,6 @@ export const sendOrderPush = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    // Find tokens belonging to the restaurant owner
     const { data: restaurant } = await supabaseAdmin
       .from("restaurants")
       .select("owner_id, name")
@@ -63,6 +99,9 @@ export const sendOrderPush = createServerFn({ method: "POST" })
       .eq("user_id", restaurant.owner_id);
 
     if (!tokens || tokens.length === 0) return { sent: 0 };
+
+    const prefs = await getSoundPrefsForUsers([restaurant.owner_id]);
+    const ownerSound = prefs.get(restaurant.owner_id) ?? DEFAULT_SOUND;
 
     const accessToken = await getGoogleAccessToken();
     const projectId = getServiceAccount().project_id;
@@ -91,6 +130,7 @@ export const sendOrderPush = createServerFn({ method: "POST" })
                   url: "/restaurant/orders",
                   tag: `order-${data.orderId}`,
                 },
+                android: androidPayload(ownerSound),
                 webpush: {
                   fcm_options: { link: "/restaurant/orders" },
                 },
@@ -102,7 +142,6 @@ export const sendOrderPush = createServerFn({ method: "POST" })
           sent++;
         } else {
           const errBody = await res.text();
-          // Token no longer valid → clean up
           if (res.status === 404 || res.status === 400 || errBody.includes("UNREGISTERED")) {
             staleTokens.push(t.token);
           }
@@ -142,6 +181,9 @@ export const sendStatusPush = createServerFn({ method: "POST" })
       .eq("user_id", data.targetUserId);
     if (!tokens || tokens.length === 0) return { sent: 0 };
 
+    const prefs = await getSoundPrefsForUsers([data.targetUserId]);
+    const userSound = prefs.get(data.targetUserId) ?? DEFAULT_SOUND;
+
     const accessToken = await getGoogleAccessToken();
     const projectId = getServiceAccount().project_id;
     const link = data.url ?? "/orders";
@@ -163,6 +205,7 @@ export const sendStatusPush = createServerFn({ method: "POST" })
                 token: t.token,
                 notification: { title: data.title, body: data.body },
                 data: { url: link, tag: data.tag ?? link },
+                android: androidPayload(userSound),
                 webpush: { fcm_options: { link } },
               },
             }),
@@ -185,15 +228,6 @@ export const sendStatusPush = createServerFn({ method: "POST" })
 
 // ─────────────────────────────────────────────
 // Push order to riders.
-//   - Wave 0 (initial): nearest 3 within 4 km
-//   - Wave 1: all riders within 4 km
-//   - Wave 2: all riders within 6 km
-//   - Wave 3: all riders within 8 km
-//   - Wave 4: stop pushing, surface "boost delivery fee" UI to the customer
-//
-// `notifyRidersOrderReady` keeps the original behavior for the initial
-// dispatch (3-nearest within 4 km). The cron tick uses `notifyRidersForWave`
-// to broadcast subsequent radius waves.
 // ─────────────────────────────────────────────
 import { selectRidersWithinKm } from "@/lib/dispatch.functions";
 
@@ -213,11 +247,12 @@ async function pushToRiderTokens(params: {
 
   const { data: tokens } = await supabaseAdmin
     .from("fcm_tokens")
-    .select("token")
+    .select("token, user_id")
     .in("user_id", pickedRiderIds);
 
   if (!tokens || tokens.length === 0) return { sent: 0, picked: pickedRiderIds.length };
 
+  const prefs = await getSoundPrefsForUsers(pickedRiderIds);
   const accessToken = await getGoogleAccessToken();
   const projectId = getServiceAccount().project_id;
 
@@ -225,6 +260,7 @@ async function pushToRiderTokens(params: {
   const stale: string[] = [];
   await Promise.all(
     tokens.map(async (t) => {
+      const sound = prefs.get(t.user_id as string) ?? DEFAULT_SOUND;
       const res = await fetch(
         `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
         {
@@ -238,6 +274,7 @@ async function pushToRiderTokens(params: {
               token: t.token,
               notification: { title, body },
               data: { url: link, tag: `pool-${orderId}`, orderId },
+              android: androidPayload(sound),
               webpush: { fcm_options: { link } },
             },
           }),
@@ -258,7 +295,6 @@ async function pushToRiderTokens(params: {
   return { sent, picked: pickedRiderIds.length };
 }
 
-// Initial wave (called inline from cart checkout) — nearest 3 within 4 km.
 export const notifyRidersOrderReady = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -300,7 +336,6 @@ export const notifyRidersOrderReady = createServerFn({ method: "POST" })
         NEAREST_RIDER_COUNT,
       );
     } else {
-      // No restaurant location → blast to first N online riders.
       const { data: riders } = await supabaseAdmin
         .from("riders")
         .select("id")
@@ -318,9 +353,6 @@ export const notifyRidersOrderReady = createServerFn({ method: "POST" })
     });
   });
 
-// Subsequent waves (called by /api/public/hooks/dispatch-tick and by
-// boostDeliveryFee). Looks the order up to get the current fee + restaurant
-// location, then broadcasts to ALL riders within `radiusKm`.
 export const notifyRidersForWave = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z
@@ -362,7 +394,6 @@ export const notifyRidersForWave = createServerFn({ method: "POST" })
 
 // ─────────────────────────────────────────────
 // Google OAuth2 access token from service account
-// (JWT → exchange for short-lived bearer)
 // ─────────────────────────────────────────────
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
@@ -403,7 +434,6 @@ async function getGoogleAccessToken(): Promise<string> {
 
   const unsigned = `${enc(header)}.${enc(payload)}`;
 
-  // Web Crypto sign (works in Cloudflare Workers + Node)
   const pem = sa.private_key.replace(/\\n/g, "\n");
   const keyData = pemToArrayBuffer(pem);
   const key = await crypto.subtle.importKey(
