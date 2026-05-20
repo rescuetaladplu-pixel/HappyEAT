@@ -53,6 +53,10 @@ function AppLayout() {
   const { count } = useCart();
   const activeOrders = useActiveOrdersCount();
 
+  useEffect(() => {
+    void ensureOrderChannels();
+  }, []);
+
   if (loading) return <LoadingScreen />;
 
   const customerNav = [
