@@ -476,15 +476,20 @@ export type Database = {
       }
       orders: {
         Row: {
+          awaiting_rider_boost: boolean
           created_at: string
           customer_id: string
           delivery_address: string
+          delivery_distance_km: number | null
           delivery_fee: number
+          delivery_fee_boost: number
           delivery_lat: number | null
           delivery_lng: number | null
           delivery_otp: string | null
           discount: number
+          dispatch_wave: number
           id: string
+          last_dispatched_at: string
           notes: string | null
           payment_confirmed_at: string | null
           payment_method: string
@@ -501,15 +506,20 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          awaiting_rider_boost?: boolean
           created_at?: string
           customer_id: string
           delivery_address: string
+          delivery_distance_km?: number | null
           delivery_fee?: number
+          delivery_fee_boost?: number
           delivery_lat?: number | null
           delivery_lng?: number | null
           delivery_otp?: string | null
           discount?: number
+          dispatch_wave?: number
           id?: string
+          last_dispatched_at?: string
           notes?: string | null
           payment_confirmed_at?: string | null
           payment_method?: string
@@ -526,15 +536,20 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          awaiting_rider_boost?: boolean
           created_at?: string
           customer_id?: string
           delivery_address?: string
+          delivery_distance_km?: number | null
           delivery_fee?: number
+          delivery_fee_boost?: number
           delivery_lat?: number | null
           delivery_lng?: number | null
           delivery_otp?: string | null
           discount?: number
+          dispatch_wave?: number
           id?: string
+          last_dispatched_at?: string
           notes?: string | null
           payment_confirmed_at?: string | null
           payment_method?: string
@@ -968,6 +983,10 @@ export type Database = {
       }
     }
     Functions: {
+      boost_delivery_fee: {
+        Args: { _amount: number; _order_id: string }
+        Returns: boolean
+      }
       confirm_delivery: {
         Args: { order_id: string; otp_code: string }
         Returns: boolean
