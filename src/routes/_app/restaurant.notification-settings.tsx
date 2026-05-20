@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Bell, Play, Volume2 } from "lucide-react";
+import { ArrowLeft, Bell, Play, Smartphone, Volume2 } from "lucide-react";
 import {
   playNotificationSound,
   SOUND_OPTIONS,
@@ -13,26 +13,41 @@ import {
   type SoundId,
   type VolumeLevel,
 } from "@/lib/notification-sounds";
+import {
+  getUserSoundPref,
+  setUserSoundPref,
+  isNativeApp,
+} from "@/lib/native-notifications";
 
 export const Route = createFileRoute("/_app/restaurant/notification-settings")({
   component: NotificationSettingsPage,
 });
 
 function NotificationSettingsPage() {
+  const native = isNativeApp();
+
   const [soundOn, setSoundOn] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem("rest-sound") !== "off";
   });
   const [soundType, setSoundType] = useState<SoundId>(() => {
-    if (typeof window === "undefined") return "emergency";
+    if (typeof window === "undefined") return "siren";
     const saved = localStorage.getItem("rest-sound-type") as SoundId | null;
-    return saved && SOUND_OPTIONS.some((s) => s.id === saved) ? saved : "emergency";
+    return saved && SOUND_OPTIONS.some((s) => s.id === saved) ? saved : "siren";
   });
   const [volume, setVolume] = useState<VolumeLevel>(() => {
     if (typeof window === "undefined") return "normal";
     const saved = localStorage.getItem("rest-sound-volume") as VolumeLevel | null;
     return saved && VOLUME_OPTIONS.some((v) => v.id === saved) ? saved : "normal";
   });
+
+  // Sync from DB on mount (server uses this when sending FCM)
+  useEffect(() => {
+    void getUserSoundPref().then((s) => {
+      setSoundType(s);
+      localStorage.setItem("rest-sound-type", s);
+    });
+  }, []);
 
   function toggleSound(on: boolean) {
     setSoundOn(on);
@@ -42,6 +57,7 @@ function NotificationSettingsPage() {
   function selectSound(id: SoundId) {
     setSoundType(id);
     localStorage.setItem("rest-sound-type", id);
+    void setUserSoundPref(id);
     playNotificationSound(id, volume);
   }
   function selectVolume(v: VolumeLevel) {
