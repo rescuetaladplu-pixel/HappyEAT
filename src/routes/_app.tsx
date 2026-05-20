@@ -106,7 +106,7 @@ function AppLayout() {
             const badgeClass =
               it.badgeTone === "warning"
                 ? "bg-orange-500 text-white"
-                : "bg-primary text-primary-foreground";
+                : "bg-green-600 text-white";
             return (
               <Link
                 key={item.to}
