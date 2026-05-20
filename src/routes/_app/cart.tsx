@@ -53,7 +53,9 @@ function CartPage() {
   const [promo, setPromo] = useState<{ id: string; code: string; discount: number } | null>(null);
   const [checking, setChecking] = useState(false);
   const [restaurantHasPromptpay, setRestaurantHasPromptpay] = useState<boolean | null>(null);
-  const deliveryFee = 30;
+  const [deliveryFee, setDeliveryFee] = useState<number>(35);
+  const [deliveryKm, setDeliveryKm] = useState<number | null>(null);
+  const [feeLoading, setFeeLoading] = useState(false);
   const discount = promo?.discount ?? 0;
 
   async function applyPromo() {
