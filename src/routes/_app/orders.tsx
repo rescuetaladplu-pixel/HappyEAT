@@ -7,14 +7,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ClipboardList, Star } from "lucide-react";
+import { ClipboardList, Star, Phone, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { STATUS_LABELS, STATUS_VARIANTS, type OrderStatus } from "@/lib/order-status";
 import { PaymentPanel } from "@/components/PaymentPanel";
 import { EnablePushButton } from "@/components/EnablePushButton";
 import { BoostDeliveryFeeCard } from "@/components/BoostDeliveryFeeCard";
+
+interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  notes: string | null;
+}
 
 export const Route = createFileRoute("/_app/orders")({
   component: OrdersPage,
