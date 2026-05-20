@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { STATUS_LABELS, STATUS_VARIANTS, type OrderStatus } from "@/lib/order-status";
 import { PaymentPanel } from "@/components/PaymentPanel";
 import { EnablePushButton } from "@/components/EnablePushButton";
+import { BoostDeliveryFeeCard } from "@/components/BoostDeliveryFeeCard";
 
 export const Route = createFileRoute("/_app/orders")({
   component: OrdersPage,
@@ -32,6 +33,9 @@ interface Order {
   payment_slip_url: string | null;
   rejection_reason: string | null;
   delivery_otp: string | null;
+  delivery_fee: number;
+  awaiting_rider_boost: boolean;
+  dispatch_wave: number;
   restaurants: {
     name: string;
     owner_id: string;
@@ -61,7 +65,7 @@ function OrdersPage() {
     // ไม่ปะปนกับออเดอร์ที่เห็นผ่าน RLS เพราะเป็นเจ้าของร้าน/แอดมิน (ร้านมีหน้า /restaurant/orders แยก)
     let q = supabase
       .from("orders")
-      .select("id, status, total, subtotal, created_at, customer_id, rider_id, restaurant_id, payment_method, payment_slip_url, rejection_reason, delivery_otp, restaurants(name, owner_id, logo_url, promptpay_id, promptpay_holder_name, promptpay_qr_holder_name, promptpay_mode, promptpay_qr_url)")
+      .select("id, status, total, subtotal, created_at, customer_id, rider_id, restaurant_id, payment_method, payment_slip_url, rejection_reason, delivery_otp, delivery_fee, awaiting_rider_boost, dispatch_wave, restaurants(name, owner_id, logo_url, promptpay_id, promptpay_holder_name, promptpay_qr_holder_name, promptpay_mode, promptpay_qr_url)")
       .order("created_at", { ascending: false })
       .limit(50);
     if (role === "rider") {
@@ -208,6 +212,9 @@ function OrdersPage() {
                     <Button size="sm" variant="ghost" className="text-destructive h-7" onClick={cancelOrder}>ยกเลิกออเดอร์</Button>
                   </div>
                 </div>
+              )}
+              {o.awaiting_rider_boost && o.status === "awaiting_confirmations" && !o.rider_id && o.customer_id === user?.id && (
+                <BoostDeliveryFeeCard order={o} onBoosted={loadOrders} />
               )}
               {showPayment && o.restaurants && (
                 <PaymentPanel

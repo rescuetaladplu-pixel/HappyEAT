@@ -1,92 +1,88 @@
-# Order Flow ใหม่ — Parallel Confirmation ก่อนจ่ายเงิน
 
-## สรุป flow ใหม่ (ตามที่ตกลง)
+# Distance-based dispatch + dynamic delivery fee
 
-```text
-[customer create]
-        ↓
-awaiting_confirmations   ← ร้านเห็น + ไรเดอร์เห็นใน pool พร้อมกันทันที
-   ├── ร้านกด "ยืนยันออเดอร์"   → set restaurant_accepted_at
-   └── ไรเดอร์กด "รับงาน"        → set rider_id + rider_accepted_at  (ผูกพันยาว)
-        ↓ เมื่อ "ครบทั้งคู่" — trigger auto-transition
-awaiting_payment         ← ลูกค้าเห็น QR PromptPay
-        ↓ ลูกค้า upload สลิป
-awaiting_payment_confirm
-        ↓ ร้านยืนยันสลิป
-preparing                ← ไรเดอร์ได้ noti "ร้านเริ่มทำแล้ว มุ่งหน้าไปร้านได้" (ไม่ต้องกดยืนยันรอบสอง)
-        ↓ ร้านกด "พร้อมส่ง"
-ready
-        ↓ ไรเดอร์รับของ
-picked_up → delivering → delivered (OTP RPC เดิม)
+## 1. สูตรค่าส่ง (option A — fractional, ceil บาท)
+
+```
+0–4 กม.    : 35฿  (flat)
+> 4–7 กม.  : +6฿/กม. (fraction)
+> 7–10 กม. : +7฿/กม.
+> 10+ กม.  : +8฿/กม.
+ผลรวมท้ายสุด → Math.ceil() เป็นบาทเต็ม
 ```
 
-`cancelled` ทำได้ตลอดก่อน `preparing` (ลูกค้ายกเลิกเอง / ร้านปฏิเสธ / ไรเดอร์ปล่อยงานก่อนจ่าย)
+ตรวจ: 4.3→37฿ · 5→41฿ · 7→53฿ · 8.2→62฿ · 10→74฿ · 12→90฿
 
-## การเปลี่ยน Schema
+ไฟล์ใหม่ `src/lib/delivery-fee.ts` (pure function ใช้ทั้ง client preview + server)
 
-1. เพิ่ม value `awaiting_confirmations` ใน enum `order_status` (วางก่อน `awaiting_restaurant` ซึ่งจะ deprecate)
-2. เพิ่ม column `orders.rider_accepted_at timestamptz`
-3. เก็บ `awaiting_restaurant` ไว้ใน enum ก่อน (backward compat กับ order เก่า) แต่ flow ใหม่ไม่ใช้แล้ว
-4. Default status ของ order ใหม่ → `awaiting_confirmations`
+## 2. ระยะทางที่ใช้ (ร้าน → ที่อยู่ลูกค้า)
 
-## Trigger / RPC
+- คำนวณตอน checkout ผ่าน OSRM `route` API (ฟรี, ใช้อยู่แล้วในโปรเจกต์)
+- เก็บลง `orders.delivery_distance_km` (column ใหม่) ตอน insert
+- ถ้า OSRM ล่ม → fallback haversine × 1.3 (กันราคาผิด)
+- หน้า cart: เรียก preview ฟังก์ชัน `previewDeliveryFee(restaurantId, lat, lng)` แบบ debounce 500ms เมื่อ address เปลี่ยน
 
-- **BEFORE INSERT trigger** บน `orders`: ถ้า status ไม่ระบุ → set `awaiting_confirmations`
-- **AFTER UPDATE trigger** บน `orders`: เมื่อ `restaurant_accepted_at IS NOT NULL AND rider_id IS NOT NULL AND status = 'awaiting_confirmations'` → auto set `status = 'awaiting_payment'`
-- **RPC `rider_claim_order(order_id uuid)`** (SECURITY DEFINER) — ทางเดียวที่ไรเดอร์ผูกตัวเองกับงานในช่วงนี้:
-  - ตรวจ `auth.uid()` มี role `rider` + approved
-  - atomic `UPDATE orders SET rider_id = auth.uid(), rider_accepted_at = now() WHERE id = $1 AND rider_id IS NULL AND status = 'awaiting_confirmations' RETURNING id`
-  - ป้องกัน race condition (หลายไรเดอร์กดพร้อมกัน)
-- **RPC `restaurant_accept_order(order_id uuid)`** (SECURITY DEFINER) — สำหรับร้านกดยืนยันรอบแรก (ก่อนจ่ายเงิน) เพื่อ trigger คำนวณ auto-transition ฝั่ง DB
+## 3. Wave dispatch (4→4→6→8 กม.)
 
-## RLS updates
+| Wave | t (วิ) | รัศมี | กลุ่มเป้าหมาย |
+|------|-------|------|---------------|
+| 0 | 0    | 4 กม. | 3 คนใกล้สุด |
+| 1 | 15   | 4 กม. | **ทุกคน** ในรัศมี |
+| 2 | 30   | 6 กม. | ทุกคน |
+| 3 | 45   | 8 กม. | ทุกคน |
+| 4 | 60   | — | เปิด UI ลูกค้าเพิ่มค่าส่ง |
 
-- `Customers view own orders`: เพิ่มเงื่อนไข rider pool ให้เห็น `status = 'awaiting_confirmations' AND rider_id IS NULL` ด้วย (จาก `ready/preparing` เดิม)
-- Trigger `enforce_orders_update_authorization` ปัจจุบัน: เพิ่ม branch ให้ไรเดอร์ที่ assigned แล้ว update status `picked_up`/`delivering` ได้เหมือนเดิม + อนุญาตให้ "ปล่อยงาน" (set rider_id = NULL) **ก่อน** payment เท่านั้น (ใน `awaiting_confirmations` / `awaiting_payment`) — ผ่าน RPC แยก `rider_release_order` (optional, มีไว้กรณีไรเดอร์เปลี่ยนใจก่อนลูกค้าจ่าย)
-- Customer cancel: ขยาย allowed transition ให้ cancel ได้จาก `awaiting_confirmations` ด้วย
+### Schema เพิ่ม (`orders`)
+- `delivery_distance_km numeric`
+- `dispatch_wave smallint default 0`
+- `last_dispatched_at timestamptz default now()`
+- `delivery_fee_boost numeric default 0` (ลูกค้าเพิ่มเอง, รวมเข้า `delivery_fee` ตอนแสดง/แจ้งไรเดอร์)
+- `awaiting_rider_boost boolean default false` (true เมื่อหลัง wave 4)
 
-## UI changes ฝั่ง happyeat
+### กลไก
+- Cron `pg_cron` ทุก 15 วินาที → POST `/api/public/hooks/dispatch-tick`
+- Handler: SELECT orders ที่ `status='awaiting_confirmations' AND rider_id IS NULL AND now() - last_dispatched_at >= 14s AND dispatch_wave < 4`
+  - แต่ละ order: เลื่อน wave +1 → คำนวณ candidate riders ตามตาราง → ยิง push → UPDATE `dispatch_wave`, `last_dispatched_at`
+  - wave 4: ไม่ยิง push, เซ็ต `awaiting_rider_boost=true` ส่ง realtime ให้ลูกค้า
+- Wave 0 ยังยิงทันทีตอน create order (เหมือนเดิม) — cron จะหยิบ wave ถัดไป
 
-- **`src/routes/_app/cart.tsx`**: order ที่สร้างใหม่ → status `awaiting_confirmations` (เลิกใช้ `pending`/`awaiting_restaurant`)
-- **`src/routes/_app/orders.tsx`** (ฝั่งลูกค้า): เพิ่ม UI สำหรับ `awaiting_confirmations` แสดง 2 chip คู่ขนาน:
-  - "⏳ รอร้านยืนยัน" / "✓ ร้านยืนยันแล้ว"
-  - "🔍 กำลังหาไรเดอร์" / "✓ ได้ไรเดอร์: {ชื่อ}"
-  - ข้อความช่วยเหลือ: "รอเป็นพิเศษ? โทรหาร้านได้ที่ {เบอร์}" + ปุ่ม "ยกเลิกออเดอร์"
-- **`src/routes/_app/restaurant.orders.tsx`** (ฝั่งร้าน): แทนปุ่ม "รับออเดอร์" เดิม → ปุ่ม "ยืนยันออเดอร์" เรียก `restaurant_accept_order` RPC; UI แยก section ใหม่ "รอยืนยัน (ก่อนจ่าย)"
-- **`src/lib/order-status.ts`**: เพิ่ม label/variant สำหรับ `awaiting_confirmations`
+### Push เลือกไรเดอร์ตาม radius
+ย้าย logic ปัจจุบันใน `notifyRidersOrderReady` → helper `selectRidersWithinKm(pickupLat, pickupLng, maxKm, limit?)`
+- wave 0: limit=3
+- wave 1-3: limit=undefined (ทุกคน)
+- ใช้ OSRM `table` service กรอง driving distance ≤ maxKm
 
-## UI changes ฝั่ง HappyRider (rider room — ต้องแจ้ง)
+## 4. ลูกค้าเพิ่มค่าส่ง (+10฿)
 
-- หน้า rider-dashboard query pool order: เพิ่ม `awaiting_confirmations AND rider_id IS NULL` (เดิมเป็น `ready`/`preparing`)
-- ปุ่ม "รับงาน" → เรียก `rider_claim_order(order_id)` RPC แทน UPDATE ตรงๆ
-- หลังรับงาน: หน้างานของฉัน แสดง status flow ใหม่ — ระหว่าง `awaiting_payment` / `awaiting_payment_confirm` แสดงข้อความ "รอลูกค้าจ่ายเงิน อย่าเพิ่งไปร้าน"
-- เมื่อ status เข้า `preparing` → noti "ร้านเริ่มทำแล้ว มุ่งหน้าไปร้านได้" (ไม่มีปุ่มยืนยันรอบสอง)
-- เก็บ flow `picked_up → delivering → delivered (RPC)` เดิมไว้ทุกอย่าง
+เมื่อ `awaiting_rider_boost=true` แสดง card บนหน้า `/orders/$orderId`:
 
-## Push notifications
+> **ตอนนี้ไรเดอร์ใกล้คุณว่างน้อย** 🛵
+> ลองเพิ่มค่าส่งสักหน่อยเพื่อเป็นกำลังใจให้ไรเดอร์ที่ไกลขึ้นมารับงานนะคะ — ค่าส่งที่เพิ่มจะเข้าตรงไปที่ไรเดอร์ ไม่ผ่านระบบของเรา
+>
+> ค่าส่งปัจจุบัน: ฿XX
+> [+10฿] [+20฿] [+30฿]  → ปุ่ม "ยืนยันเพิ่ม ฿YY"
 
-- เมื่อลูกค้า create order → noti ไปที่ "ร้าน + ไรเดอร์ใกล้ 3 คน" พร้อมกัน (เดิม `notifyRidersOrderReady` ยิงตอน `ready` — ต้องเพิ่มฟังก์ชันใหม่ `notifyRestaurantNewOrder` + ยิง rider เร็วขึ้น)
-- เมื่อร้าน accept + ไรเดอร์ claim ครบ → noti กลับหาลูกค้า "จ่ายเงินได้แล้ว"
-- เมื่อลูกค้าจ่าย → noti ร้าน "มีสลิปรอตรวจ"
-- เมื่อร้านยืนยันสลิป → noti ไรเดอร์ที่ผูกไว้แล้ว "ร้านเริ่มทำ มุ่งหน้าไปได้"
+กลไก:
+- กดยืนยัน → server fn `boostDeliveryFee(orderId, amount)`:
+  - UPDATE `delivery_fee_boost += amount`, `delivery_fee += amount`, `total += amount`, `dispatch_wave = 3`, `last_dispatched_at = now() - 14s`, `awaiting_rider_boost=false`
+  - ยิง push wave ใหม่ทันทีให้ไรเดอร์ทุกคนในรัศมี 8 กม. (title โชว์ค่าส่งใหม่)
+- ลูกค้าเพิ่มกี่รอบก็ได้ — ทุกครั้งจะ trigger push wave ใหม่
+- ถ้ายังไม่มีคนรับใน 60 วิ → cron เซ็ต `awaiting_rider_boost=true` อีกครั้ง
 
-## Migration ที่จะรัน (ขั้นตอนเดียว)
+## 5. ไฟล์ที่กระทบ
 
-1. `ALTER TYPE order_status ADD VALUE 'awaiting_confirmations'`
-2. `ALTER TABLE orders ADD COLUMN rider_accepted_at timestamptz`
-3. เปลี่ยน DEFAULT ของ `orders.status` → `'awaiting_confirmations'`
-4. สร้าง RPC `rider_claim_order`, `restaurant_accept_order`, `rider_release_order`
-5. สร้าง AFTER UPDATE trigger สำหรับ auto-transition
-6. แก้ RLS `Customers view own orders` + trigger `enforce_orders_update_authorization` รองรับ transition ใหม่
+| ไฟล์ | การเปลี่ยน |
+|------|-----------|
+| `src/lib/delivery-fee.ts` | **ใหม่** — pure tier calculator |
+| `src/lib/dispatch.functions.ts` | **ใหม่** — `previewDeliveryFee`, `boostDeliveryFee`, `selectRidersWithinKm` |
+| `src/routes/api/public/hooks/dispatch-tick.ts` | **ใหม่** — cron handler |
+| `src/lib/fcm.functions.ts` | refactor `notifyRidersOrderReady` → ใช้ `selectRidersWithinKm`, รับ `radiusKm`+`limit` |
+| `src/routes/_app/cart.tsx` | ลบ hardcode 30฿ → ใช้ `previewDeliveryFee`, เก็บ `delivery_distance_km` ตอน insert |
+| `src/routes/_app/orders.$orderId.tsx` | เพิ่ม boost UI เมื่อ `awaiting_rider_boost=true` |
+| migration | เพิ่ม 4 columns + enable `pg_cron`/`pg_net` + schedule job |
+| `docs/SHARED_CONTRACT.md` | changelog + แจ้ง rider room |
 
-## SHARED_CONTRACT.md
+## 6. Cross-app impact (HappyRider)
 
-อัปเดต §3 (State Machine), §4 (Responsibility), §5 (RLS), §8 (Changelog) — บอกห้อง rider ให้แก้ตามรายการข้างต้น
-
-## Open question
-
-ออเดอร์เก่าที่ค้างอยู่ในระบบ (status เดิม `awaiting_restaurant` / `pending`) จะให้:
-- (A) ปล่อยให้จบ flow เก่าไป (เก็บ status เก่าใน enum) — แนะนำ เพราะปลอดภัยสุด
-- (B) บังคับ migrate รวมเป็น flow ใหม่ทันที — มีโอกาสกระทบ order ที่กำลังทำอยู่
-
-ผมจะใช้ (A) เป็น default ถ้าไม่ทักท้วง
+- ไรเดอร์ไม่ต้อง action อะไรกับ wave logic (push มาให้เอง)
+- **ต้องอัปเดต UI list งาน:** โชว์ `delivery_fee` (ที่รวม boost แล้ว) — query เดิมดึง

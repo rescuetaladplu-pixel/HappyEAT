@@ -35,6 +35,7 @@ import { Route as AppAdminRiderRouteImport } from './routes/_app/admin.rider'
 import { Route as AppAdminEatRouteImport } from './routes/_app/admin.eat'
 import { Route as AppAdminAppVersionRouteImport } from './routes/_app/admin.app-version'
 import { Route as AppAdminOrdersIndexRouteImport } from './routes/_app/admin.orders.index'
+import { Route as ApiPublicHooksDispatchTickRouteImport } from './routes/api/public/hooks/dispatch-tick'
 import { Route as AppRestaurantsRestaurantIdReviewsRouteImport } from './routes/_app/restaurants.$restaurantId.reviews'
 import { Route as AppAdminUsersUserIdRouteImport } from './routes/_app/admin.users.$userId'
 import { Route as AppAdminRestaurantsRestaurantIdRouteImport } from './routes/_app/admin.restaurants.$restaurantId'
@@ -171,6 +172,12 @@ const AppAdminOrdersIndexRoute = AppAdminOrdersIndexRouteImport.update({
   path: '/admin/orders/',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiPublicHooksDispatchTickRoute =
+  ApiPublicHooksDispatchTickRouteImport.update({
+    id: '/api/public/hooks/dispatch-tick',
+    path: '/api/public/hooks/dispatch-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AppRestaurantsRestaurantIdReviewsRoute =
   AppRestaurantsRestaurantIdReviewsRouteImport.update({
     id: '/reviews',
@@ -223,6 +230,7 @@ export interface FileRoutesByFullPath {
   '/admin/restaurants/$restaurantId': typeof AppAdminRestaurantsRestaurantIdRoute
   '/admin/users/$userId': typeof AppAdminUsersUserIdRoute
   '/restaurants/$restaurantId/reviews': typeof AppRestaurantsRestaurantIdReviewsRoute
+  '/api/public/hooks/dispatch-tick': typeof ApiPublicHooksDispatchTickRoute
   '/admin/orders/': typeof AppAdminOrdersIndexRoute
 }
 export interface FileRoutesByTo {
@@ -254,6 +262,7 @@ export interface FileRoutesByTo {
   '/admin/restaurants/$restaurantId': typeof AppAdminRestaurantsRestaurantIdRoute
   '/admin/users/$userId': typeof AppAdminUsersUserIdRoute
   '/restaurants/$restaurantId/reviews': typeof AppRestaurantsRestaurantIdReviewsRoute
+  '/api/public/hooks/dispatch-tick': typeof ApiPublicHooksDispatchTickRoute
   '/admin/orders': typeof AppAdminOrdersIndexRoute
 }
 export interface FileRoutesById {
@@ -287,6 +296,7 @@ export interface FileRoutesById {
   '/_app/admin/restaurants/$restaurantId': typeof AppAdminRestaurantsRestaurantIdRoute
   '/_app/admin/users/$userId': typeof AppAdminUsersUserIdRoute
   '/_app/restaurants/$restaurantId/reviews': typeof AppRestaurantsRestaurantIdReviewsRoute
+  '/api/public/hooks/dispatch-tick': typeof ApiPublicHooksDispatchTickRoute
   '/_app/admin/orders/': typeof AppAdminOrdersIndexRoute
 }
 export interface FileRouteTypes {
@@ -320,6 +330,7 @@ export interface FileRouteTypes {
     | '/admin/restaurants/$restaurantId'
     | '/admin/users/$userId'
     | '/restaurants/$restaurantId/reviews'
+    | '/api/public/hooks/dispatch-tick'
     | '/admin/orders/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -351,6 +362,7 @@ export interface FileRouteTypes {
     | '/admin/restaurants/$restaurantId'
     | '/admin/users/$userId'
     | '/restaurants/$restaurantId/reviews'
+    | '/api/public/hooks/dispatch-tick'
     | '/admin/orders'
   id:
     | '__root__'
@@ -383,6 +395,7 @@ export interface FileRouteTypes {
     | '/_app/admin/restaurants/$restaurantId'
     | '/_app/admin/users/$userId'
     | '/_app/restaurants/$restaurantId/reviews'
+    | '/api/public/hooks/dispatch-tick'
     | '/_app/admin/orders/'
   fileRoutesById: FileRoutesById
 }
@@ -390,6 +403,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicHooksDispatchTickRoute: typeof ApiPublicHooksDispatchTickRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -576,6 +590,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminOrdersIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/public/hooks/dispatch-tick': {
+      id: '/api/public/hooks/dispatch-tick'
+      path: '/api/public/hooks/dispatch-tick'
+      fullPath: '/api/public/hooks/dispatch-tick'
+      preLoaderRoute: typeof ApiPublicHooksDispatchTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/restaurants/$restaurantId/reviews': {
       id: '/_app/restaurants/$restaurantId/reviews'
       path: '/reviews'
@@ -687,17 +708,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicHooksDispatchTickRoute: ApiPublicHooksDispatchTickRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
