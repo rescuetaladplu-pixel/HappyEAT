@@ -215,11 +215,39 @@ function OrdersPage() {
                   <h3 className="font-semibold truncate">{o.restaurants?.name ?? "ร้านไม่พบ"}</h3>
                   <p className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString("th-TH")}</p>
                 </div>
+          return (
+            <Card key={o.id} className="p-4 space-y-3">
+              <button
+                type="button"
+                onClick={() => openDetails(o)}
+                className="w-full text-left flex items-start justify-between gap-2 hover:opacity-80 transition-opacity"
+              >
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold truncate flex items-center gap-1">
+                    {o.restaurants?.name ?? "ร้านไม่พบ"}
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </h3>
+                  <p className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString("th-TH")}</p>
+                  <p className="text-xs text-primary mt-0.5">ดูรายละเอียดออเดอร์</p>
+                </div>
                 <Badge variant={STATUS_VARIANTS[o.status] ?? "secondary"}>{STATUS_LABELS[o.status] ?? o.status}</Badge>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">#{o.id.slice(0, 8)}</span>
-                <span className="font-semibold text-primary">฿{Number(o.total).toFixed(0)}</span>
+              </button>
+              <div className="text-sm space-y-1 bg-secondary/30 rounded p-2">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>#{o.id.slice(0, 8)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">ค่าอาหาร</span>
+                  <span>฿{Number(o.subtotal).toFixed(0)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">ค่าจัดส่ง</span>
+                  <span>฿{Number(o.delivery_fee ?? 0).toFixed(0)}</span>
+                </div>
+                <div className="flex justify-between font-semibold text-primary border-t pt-1">
+                  <span>รวมทั้งสิ้น</span>
+                  <span>฿{Number(o.total).toFixed(0)}</span>
+                </div>
               </div>
               {(o.status === "awaiting_confirmations" || o.status === "awaiting_restaurant") && o.customer_id === user?.id && (
                 <div className="bg-secondary/50 rounded p-2 text-xs space-y-2">
@@ -240,7 +268,16 @@ function OrdersPage() {
                   ) : (
                     <span>⏳ รอร้านเช็คความพร้อม...</span>
                   )}
-                  <div className="flex justify-end">
+                  <div className="flex justify-between items-center gap-2">
+                    {o.restaurants?.phone ? (
+                      <Button asChild size="sm" variant="outline" className="h-7 gap-1">
+                        <a href={`tel:${o.restaurants.phone}`}>
+                          <Phone className="h-3 w-3" /> โทรหาร้าน
+                        </a>
+                      </Button>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground">ร้านยังไม่ได้ใส่เบอร์โทร</span>
+                    )}
                     <Button size="sm" variant="ghost" className="text-destructive h-7" onClick={cancelOrder}>ยกเลิกออเดอร์</Button>
                   </div>
                 </div>
