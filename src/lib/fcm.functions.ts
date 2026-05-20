@@ -184,23 +184,81 @@ export const sendStatusPush = createServerFn({ method: "POST" })
   });
 
 // ─────────────────────────────────────────────
-// Push to the NEAREST 3 online riders when an order becomes ready.
-// First rider to tap "รับงาน" wins (atomic UPDATE … WHERE rider_id IS NULL via RLS).
-// Riders without GPS coords are used as fallback to fill up to 3 slots.
+// Push order to riders.
+//   - Wave 0 (initial): nearest 3 within 4 km
+//   - Wave 1: all riders within 4 km
+//   - Wave 2: all riders within 6 km
+//   - Wave 3: all riders within 8 km
+//   - Wave 4: stop pushing, surface "boost delivery fee" UI to the customer
+//
+// `notifyRidersOrderReady` keeps the original behavior for the initial
+// dispatch (3-nearest within 4 km). The cron tick uses `notifyRidersForWave`
+// to broadcast subsequent radius waves.
 // ─────────────────────────────────────────────
-const NEAREST_RIDER_COUNT = 3;
+import { selectRidersWithinKm } from "@/lib/dispatch.functions";
 
-function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const R = 6371;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(a));
+const NEAREST_RIDER_COUNT = 3;
+const INITIAL_RADIUS_KM = 4;
+
+async function pushToRiderTokens(params: {
+  pickedRiderIds: string[];
+  orderId: string;
+  title: string;
+  body: string;
+  link?: string;
+}): Promise<{ sent: number; picked: number }> {
+  const { pickedRiderIds, orderId, title, body } = params;
+  const link = params.link ?? "/rider-dashboard";
+  if (pickedRiderIds.length === 0) return { sent: 0, picked: 0 };
+
+  const { data: tokens } = await supabaseAdmin
+    .from("fcm_tokens")
+    .select("token")
+    .in("user_id", pickedRiderIds);
+
+  if (!tokens || tokens.length === 0) return { sent: 0, picked: pickedRiderIds.length };
+
+  const accessToken = await getGoogleAccessToken();
+  const projectId = getServiceAccount().project_id;
+
+  let sent = 0;
+  const stale: string[] = [];
+  await Promise.all(
+    tokens.map(async (t) => {
+      const res = await fetch(
+        `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: {
+              token: t.token,
+              notification: { title, body },
+              data: { url: link, tag: `pool-${orderId}`, orderId },
+              webpush: { fcm_options: { link } },
+            },
+          }),
+        },
+      );
+      if (res.ok) sent++;
+      else {
+        const errBody = await res.text();
+        if (res.status === 404 || res.status === 400 || errBody.includes("UNREGISTERED")) {
+          stale.push(t.token);
+        }
+      }
+    }),
+  );
+  if (stale.length > 0) {
+    await supabaseAdmin.from("fcm_tokens").delete().in("token", stale);
+  }
+  return { sent, picked: pickedRiderIds.length };
 }
 
+// Initial wave (called inline from cart checkout) — nearest 3 within 4 km.
 export const notifyRidersOrderReady = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
