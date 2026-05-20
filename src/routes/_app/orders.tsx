@@ -255,7 +255,7 @@ function OrdersPage() {
                         </div>
                       </div>
                       <p className="text-muted-foreground font-serif text-sm text-[#ff0000]">
-                        ⏳ กำลังรอร้านอาหารยืนยันออเดอร์
+                        รอนานเป็นพิเศษ? โทรสอบถามร้านได้โดยตรง
                       </p>
                     </>
                   ) : (
