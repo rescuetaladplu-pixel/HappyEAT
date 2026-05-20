@@ -248,7 +248,7 @@ function OrdersPage() {
                     <>
                       <div className="grid grid-cols-2 gap-2">
                         <div className={`p-2 rounded border ${o.restaurants ? "bg-background" : ""}`}>
-                          ⏳ รอร้านยืนยัน
+                          ⏳ รอร้านอาหารยืนยันออเดอร์
                         </div>
                         <div className={`p-2 rounded border ${o.rider_id ? "bg-green-50 border-green-300 text-green-700" : "bg-background"}`}>
                           {o.rider_id ? "✓ ได้ไรเดอร์แล้ว" : "🔍 กำลังหาไรเดอร์"}
