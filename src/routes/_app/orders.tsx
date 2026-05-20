@@ -254,8 +254,8 @@ function OrdersPage() {
                           {o.rider_id ? "✓ ได้ไรเดอร์แล้ว" : "🔍 กำลังหาไรเดอร์"}
                         </div>
                       </div>
-                      <p className="text-muted-foreground">
-                        รอนานเป็นพิเศษ? โทรสอบถามร้านได้โดยตรง หรือยกเลิกออเดอร์
+                      <p className="text-muted-foreground font-serif text-sm text-[#ff0000]">
+                        ⏳ กำลังรอร้านอาหารยืนยันออเดอร์
                       </p>
                     </>
                   ) : (
