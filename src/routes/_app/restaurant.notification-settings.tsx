@@ -83,6 +83,20 @@ function NotificationSettingsPage() {
         เสียงจะดังวนซ้ำทุก 3 วินาที จนกว่าจะกดรับ/ปฏิเสธออเดอร์
       </p>
 
+      {native && (
+        <Card className="p-3 bg-orange-50 border-orange-200 text-orange-900 text-sm flex items-start gap-2">
+          <Smartphone className="h-4 w-4 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">โหมดเนทีฟแอป (Android)</p>
+            <p className="text-xs">
+              เสียงที่เลือกจะดังจริงผ่าน notification channel ของระบบ — แม้ปิดแอปหรือล็อกหน้าจอก็ดัง
+              ปุ่ม "ฟัง" ด้านล่างเป็นเสียงพรีวิวในแอป (ไม่ใช่เสียงเนทีฟ)
+              ทดสอบเสียงเนทีฟจริงโดยลองสั่งออเดอร์เข้ามา
+            </p>
+          </div>
+        </Card>
+      )}
+
       <Card className="p-4 space-y-5">
         <div className="flex items-center justify-between">
           <div>
