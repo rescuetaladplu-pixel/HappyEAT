@@ -90,7 +90,7 @@ function OrdersPage() {
     // ไม่ปะปนกับออเดอร์ที่เห็นผ่าน RLS เพราะเป็นเจ้าของร้าน/แอดมิน (ร้านมีหน้า /restaurant/orders แยก)
     let q = supabase
       .from("orders")
-      .select("id, status, total, subtotal, created_at, customer_id, rider_id, restaurant_id, payment_method, payment_slip_url, rejection_reason, delivery_otp, delivery_fee, awaiting_rider_boost, dispatch_wave, restaurants(name, owner_id, logo_url, promptpay_id, promptpay_holder_name, promptpay_qr_holder_name, promptpay_mode, promptpay_qr_url)")
+      .select("id, status, total, subtotal, created_at, customer_id, rider_id, restaurant_id, payment_method, payment_slip_url, rejection_reason, delivery_otp, delivery_fee, awaiting_rider_boost, dispatch_wave, restaurants(name, owner_id, logo_url, promptpay_id, promptpay_holder_name, promptpay_qr_holder_name, promptpay_mode, promptpay_qr_url, phone)")
       .order("created_at", { ascending: false })
       .limit(50);
     if (role === "rider") {
