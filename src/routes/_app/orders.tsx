@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { STATUS_LABELS, STATUS_VARIANTS, type OrderStatus } from "@/lib/order-status";
 import { PaymentPanel } from "@/components/PaymentPanel";
 import { EnablePushButton } from "@/components/EnablePushButton";
+import { BoostDeliveryFeeCard } from "@/components/BoostDeliveryFeeCard";
 
 export const Route = createFileRoute("/_app/orders")({
   component: OrdersPage,
